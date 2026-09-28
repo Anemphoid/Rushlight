@@ -1,62 +1,82 @@
 # Rushlight
 
-The real Alpha 2 client — React + Vite + Electron, replacing the single-file alpha
-scaffold. This is the foundation everything else (channel tree, settings, accounts)
-gets built on top of.
+Rushlight is a small, self-hosted voice and text chat app, built in the
+spirit of old Ventrilo servers. You run the server yourself, so there's no
+company sitting between you and your friends. Conversations disappear once
+everyone leaves a room, unless the people who were in it vote to keep the
+history.
 
-## One-time setup
+## Why you might want this
 
-```
-npm install
-```
+It's for small groups: a family, a friend group, a guild, people who don't
+need an app store full of bots and just want to talk. You keep the server on
+your own hardware, so it's your data and your rules.
 
-## Every time you want to work on it
+Push to talk works system wide, even when Rushlight isn't the focused
+window, and open mic is there if you'd rather leave it on. You build your
+own tree of servers, channels, and rooms, and decide which ones are voice,
+text, or both.
 
-```
-npm run dev
-```
+## Features
 
-This launches the actual Electron window with hot-reload — edit any file under
-`src/renderer/src` and see it update live, no manual restart needed. Edit
-`src/main` or `src/preload` and it restarts automatically.
+- Servers, channels, and rooms, each set to voice, text, or both
+- Chat that's ephemeral by default, with a vote to keep a room's history if
+  everyone in it agrees
+- System wide push to talk and open mic
+- Invite codes scoped to one server, single use or reusable, with optional
+  expiry
+- Guest access with no account needed
+- A self hosted server built with Node, Express, and SQLite
+- A desktop client built with Electron, with automatic updates
 
-Right now it just shows a placeholder screen confirming the stack is wired up
-correctly (React rendering, LiveKit's component library importing cleanly). That
-placeholder is the very next thing to replace with the real channel tree UI.
+## Status
 
-## Building a real installer (for later, not needed yet)
+This is alpha software. Voice, text, accounts, and invites all work today.
+Check the roadmap below for what's coming, and the issues page for known
+rough edges.
 
-```
-npm run dist
-```
+## Roadmap
 
-Produces an AppImage under `dist/` using the config in `electron-builder.yml`. This
-won't fully work until there's a real GitHub repo connected for the `publish`
-config to point at — fine to ignore until distribution actually becomes relevant.
+Coming soon:
+- Live participant lists in the channel tree (right now it refreshes every
+  few seconds instead of updating instantly)
+- Admin moderation: kick, mute, and ban
+- Mic input volume control
+
+Down the road:
+- Database migrations, so updates stop requiring a fresh database
+- End to end encryption
+- Flatpak packaging
+
+## Getting the app
+
+Download the latest AppImage from the releases page, then run:
+
+    chmod +x Rushlight-*.AppImage
+    ./Rushlight-*.AppImage
+
+The app checks for updates in the background and offers to install them
+when one's ready.
+
+## Running a server
+
+This repository is only the client. The server is a separate piece, built
+with Node, Express, and SQLite, that you run on your own machine. Its own
+README covers setup.
+
+## Building from source
+
+    npm install
+    npm run dev
+    npm run dist
+
+See RELEASING.md for how tagged releases get built and published.
 
 ## Project structure
 
-```
-src/
-  main/       Electron main process — window creation, app lifecycle
-  preload/    Preload script — the secure bridge between main and renderer
-  renderer/   The actual React app — this is where the UI gets built
     src/
-      App.jsx       Root component (currently a placeholder)
-      main.jsx       React mount point
-electron.vite.config.js   Build tooling config — rarely needs touching
-electron-builder.yml       Packaging config — AppImage, Flatpak, GitHub Releases
-```
-
-## What's verified working right now
-
-- `npm install` resolves cleanly, no version conflicts
-- `electron-vite build` succeeds — main, preload, and renderer all compile
-- LiveKit's React component library (`@livekit/components-react`) imports and
-  bundles correctly — confirmed at build time, not just assumed compatible
-
-## What's not built yet
-
-Everything from here is real feature work: the channel tree UI, the settings page,
-login/accounts, admin tools. This scaffold is deliberately just the foundation —
-nothing about the actual product exists inside `App.jsx` yet.
+      main/       Electron's main process: the window, the global push to talk hook, updates
+      preload/    the secure bridge between main and the renderer
+      renderer/   the React app, everything you see
+    electron.vite.config.js   build tooling config
+    electron-builder.yml      packaging config for the AppImage
