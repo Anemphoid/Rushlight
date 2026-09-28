@@ -31,20 +31,28 @@ text, or both.
 
 ## Status
 
-This is alpha software. Voice, text, accounts, and invites all work today.
-Check the roadmap below for what's coming, and the issues page for known
-rough edges.
+This is alpha software, built and tested by one person so far. Voice, text,
+accounts, invites, and the persistence vote all work, but none of it has
+been tried by a second person on a separate machine yet, and an update can
+currently mean wiping the database and starting over.
+
+Self-hosting your own Rushlight isn't supported yet. The server isn't
+published here, and the app's defaults assume my own network. That's the
+line for calling this beta instead of alpha, laid out below.
 
 ## Roadmap
 
-Coming soon:
+Needed for beta:
+- Confirmed working between two people on separate networks, not just
+  tested by me
+- Database migrations, so an update no longer means wiping the database
+- Basic admin moderation: kick, mute, ban
+- The server published, with setup docs that don't assume my own hardware
+
+After beta:
 - Live participant lists in the channel tree (right now it refreshes every
   few seconds instead of updating instantly)
-- Admin moderation: kick, mute, and ban
 - Mic input volume control
-
-Down the road:
-- Database migrations, so updates stop requiring a fresh database
 - End to end encryption
 - Flatpak packaging
 
@@ -55,14 +63,17 @@ Download the latest AppImage from the releases page, then run:
     chmod +x Rushlight-*.AppImage
     ./Rushlight-*.AppImage
 
+Right now it connects to my own server by default. Until self-hosting is
+supported, there's no server of your own to point it at.
+
 The app checks for updates in the background and offers to install them
 when one's ready.
 
 ## Running a server
 
-This repository is only the client. The server is a separate piece, built
-with Node, Express, and SQLite, that you run on your own machine. Its own
-README covers setup.
+The server isn't published yet. This repository is client only for now, so
+there's nowhere to point it except my own setup. Publishing the server with
+real setup docs is one of the things beta depends on, listed above.
 
 ## Building from source
 
