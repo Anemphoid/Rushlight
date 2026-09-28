@@ -1,0 +1,29 @@
+appId: cc.rushlight.app
+productName: Rushlight
+directories:
+  buildResources: build
+files:
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - '!.github/**'
+asarUnpack:
+  - resources/**
+  - node_modules/uiohook-napi/**
+# uiohook-napi ships prebuilt N-API binaries that work with Electron as-is.
+# Rebuilding from source would need X11 development headers on the build
+# machine for no benefit.
+npmRebuild: false
+linux:
+  target:
+    - AppImage
+  maintainer: rushlight.cc
+  category: Network
+  synopsis: Privacy-focused voice chat
+appImage:
+  artifactName: ${productName}-${version}.${ext}
+# No publish block on purpose: a local `npm run dist` just builds the AppImage.
+# The release workflow adds the GitHub update feed on the command line, where
+# the repo is known from the git remote.

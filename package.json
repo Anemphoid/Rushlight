@@ -1,0 +1,31 @@
+{
+  "name": "rushlight",
+  "version": "0.1.0",
+  "description": "Rushlight \u2014 a privacy-focused, Ventrilo-style voice chat client.",
+  "main": "./out/main/index.js",
+  "author": "Christian",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "dist": "electron-vite build && electron-builder --linux AppImage"
+  },
+  "dependencies": {
+    "@livekit/components-react": "^2.9.24",
+    "@livekit/components-styles": "^1.2.0",
+    "electron-updater": "^6.3.9",
+    "livekit-client": "^2.22.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "uiohook-napi": "^1.5.5"
+  },
+  "devDependencies": {
+    "@electron-toolkit/preload": "^3.0.1",
+    "@electron-toolkit/utils": "^3.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^2.3.0",
+    "vite": "^5.4.11"
+  }
+}

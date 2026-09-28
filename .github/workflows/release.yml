@@ -1,0 +1,35 @@
+# Push a version tag (git tag v0.1.1 && git push origin v0.1.1) and this builds
+# the AppImage and publishes it as a GitHub Release. Installed copies of
+# Rushlight find it on their own and offer to update.
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The tag is the source of truth for the version, so the two can't drift.
+      - name: Set version from tag
+        run: npm pkg set version="${GITHUB_REF_NAME#v}"
+
+      - run: npm install
+
+      - run: npm run build
+
+      - name: Build and publish AppImage
+        run: npx electron-builder --linux AppImage --publish always -c.publish.provider=github -c.publish.releaseType=release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
