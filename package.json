@@ -1,7 +1,7 @@
 {
   "name": "rushlight",
   "version": "0.1.0",
-  "description": "Rushlight \u2014 a privacy-focused, Ventrilo-style voice chat client.",
+  "description": "Rushlight — a privacy-focused, Ventrilo-style voice chat client.",
   "main": "./out/main/index.js",
   "author": "Christian",
   "scripts": {
@@ -13,7 +13,7 @@
   "dependencies": {
     "@livekit/components-react": "^2.9.24",
     "@livekit/components-styles": "^1.2.0",
-    "electron-updater": "^6.3.9",
+    "electron-updater": "^6.8.9",
     "livekit-client": "^2.22.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

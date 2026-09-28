@@ -22,8 +22,13 @@ linux:
   maintainer: rushlight.cc
   category: Network
   synopsis: Privacy-focused voice chat
+# No version in the filename on purpose: electron-updater's AppImage updater
+# only overwrites a running AppImage in place when its filename has no
+# version number in it. A versioned name (Rushlight-0.1.0.AppImage) makes it
+# delete the old file and write a differently-named new one instead, which
+# breaks any fixed-path desktop launcher on the very first auto-update.
 appImage:
-  artifactName: ${productName}-${version}.${ext}
+  artifactName: ${productName}.${ext}
 # No publish block on purpose: a local `npm run dist` just builds the AppImage.
 # The release workflow adds the GitHub update feed on the command line, where
 # the repo is known from the git remote.
