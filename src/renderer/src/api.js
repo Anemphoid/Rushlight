@@ -1,5 +1,20 @@
 let cachedBaseUrl = null
 
+// Synchronous on purpose: an <img src> can't await anything. By the time
+// anything tries to render an avatar, some earlier request has already
+// warmed this cache — there's no code path that shows account data before
+// the app has talked to the server at least once.
+export function getCachedBaseUrl() {
+  return cachedBaseUrl
+}
+
+// null if the server address isn't known yet, or the account has no custom
+// image — either way the caller should fall back to the color swatch.
+export function avatarUrl(accountId, avatarUpdatedAt) {
+  if (!accountId || !avatarUpdatedAt || !cachedBaseUrl) return null
+  return `${cachedBaseUrl}/api/avatars/${accountId}?v=${avatarUpdatedAt}`
+}
+
 async function getBaseUrl() {
   if (cachedBaseUrl) return cachedBaseUrl
   const config = await window.api.getServerConfig()
@@ -60,6 +75,12 @@ export const login = (username, password) =>
 
 export const getMe = (token) => request('/api/me', { token })
 
+// image: base64 (no data: prefix), mime: one of image/jpeg, image/png, image/webp
+export const uploadAvatar = (token, image, mime) =>
+  request('/api/me/avatar', { method: 'POST', token, body: { image, mime } })
+
+export const deleteAvatar = (token) => request('/api/me/avatar', { method: 'DELETE', token })
+
 // --- Servers ---
 
 export const listServers = (token) => request('/api/servers', { token })
@@ -77,6 +98,25 @@ export const joinServerWithCode = (token, code) =>
 
 export const createServerCode = (token, serverId, options) =>
   request(`/api/servers/${serverId}/codes`, { method: 'POST', token, body: options })
+
+// --- Moderation ---
+export const getMembers = (token, serverId) =>
+  request(`/api/servers/${serverId}/members`, { token })
+
+export const getBans = (token, serverId) => request(`/api/servers/${serverId}/bans`, { token })
+
+export const kickMember = (token, serverId, accountId) =>
+  request(`/api/servers/${serverId}/members/${accountId}/kick`, { method: 'POST', token })
+
+export const banMember = (token, serverId, accountId, reason) =>
+  request(`/api/servers/${serverId}/members/${accountId}/ban`, { method: 'POST', token, body: { reason } })
+
+export const unbanMember = (token, serverId, accountId) =>
+  request(`/api/servers/${serverId}/bans/${accountId}`, { method: 'DELETE', token })
+
+// patch: { muted?: boolean, accessExpiresInMinutes?: number|null }
+export const patchMember = (token, serverId, accountId, patch) =>
+  request(`/api/servers/${serverId}/members/${accountId}`, { method: 'PATCH', token, body: patch })
 
 // Anonymous: no account, no persistent membership. Returns a LiveKit token
 // plus a snapshot of the server's real channel tree.

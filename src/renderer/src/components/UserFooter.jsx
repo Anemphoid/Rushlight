@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import * as voice from '../voice'
-import RushlightLogo from './RushlightLogo'
+import Avatar from './Avatar'
 
 function UserFooter({
   displayName,
   avatarColor,
+  imageUrl,
   isAdmin,
   onOpenSettings,
   onOpenProfile,
@@ -21,15 +22,7 @@ function UserFooter({
         onClick={onOpenProfile}
         title="Your profile"
       >
-        <div className="user-avatar" style={avatarColor ? { background: avatarColor } : {}}>
-          {avatarColor ? (
-            <span style={{ fontWeight: 700, fontSize: 12, color: 'var(--on-accent)' }}>
-              {(displayName || '?').charAt(0).toUpperCase()}
-            </span>
-          ) : (
-            <RushlightLogo size={28} />
-          )}
-        </div>
+        <Avatar color={avatarColor} name={displayName} imageUrl={imageUrl} size={28} className="user-avatar" />
         <span className="user-footer-name">{displayName}</span>
       </div>
 

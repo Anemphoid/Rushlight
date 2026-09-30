@@ -7,6 +7,7 @@ import TextChatView from '../components/TextChatView'
 import VoicePanel from '../components/VoicePanel'
 import Avatar from '../components/Avatar'
 import * as api from '../api'
+import { avatarUrl } from '../api'
 import { playSound } from '../sounds'
 
 const MODE_LABEL = { voice: 'v', text: 't', both: 'v/t' }
@@ -82,6 +83,8 @@ function mergeTree(prev, fresh) {
 function ChannelTreeScreen({
   screenName,
   avatarColor,
+  accountId,
+  ownAvatarUpdatedAt,
   onLeave,
   leaveLabel,
   onOpenSettings,
@@ -175,7 +178,8 @@ function ChannelTreeScreen({
         }
       } catch (err) {
         // Removed from the server, or it was deleted — nothing left to show.
-        if (err.status === 403 || err.status === 404) live.current.onLeave()
+        if (err.status === 403) live.current.onLeave('You were removed from this server.')
+        else if (err.status === 404) live.current.onLeave()
       }
     }, 5000)
     return () => {
@@ -627,7 +631,7 @@ function ChannelTreeScreen({
 
               {occupantsFor('channel:' + ch.id).map((p) => (
                 <div className="room-presence channel-level" key={p.id}>
-                  <Avatar color={p.avatarColor} name={p.name} size={16} />
+                  <Avatar color={p.avatarColor} name={p.name} imageUrl={avatarUrl(p.id, p.avatarUpdatedAt)} size={16} />
                   {p.name}
                 </div>
               ))}
@@ -724,7 +728,7 @@ function ChannelTreeScreen({
                   </div>
                   {occupantsFor('room:' + room.id).map((p) => (
                     <div className="room-presence" key={p.id}>
-                      <Avatar color={p.avatarColor} name={p.name} size={16} />
+                      <Avatar color={p.avatarColor} name={p.name} imageUrl={avatarUrl(p.id, p.avatarUpdatedAt)} size={16} />
                       {p.name}
                     </div>
                   ))}
@@ -763,6 +767,7 @@ function ChannelTreeScreen({
         <UserFooter
           displayName={screenName}
           avatarColor={avatarColor}
+          imageUrl={avatarUrl(accountId, ownAvatarUpdatedAt)}
           isAdmin={isAdmin}
           onOpenSettings={onOpenSettings}
           onOpenProfile={onOpenProfile}
@@ -784,9 +789,15 @@ function ChannelTreeScreen({
                 pttKey={pttKey}
                 pttHookOk={pttHookOk}
                 localColor={avatarColor}
+                localImageUrl={avatarUrl(accountId, ownAvatarUpdatedAt)}
                 colorFor={(name) => {
                   const list = presence[spaceKey(openSpace)] || []
                   return (list.find((p) => p.name === name) || {}).avatarColor || null
+                }}
+                imageUrlFor={(name) => {
+                  const list = presence[spaceKey(openSpace)] || []
+                  const entry = list.find((p) => p.name === name)
+                  return entry ? avatarUrl(entry.id, entry.avatarUpdatedAt) : null
                 }}
                 onRetry={onRetryVoice}
               />

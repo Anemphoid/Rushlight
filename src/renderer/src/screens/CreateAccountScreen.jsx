@@ -25,8 +25,8 @@ function CreateAccountScreen({ onBack, onAccountCreated }) {
     setError('')
     setCreating(true)
     try {
-      const { token, username: confirmedName } = await api.register(username.trim(), password)
-      onAccountCreated({ screenName: confirmedName, sessionToken: token })
+      const { token, username: confirmedName, id, avatarUpdatedAt } = await api.register(username.trim(), password)
+      onAccountCreated({ screenName: confirmedName, sessionToken: token, id, avatarUpdatedAt })
     } catch (err) {
       setError(err.message)
     } finally {

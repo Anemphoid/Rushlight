@@ -34,6 +34,9 @@ function App() {
   const [screenName, setScreenName] = useState(null)
   const [accountName, setAccountName] = useState(null) // the real username; screenName can be edited locally
   const [avatarColor, setAvatarColor] = useState(null)
+  const [accountId, setAccountId] = useState(null)
+  const [homeNotice, setHomeNotice] = useState('')
+  const [ownAvatarUpdatedAt, setOwnAvatarUpdatedAt] = useState(null)
 
   // sessionToken is set for real accounts. Guests who joined with a code have
   // none — they see one server's tree and hold a LiveKit token instead.
@@ -102,7 +105,9 @@ function App() {
     }
     api
       .getMe(saved)
-      .then(({ username }) => handleAccountReady({ screenName: username, sessionToken: saved }))
+      .then(({ username, id, avatarUpdatedAt }) =>
+        handleAccountReady({ screenName: username, sessionToken: saved, id, avatarUpdatedAt })
+      )
       .catch((err) => {
         if (err.status === 401) localStorage.removeItem('rushlight-session')
       })
@@ -208,9 +213,11 @@ function App() {
   }
 
   // Login, account creation, and a valid remembered session all end up here.
-  async function handleAccountReady({ screenName: name, sessionToken: token }) {
+  async function handleAccountReady({ screenName: name, sessionToken: token, id, avatarUpdatedAt }) {
     setScreenName(name)
     setAccountName(name)
+    setAccountId(id ?? null)
+    setOwnAvatarUpdatedAt(avatarUpdatedAt ?? null)
     setSessionToken(token)
     setGuestToken(null)
     setCurrentServer(null)
@@ -245,7 +252,8 @@ function App() {
     }
   }
 
-  function handleGoHome() {
+  function handleGoHome(notice) {
+    if (notice) setHomeNotice(notice)
     if (openSpace) playSound('self-leave', 0.5)
     setCurrentServer(null)
     setChannels([])
@@ -289,12 +297,18 @@ function App() {
     closeOverlay()
   }
 
+  function handleAvatarChanged(newAvatarUpdatedAt) {
+    setOwnAvatarUpdatedAt(newAvatarUpdatedAt)
+  }
+
   function resetToLogin() {
     if (openSpace) playSound('self-leave', 0.5)
     localStorage.removeItem('rushlight-session')
     setPendingJoinKey(null)
     setScreenName(null)
     setAccountName(null)
+    setAccountId(null)
+    setOwnAvatarUpdatedAt(null)
     setAvatarColor(null)
     setSessionToken(null)
     setGuestToken(null)
@@ -355,6 +369,10 @@ function App() {
         <ProfileScreen
           currentName={screenName}
           currentAvatarColor={avatarColor}
+          sessionToken={sessionToken}
+          accountId={accountId}
+          avatarUpdatedAt={ownAvatarUpdatedAt}
+          onAvatarChanged={handleAvatarChanged}
           onBack={closeOverlay}
           onSave={handleProfileSave}
         />
@@ -367,6 +385,7 @@ function App() {
           serverId={currentServer.id}
           serverName={currentServer.name}
           sessionToken={sessionToken}
+          accountId={accountId}
           onBack={closeOverlay}
         />
       )
@@ -378,6 +397,8 @@ function App() {
           screenName={screenName}
           hasServers={servers.length > 0}
           error={serversError}
+          notice={homeNotice}
+          onDismissNotice={() => setHomeNotice('')}
           onRetry={() => refreshServers(sessionToken)}
           onAdd={() => setShowServerDialog(true)}
           onOpenSettings={() => openOverlay('settings')}
@@ -392,6 +413,8 @@ function App() {
           key={currentServer.id}
           screenName={screenName}
           avatarColor={avatarColor}
+          accountId={accountId}
+          ownAvatarUpdatedAt={ownAvatarUpdatedAt}
           onLeave={sessionToken ? handleGoHome : resetToLogin}
           leaveLabel={sessionToken ? 'Back to home' : 'Leave'}
           onOpenSettings={() => openOverlay('settings')}

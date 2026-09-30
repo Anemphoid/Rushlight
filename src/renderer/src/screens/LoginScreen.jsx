@@ -44,11 +44,11 @@ function LoginScreen({ onGoToCreateAccount, onJoinAnonymous, onLoginSuccess }) {
     setLoginError('')
     setLoggingIn(true)
     try {
-      const { token, username: confirmedName } = await api.login(username.trim(), password)
+      const { token, username: confirmedName, id, avatarUpdatedAt } = await api.login(username.trim(), password)
       if (rememberMe) {
         localStorage.setItem('rushlight-session', token)
       }
-      onLoginSuccess({ screenName: confirmedName, sessionToken: token })
+      onLoginSuccess({ screenName: confirmedName, sessionToken: token, id, avatarUpdatedAt })
     } catch (err) {
       setLoginError(err.message)
     } finally {

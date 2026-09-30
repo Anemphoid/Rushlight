@@ -2,6 +2,8 @@ function HomeScreen({
   screenName,
   hasServers,
   error,
+  notice,
+  onDismissNotice,
   onRetry,
   onAdd,
   onOpenSettings,
@@ -10,6 +12,14 @@ function HomeScreen({
   return (
     <div className="home-screen">
       <div className="home-main">
+        {notice && (
+          <div className="home-notice">
+            {notice}
+            <button type="button" className="link-btn" onClick={onDismissNotice}>
+              Dismiss
+            </button>
+          </div>
+        )}
         {error ? (
           <>
             <h1>Couldn't load your servers</h1>

@@ -11,7 +11,7 @@ const STATUS_TEXT = {
   error: 'Connection problem'
 }
 
-function VoicePanel({ compact, pttKey, pttHookOk, localColor, colorFor, onRetry }) {
+function VoicePanel({ compact, pttKey, pttHookOk, localColor, localImageUrl, colorFor, imageUrlFor, onRetry }) {
   const v = useSyncExternalStore(voice.subscribe, voice.getSnapshot)
   const live = v.status === 'connected' || v.status === 'reconnecting'
 
@@ -39,7 +39,12 @@ function VoicePanel({ compact, pttKey, pttHookOk, localColor, colorFor, onRetry 
               key={p.identity}
               className={'voice-participant' + (p.isSpeaking ? ' speaking' : '')}
             >
-              <Avatar color={p.isLocal ? localColor : colorFor(p.name)} name={p.name} size={20} />
+              <Avatar
+                color={p.isLocal ? localColor : colorFor(p.name)}
+                name={p.name}
+                imageUrl={p.isLocal ? localImageUrl : imageUrlFor(p.name)}
+                size={20}
+              />
               <span>
                 {p.name}
                 {p.isLocal ? ' (you)' : ''}

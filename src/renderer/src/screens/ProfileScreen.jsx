@@ -1,14 +1,29 @@
 import { useState } from 'react'
 import Avatar from '../components/Avatar'
+import AvatarCropper from '../components/AvatarCropper'
+import * as api from '../api'
+import { avatarUrl } from '../api'
 
-// No real image-upload/avatar-storage backend exists yet, so this is the
-// honest interim system: pick a solid color, shown with your initial —
-// same pattern Discord/Slack fall back to before a custom image exists.
 const AVATAR_COLORS = ['#d9903f', '#e0836b', '#4a9d8f', '#7a9d6e', '#6e89b8', '#a878b8']
 
-function ProfileScreen({ currentName, currentAvatarColor, onBack, onSave }) {
+function ProfileScreen({
+  currentName,
+  currentAvatarColor,
+  sessionToken,
+  accountId,
+  avatarUpdatedAt,
+  onAvatarChanged,
+  onBack,
+  onSave
+}) {
   const [name, setName] = useState(currentName || '')
   const [avatarColor, setAvatarColor] = useState(currentAvatarColor || null)
+  const [showCropper, setShowCropper] = useState(false)
+  const [avatarBusy, setAvatarBusy] = useState(false)
+  const [avatarError, setAvatarError] = useState('')
+
+  const hasCustomImage = !!avatarUpdatedAt
+  const previewImageUrl = avatarUrl(accountId, avatarUpdatedAt)
 
   function handleSave(e) {
     e.preventDefault()
@@ -16,21 +31,67 @@ function ProfileScreen({ currentName, currentAvatarColor, onBack, onSave }) {
     onSave({ name: name.trim(), avatarColor })
   }
 
+  async function handleCropDone({ base64, mime }) {
+    setShowCropper(false)
+    setAvatarBusy(true)
+    setAvatarError('')
+    try {
+      const result = await api.uploadAvatar(sessionToken, base64, mime)
+      onAvatarChanged(result.avatarUpdatedAt)
+    } catch (err) {
+      setAvatarError(err.message)
+    } finally {
+      setAvatarBusy(false)
+    }
+  }
+
+  async function handleRemoveImage() {
+    setAvatarBusy(true)
+    setAvatarError('')
+    try {
+      await api.deleteAvatar(sessionToken)
+      onAvatarChanged(null)
+    } catch (err) {
+      setAvatarError(err.message)
+    } finally {
+      setAvatarBusy(false)
+    }
+  }
+
   return (
     <div className="screen">
       <div className="card">
         <h1>Your profile</h1>
-        <p className="sub">
-          Customize how you appear here. Full custom-image avatars need real
-          account storage, which doesn't exist yet — colored avatars are the
-          interim system.
+        <p className="sub">Customize how you appear here.</p>
+
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+          <Avatar color={avatarColor} name={name} imageUrl={previewImageUrl} size={72} />
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
+          <button
+            type="button"
+            className="btn-secondary"
+            disabled={avatarBusy}
+            onClick={() => setShowCropper(true)}
+          >
+            {hasCustomImage ? 'Change picture' : 'Upload a picture'}
+          </button>
+          {hasCustomImage && (
+            <button type="button" className="link-btn" disabled={avatarBusy} onClick={handleRemoveImage}>
+              Remove
+            </button>
+          )}
+        </div>
+        {avatarError && <p className="error-text" style={{ textAlign: 'center' }}>{avatarError}</p>}
+
+        <p className="settings-note" style={{ textAlign: 'center', marginBottom: 8 }}>
+          {hasCustomImage
+            ? "This is what people see next to your name and in chat. The color below is only used when there's no picture."
+            : 'No picture yet — pick a color below, or upload one above.'}
         </p>
 
         <form onSubmit={handleSave}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-            <Avatar color={avatarColor} name={name} size={56} />
-          </div>
-
           <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
             <button
               type="button"
@@ -79,6 +140,8 @@ function ProfileScreen({ currentName, currentAvatarColor, onBack, onSave }) {
           Back
         </button>
       </div>
+
+      {showCropper && <AvatarCropper onDone={handleCropDone} onCancel={() => setShowCropper(false)} />}
     </div>
   )
 }
