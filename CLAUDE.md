@@ -2,10 +2,11 @@
 
 Electron + React (electron-vite) desktop client for Rushlight, a small
 Ventrilo-style voice/text chat app. This repo is the **client only**. The
-server (`rushlight-server`: Node/Express, SQLite, JWT, LiveKit token minting)
-is a separate project and is deliberately unpublished until beta. Anything
-that needs server changes (new endpoints, stored fields) can't be done here;
-say so rather than faking it.
+server (Node/Express, SQLite, JWT, LiveKit token minting) is its own public repo,
+Anemphoid/Rushlight-Server; attach it with `add_repo` for any task that needs a
+new endpoint or stored field. Never fake a server feature in the client. The
+owner's server updates by git tag from that repo, so client work that depends on
+a server change has to wait for a server release.
 
 ## Commands
 
@@ -81,26 +82,16 @@ Commit to the assigned feature branch, don't open PRs unless asked. Real
 audio, the global key hook and the GUI can't be verified in the cloud sandbox;
 flag those as untested for the owner to try on their desktop.
 
-## Where we left off (temporary: delete this section after the server migration)
+## Backlog (not built yet)
 
-- **Client v0.4.0 is released** but nobody has run its new features on a desktop
-  yet: mic input gain (check PTT still works after moving the slider), per-person
-  volume (right-click someone in your voice space), mute/deafen, unread dots and
-  desktop notifications, speaking/muted markers in the tree, ping and connection
-  quality, and the sticky Settings back button. Ask the owner what they saw.
-- **The server moved to its own public repo, Anemphoid/Rushlight-Server** (attach
-  it with `add_repo` if a task touches the server). v0.2.0 is released there, but
-  the owner's server machine still runs the old zip version. They will migrate it
-  when they have a terminal (docs/migrate-existing-install.md in the server repo).
-  Until then the client talks to the old server, which lacks the new code
-  list/revoke endpoints.
-- **After the migration:** a client screen in Admin Tools to list and revoke join
-  codes (`GET` / `DELETE /api/servers/:id/codes`). Revoking is the only way to
-  remove a guest. Also note guests now get a 409 if their screen name matches an
-  account, so make sure the guest join screen shows the server's message.
-- **Other ideas the owner liked:** profile banner color, system tray icon,
-  keyboard navigation in the channel tree, collapsible channels, mute/deafen
-  hotkeys (needs main-process work).
-- **Loose end:** the owner thought the Settings page's vertical centering had
-  been fixed in a newer local version, but that fix is not in this repo. Ask
-  whether they have unpushed commits.
+- **Admin Tools screen to list and revoke join codes.** The server (v0.2.0)
+  already has `GET` / `DELETE /api/servers/:id/codes`. Revoking is the only way to
+  remove a guest, since guests have no account to kick or ban.
+- **Guest join screen should show the server's message** when a screen name is
+  refused. The server answers 409 if the name matches an account or a live guest.
+- **Client-only ideas the owner liked:** keyboard navigation in the channel tree,
+  collapsible channels that remember their state, a system tray icon with
+  close-to-tray, system-wide mute/deafen hotkeys (needs main-process work).
+- **Needs a server change first** (do those in the server repo, then the client):
+  real-time updates instead of polling, server-side unread counts, profile bio,
+  status and banner color shown to other people, settings sync across machines.
