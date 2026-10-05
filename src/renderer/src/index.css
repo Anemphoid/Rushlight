@@ -1158,32 +1158,17 @@ button {
 .voice-status.error::before {
   background: var(--danger);
 }
-.voice-participants {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.voice-panel.compact .voice-participants {
-  flex-direction: row;
-  flex-wrap: wrap;
-}
-.voice-participant {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 11px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  font-size: 0.8125rem;
-}
-.voice-participant.speaking {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
-}
-.voice-muted {
+.voice-quality {
   font-size: 0.6875rem;
   font-style: italic;
   color: var(--label);
+}
+.voice-quality.poor {
+  color: var(--danger);
+}
+.voice-quality.lost {
+  color: var(--danger);
+  font-weight: 700;
 }
 .voice-hint {
   font-size: 0.75rem;
@@ -1194,13 +1179,6 @@ button {
   color: var(--accent);
   font-style: normal;
 }
-.vol-slider.disabled {
-  opacity: 0.4;
-}
-.vol-slider.disabled input {
-  cursor: not-allowed;
-}
-
 /* ---- update banner ---- */
 .update-banner {
   position: fixed;
@@ -1352,4 +1330,106 @@ button {
 }
 .member-expiry-menu button:hover {
   background: var(--bg);
+}
+
+/* Tree: who is talking, who is muted, unread dots */
+.room-presence .occupant-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.room-presence.speaking {
+  color: var(--accent);
+}
+.room-presence.speaking .avatar-circle {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.occupant-muted {
+  margin-left: auto;
+  font-size: 0.625rem;
+  font-style: italic;
+  color: var(--label);
+}
+.has-unread {
+  font-weight: 700;
+  color: var(--text);
+}
+.unread-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: middle;
+}
+
+/* Footer mute / deafen */
+.foot-toggles {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.foot-toggle {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--dim);
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 0.6875rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+.foot-toggle:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.foot-toggle.on {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.foot-toggle:disabled {
+  cursor: default;
+}
+
+/* Per-person volume popover */
+.user-volume-menu {
+  padding: 10px 12px;
+  min-width: 190px;
+}
+.user-volume-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.user-volume-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.user-volume-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent);
+}
+.user-volume-value {
+  font-size: 0.75rem;
+  color: var(--dim);
+  min-width: 34px;
+  text-align: right;
+}
+
+/* Back button pinned to the top right of a long screen, so it never scrolls away */
+.screen-top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 0 8px;
+  margin-top: -16px;
+  background: var(--bg);
+}
+.screen-top-bar .btn-secondary {
+  width: auto;
+  padding: 6px 16px;
 }

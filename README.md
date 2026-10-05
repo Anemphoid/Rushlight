@@ -52,7 +52,6 @@ Needed for beta:
 After beta:
 - Live participant lists in the channel tree (right now it refreshes every
   few seconds instead of updating instantly)
-- Mic input volume control
 - End to end encryption
 - Flatpak packaging
 

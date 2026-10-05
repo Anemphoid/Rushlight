@@ -1,14 +1,17 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useSyncExternalStore } from 'react'
 import CreateItemForm from '../components/CreateItemForm'
 import UserFooter from '../components/UserFooter'
 import ContextMenu from '../components/ContextMenu'
 import PersistenceVote from '../components/PersistenceVote'
 import TextChatView from '../components/TextChatView'
 import VoicePanel from '../components/VoicePanel'
+import UserVolumeMenu from '../components/UserVolumeMenu'
 import Avatar from '../components/Avatar'
 import * as api from '../api'
 import { avatarUrl } from '../api'
 import { playSound } from '../sounds'
+import * as voice from '../voice'
+import * as unread from '../unread'
 
 const MODE_LABEL = { voice: 'v', text: 't', both: 'v/t' }
 const MIN_SIDEBAR_WIDTH = 200
@@ -29,6 +32,26 @@ function spaceId(space) {
 
 function spaceKey(space) {
   return `${space.type}:${spaceId(space)}`
+}
+
+// One person listed under a channel or room. In the space you're connected to
+// by voice it also shows who is talking and who is muted, and right-clicking
+// someone else there opens their personal volume.
+function Occupant({ p, channelLevel, vp, onContextMenu }) {
+  return (
+    <div
+      className={
+        'room-presence' +
+        (channelLevel ? ' channel-level' : '') +
+        (vp && vp.isSpeaking ? ' speaking' : '')
+      }
+      onContextMenu={onContextMenu}
+    >
+      <Avatar color={p.avatarColor} name={p.name} imageUrl={avatarUrl(p.id, p.avatarUpdatedAt)} size={16} />
+      <span className="occupant-name">{p.name}</span>
+      {vp && vp.isMuted && <span className="occupant-muted">muted</span>}
+    </div>
+  )
 }
 
 // Replace one channel's/room's messages wholesale — the server is the source
@@ -145,16 +168,54 @@ function ChannelTreeScreen({
   const [proposals, setProposals] = useState([]) // persistence votes this person started or is asked about
   const [, refreshAcknowledged] = useState(0)
   const [actionError, setActionError] = useState('')
+  const [volumeMenu, setVolumeMenu] = useState(null) // { x, y, name }
+  const unreadCounts = useSyncExternalStore(unread.subscribe, unread.getSnapshot)
+  const voiceState = useSyncExternalStore(voice.subscribe, voice.getSnapshot)
 
   // Polling bookkeeping. The version counters let a poll that started before
   // a local change throw its (now stale) result away instead of overwriting it.
   const mutationVersion = useRef(0)
   const messageVersion = useRef(0)
   const live = useRef({})
-  live.current = { onLeave, onServerRenamed, serverName, openSpace, channels, accountName }
+  live.current = { onLeave, onServerRenamed, serverName, openSpace, channels, accountName, accountId }
   // Who else was in the open space at the last check — the baseline the
   // join/leave sounds are measured against.
   const prevOthers = useRef({ key: null, names: new Set() })
+
+  // Look for new messages in the text spaces that aren't open. Ephemeral spaces
+  // only hold messages while someone is in them, so those are only worth asking
+  // about when occupied; persistent ones are always checked.
+  function checkUnread(data) {
+    const open = live.current.openSpace
+    const openKey = open ? spaceKey(open) : null
+    const presenceNow = data.presence || {}
+    const targets = []
+    data.channels.forEach((ch) => {
+      if (ch.mode !== 'voice') targets.push({ type: 'channel', id: ch.id, name: ch.name, persistent: ch.persistent })
+      ch.rooms.forEach((r) => {
+        if (r.mode !== 'voice') targets.push({ type: 'room', id: r.id, name: r.name, persistent: r.persistent })
+      })
+    })
+    targets
+      .filter((t) => {
+        const key = `${t.type}:${t.id}`
+        return key !== openKey && (t.persistent || (presenceNow[key] || []).length > 0)
+      })
+      .forEach(async (t) => {
+        try {
+          const messages = await api.getMessages(sessionToken, t.type, t.id)
+          unread.observe({
+            key: unread.scopedKey(serverId, `${t.type}:${t.id}`),
+            title: `${live.current.serverName} · ${t.name}`,
+            messages,
+            isOpen: false,
+            selfId: live.current.accountId
+          })
+        } catch {
+          // transient; the next check tries again
+        }
+      })
+  }
 
   // Poll the server's tree so changes other admins make show up without a
   // reload. A stopgap until real-time push exists with the LiveKit work.
@@ -169,6 +230,7 @@ function ChannelTreeScreen({
         setChannels((prev) => mergeTree(prev, data.channels))
         setPresence(data.presence || {})
         setProposals(data.proposals || [])
+        checkUnread(data)
         if (data.name !== live.current.serverName) live.current.onServerRenamed(data.name)
         const cur = live.current.openSpace
         if (cur) {
@@ -197,7 +259,15 @@ function ChannelTreeScreen({
       const version = messageVersion.current
       try {
         const msgs = await api.getMessages(sessionToken, space.type, spaceId(space))
-        if (cancelled || messageVersion.current !== version) return
+        if (cancelled) return
+        unread.observe({
+          key: unread.scopedKey(serverId, spaceKey(space)),
+          title: `${live.current.serverName} · ${space.name}`,
+          messages: msgs,
+          isOpen: true,
+          selfId: live.current.accountId
+        })
+        if (messageVersion.current !== version) return
         setChannels((prev) => withMessages(prev, space, msgs))
       } catch {
         // transient; the next tick tries again
@@ -292,6 +362,7 @@ function ChannelTreeScreen({
   function selectSpace(space) {
     if (openSpace && spaceKey(openSpace) === spaceKey(space)) return
     playSound(openSpace ? 'room-switch' : 'self-join')
+    unread.clear(unread.scopedKey(serverId, spaceKey(space)))
     setOpenSpace(space)
   }
 
@@ -303,6 +374,22 @@ function ChannelTreeScreen({
       return [...list, { id: 'self', name: screenName, avatarColor }]
     }
     return list
+  }
+
+  const unreadIn = (key) => unreadCounts[unread.scopedKey(serverId, key)] || 0
+
+  // The voice-side view of whoever is in the space I'm connected to, by name.
+  function voiceFor(key) {
+    if (voiceState.key !== key || (voiceState.status !== 'connected' && voiceState.status !== 'reconnecting')) {
+      return null
+    }
+    return new Map(voiceState.participants.map((p) => [p.name, p]))
+  }
+
+  function openVolumeMenu(e, name, vp) {
+    if (!vp || vp.isLocal) return
+    e.preventDefault()
+    setVolumeMenu({ x: e.clientX, y: e.clientY, name })
   }
 
   async function runMutation(fn) {
@@ -596,10 +683,13 @@ function ChannelTreeScreen({
                 onDrop={() => handleChannelDrop(ch.id)}
                 onContextMenu={(e) => openChannelMenu(e, ch.id)}
               >
-                <span>
+                <span className={unreadIn('channel:' + ch.id) ? 'has-unread' : ''}>
                   <span className="mode-label">{MODE_LABEL[ch.mode]}</span>
                   {ch.name}
                   {ch.persistent && <span className="persistent-tag">persistent</span>}
+                  {unreadIn('channel:' + ch.id) > 0 && (
+                    <span className="unread-dot" title={`${unreadIn('channel:' + ch.id)} new`} />
+                  )}
                 </span>
                 {isAdmin && (
                   <span style={{ display: 'flex', gap: 4 }}>
@@ -629,12 +719,21 @@ function ChannelTreeScreen({
                 )}
               </div>
 
-              {occupantsFor('channel:' + ch.id).map((p) => (
-                <div className="room-presence channel-level" key={p.id}>
-                  <Avatar color={p.avatarColor} name={p.name} imageUrl={avatarUrl(p.id, p.avatarUpdatedAt)} size={16} />
-                  {p.name}
-                </div>
-              ))}
+              {(() => {
+                const vmap = voiceFor('channel:' + ch.id)
+                return occupantsFor('channel:' + ch.id).map((p) => {
+                  const vp = vmap && vmap.get(p.name)
+                  return (
+                    <Occupant
+                      key={p.id}
+                      p={p}
+                      channelLevel
+                      vp={vp}
+                      onContextMenu={(e) => openVolumeMenu(e, p.name, vp)}
+                    />
+                  )
+                })
+              })()}
 
               {confirmDeleteChannel === ch.id && (
                 <div className="create-form">
@@ -703,10 +802,13 @@ function ChannelTreeScreen({
                     onDrop={() => handleRoomDrop(ch.id, room.id)}
                     onContextMenu={(e) => openRoomMenu(e, ch.id, room.id)}
                   >
-                    <span>
+                    <span className={unreadIn('room:' + room.id) ? 'has-unread' : ''}>
                       <span className="mode-label">{MODE_LABEL[room.mode]}</span>
                       {room.name}
                       {room.persistent && <span className="persistent-tag">persistent</span>}
+                      {unreadIn('room:' + room.id) > 0 && (
+                        <span className="unread-dot" title={`${unreadIn('room:' + room.id)} new`} />
+                      )}
                     </span>
                     {isAdmin && (
                       <button
@@ -726,12 +828,20 @@ function ChannelTreeScreen({
                       </button>
                     )}
                   </div>
-                  {occupantsFor('room:' + room.id).map((p) => (
-                    <div className="room-presence" key={p.id}>
-                      <Avatar color={p.avatarColor} name={p.name} imageUrl={avatarUrl(p.id, p.avatarUpdatedAt)} size={16} />
-                      {p.name}
-                    </div>
-                  ))}
+                  {(() => {
+                    const vmap = voiceFor('room:' + room.id)
+                    return occupantsFor('room:' + room.id).map((p) => {
+                      const vp = vmap && vmap.get(p.name)
+                      return (
+                        <Occupant
+                          key={p.id}
+                          p={p}
+                          vp={vp}
+                          onContextMenu={(e) => openVolumeMenu(e, p.name, vp)}
+                        />
+                      )
+                    })
+                  })()}
                   {confirmDeleteRoom &&
                     confirmDeleteRoom.channelId === ch.id &&
                     confirmDeleteRoom.roomId === room.id && (
@@ -788,17 +898,6 @@ function ChannelTreeScreen({
                 compact={openSpace.mode === 'both'}
                 pttKey={pttKey}
                 pttHookOk={pttHookOk}
-                localColor={avatarColor}
-                localImageUrl={avatarUrl(accountId, ownAvatarUpdatedAt)}
-                colorFor={(name) => {
-                  const list = presence[spaceKey(openSpace)] || []
-                  return (list.find((p) => p.name === name) || {}).avatarColor || null
-                }}
-                imageUrlFor={(name) => {
-                  const list = presence[spaceKey(openSpace)] || []
-                  const entry = list.find((p) => p.name === name)
-                  return entry ? avatarUrl(entry.id, entry.avatarUpdatedAt) : null
-                }}
                 onRetry={onRetryVoice}
               />
             )}
@@ -840,6 +939,15 @@ function ChannelTreeScreen({
           </div>
         )}
       </div>
+
+      {volumeMenu && (
+        <UserVolumeMenu
+          x={volumeMenu.x}
+          y={volumeMenu.y}
+          name={volumeMenu.name}
+          onClose={() => setVolumeMenu(null)}
+        />
+      )}
 
       {contextMenu && (
         <ContextMenu
