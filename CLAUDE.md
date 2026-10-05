@@ -51,6 +51,12 @@ say so rather than faking it.
 - Stop click propagation on nested buttons (the tree's `+`/`x`) or the row
   underneath opens too.
 - A resumed `AudioContext` is required for sound to play.
+- Never pass a handler bare to `onClick` when it takes an optional parameter
+  (`handleGoHome(notice)`): it receives the click event, the Home screen tries to
+  render that object, React throws, and on the frameless transparent window it
+  looks like the window vanished. Wrap it: `onClick={() => onHome()}`.
+- `.screen` uses `justify-content: safe center`. Plain `center` on an overflowing
+  flex column makes the top of the page unreachable by scrolling.
 - The repo is public; never commit secrets, keys, or personal network details
   beyond what `defaults.js` already has.
 

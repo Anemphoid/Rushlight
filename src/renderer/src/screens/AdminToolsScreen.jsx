@@ -29,8 +29,6 @@ function formatExpiry(ts) {
 }
 
 function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onBack }) {
-  const [timeoutMinutes, setTimeoutMinutes] = useState(10)
-
   const [members, setMembers] = useState(null) // null = still loading
   const [membersError, setMembersError] = useState('')
   const [busyId, setBusyId] = useState(null) // one row's action in flight at a time
@@ -277,26 +275,6 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onBac
             </div>
           </div>
         )}
-
-        <div className="settings-section">
-          <h2>default mute timeout</h2>
-          <div className="tier-row">
-            {[5, 10, 30, 60].map((mins) => (
-              <button
-                key={mins}
-                type="button"
-                className={'tier-chip' + (timeoutMinutes === mins ? ' active' : '')}
-                onClick={() => setTimeoutMinutes(mins)}
-              >
-                {mins}m
-              </button>
-            ))}
-          </div>
-          <p className="settings-note">
-            Applied when an admin mutes someone with the timer option, rather than
-            indefinitely. Not saved to the server yet.
-          </p>
-        </div>
 
         <button type="button" className="btn-secondary" onClick={onBack}>
           Back
