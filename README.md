@@ -42,16 +42,22 @@ text, or both.
 
 ## Where things stand
 
-Rushlight is still labelled alpha, but the four things it was waiting on for
-beta are now in place:
+Rushlight is still labelled alpha. Three of the four things it was waiting on
+for beta are in place:
 
 - Working between two people on separate networks. It has been confirmed that
   way, though only by a very small group so far.
 - Database migrations, so an update no longer means wiping the database.
 - Admin moderation: kick, ban, mute, and timed access.
-- The server published, with setup docs that don't assume my own hardware.
 
-Self-hosting is now possible, but it is new, so expect rough edges.
+The fourth, the server published with setup docs that don't assume my own
+hardware, is partly done. The server is published and documented, but you also
+have to install and configure LiveKit (the voice engine) yourself. There is a
+basic guide for that, and bundling LiveKit into the server's setup, so one install
+does both, is planned and not built yet.
+
+Self-hosting is possible today, but it takes more setup than it should, and it is
+new, so expect rough edges.
 
 ## Encryption
 
@@ -96,9 +102,11 @@ described below.
 
 You need three things: this client, the
 [Rushlight server](https://github.com/Anemphoid/Rushlight-Server), and a
-[LiveKit](https://livekit.io) server for the voice. The server's README walks
-through setup, running it as a service, and updating it from tagged releases
-with automatic rollback if an update fails.
+[LiveKit](https://livekit.io) server for the voice. LiveKit is a separate program
+and is **not bundled** with the Rushlight server, so you install and configure it
+yourself. The server's README walks through setting up the server, running it as
+a service, and updating it from tagged releases with automatic rollback if an
+update fails, and it links a basic LiveKit setup guide.
 
 Then tell the client where your server is:
 
