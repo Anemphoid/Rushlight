@@ -74,3 +74,27 @@ say so rather than faking it.
 Commit to the assigned feature branch, don't open PRs unless asked. Real
 audio, the global key hook and the GUI can't be verified in the cloud sandbox;
 flag those as untested for the owner to try on their desktop.
+
+## Where we left off (temporary: delete this section after the server migration)
+
+- **Client v0.4.0 is released** but nobody has run its new features on a desktop
+  yet: mic input gain (check PTT still works after moving the slider), per-person
+  volume (right-click someone in your voice space), mute/deafen, unread dots and
+  desktop notifications, speaking/muted markers in the tree, ping and connection
+  quality, and the sticky Settings back button. Ask the owner what they saw.
+- **The server moved to its own public repo, Anemphoid/Rushlight-Server** (attach
+  it with `add_repo` if a task touches the server). v0.2.0 is released there, but
+  the owner's server machine still runs the old zip version. They will migrate it
+  when they have a terminal (docs/migrate-existing-install.md in the server repo).
+  Until then the client talks to the old server, which lacks the new code
+  list/revoke endpoints.
+- **After the migration:** a client screen in Admin Tools to list and revoke join
+  codes (`GET` / `DELETE /api/servers/:id/codes`). Revoking is the only way to
+  remove a guest. Also note guests now get a 409 if their screen name matches an
+  account, so make sure the guest join screen shows the server's message.
+- **Other ideas the owner liked:** profile banner color, system tray icon,
+  keyboard navigation in the channel tree, collapsible channels, mute/deafen
+  hotkeys (needs main-process work).
+- **Loose end:** the owner thought the Settings page's vertical centering had
+  been fixed in a newer local version, but that fix is not in this repo. Ask
+  whether they have unpushed commits.
