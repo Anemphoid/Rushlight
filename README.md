@@ -6,6 +6,9 @@ company sitting between you and your friends. Conversations disappear once
 everyone leaves a room, unless the people who were in it vote to keep the
 history.
 
+This repository is the desktop client. The server is its own repository:
+[Rushlight-Server](https://github.com/Anemphoid/Rushlight-Server).
+
 ## Why you might want this
 
 It's for small groups: a family, a friend group, a guild, people who don't
@@ -22,57 +25,100 @@ text, or both.
 - Servers, channels, and rooms, each set to voice, text, or both
 - Chat that's ephemeral by default, with a vote to keep a room's history if
   everyone in it agrees
-- System wide push to talk and open mic
+- System wide push to talk and open mic, mute and deafen, and a mic input
+  volume control
+- Per person volume: right click someone in your voice room to turn them up or
+  down
+- See who is talking and who is muted right in the channel tree, plus your
+  connection's ping and quality
+- Unread dots on text rooms, with optional desktop notifications
+- Custom avatars
 - Invite codes scoped to one server, single use or reusable, with optional
   expiry
 - Guest access with no account needed
-- A self hosted server built with Node, Express, and SQLite
+- Admin tools: kick, ban, mute, and timed access
+- Four looks: Parchment and Cool Slate, each in dark and light
 - A desktop client built with Electron, with automatic updates
 
-## Status
+## Where things stand
 
-This is alpha software, built and tested by one person so far. Voice, text,
-accounts, invites, and the persistence vote all work, but none of it has
-been tried by a second person on a separate machine yet, and an update can
-currently mean wiping the database and starting over.
+Rushlight is still labelled alpha, but the four things it was waiting on for
+beta are now in place:
 
-Self-hosting your own Rushlight isn't supported yet. The server isn't
-published here, and the app's defaults assume my own network. That's the
-line for calling this beta instead of alpha, laid out below.
+- Working between two people on separate networks. It has been confirmed that
+  way, though only by a very small group so far.
+- Database migrations, so an update no longer means wiping the database.
+- Admin moderation: kick, ban, mute, and timed access.
+- The server published, with setup docs that don't assume my own hardware.
+
+Self-hosting is now possible, but it is new, so expect rough edges.
+
+## Encryption
+
+Nothing in Rushlight is end to end encrypted yet.
+
+- Passwords are stored hashed, never in plain text.
+- Chat messages are stored as plain text in the server's database, so whoever
+  runs the server can read them. Ephemeral rooms are deleted when everyone
+  leaves, but that is deletion, not encryption.
+- Voice goes through your LiveKit server, which can access it.
+- The server speaks plain HTTP. If it is reachable over the internet, put it
+  behind a reverse proxy that provides HTTPS, such as Caddy.
+
+End to end encryption is planned for after beta. That plan has not changed.
 
 ## Roadmap
 
-Needed for beta:
-- Confirmed working between two people on separate networks, not just
-  tested by me
-- Database migrations, so an update no longer means wiping the database
-- Basic admin moderation: kick, mute, ban
-- The server published, with setup docs that don't assume my own hardware
-
-After beta:
+After beta (unchanged):
 - Live participant lists in the channel tree (right now it refreshes every
   few seconds instead of updating instantly)
 - End to end encryption
 - Flatpak packaging
 
+Also on the list: a screen for admins to see and revoke invite codes, and a few
+smaller interface ideas.
+
 ## Getting the app
 
 Download the latest AppImage from the releases page, then run:
 
-    chmod +x Rushlight-*.AppImage
-    ./Rushlight-*.AppImage
-
-Right now it connects to my own server by default. Until self-hosting is
-supported, there's no server of your own to point it at.
+    chmod +x Rushlight.AppImage
+    ./Rushlight.AppImage
 
 The app checks for updates in the background and offers to install them
 when one's ready.
 
+The first time it runs, it connects to an address that belongs to my own private
+network, which won't work for you. Point it at your own server first, as
+described below.
+
 ## Running a server
 
-The server isn't published yet. This repository is client only for now, so
-there's nowhere to point it except my own setup. Publishing the server with
-real setup docs is one of the things beta depends on, listed above.
+You need three things: this client, the
+[Rushlight server](https://github.com/Anemphoid/Rushlight-Server), and a
+[LiveKit](https://livekit.io) server for the voice. The server's README walks
+through setup, running it as a service, and updating it from tagged releases
+with automatic rollback if an update fails.
+
+Then tell the client where your server is:
+
+1. Run the app and try to sign in. It will say it can't connect, but that
+   writes a file called `server-config.json` into the app's config folder (on
+   Linux, under `~/.config/`, in a folder named Rushlight or rushlight).
+2. Quit the app, open that file, and set the address of your server:
+
+       { "serverUrl": "http://your-server:4000" }
+
+3. Start the app again and create an account.
+
+A few things worth knowing:
+
+- Anyone who can reach your server can create an account, but nobody can see a
+  server's channels without one of its invite codes. Keep the server on a private
+  network, such as a VPN, unless you mean to open it up.
+- Every person who uses your server points their client at it the same way.
+- The server and the client update separately, so check the release notes of
+  both when you update either one.
 
 ## Building from source
 
@@ -90,3 +136,7 @@ See RELEASING.md for how tagged releases get built and published.
       renderer/   the React app, everything you see
     electron.vite.config.js   build tooling config
     electron-builder.yml      packaging config for the AppImage
+
+## License
+
+Business Source License 1.1. See LICENSE.
