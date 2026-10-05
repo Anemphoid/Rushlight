@@ -1,5 +1,4 @@
 import { useSyncExternalStore } from 'react'
-import Avatar from './Avatar'
 import * as voice from '../voice'
 import { formatKeyLabel } from '../keys'
 
@@ -11,7 +10,12 @@ const STATUS_TEXT = {
   error: 'Connection problem'
 }
 
-function VoicePanel({ compact, pttKey, pttHookOk, localColor, localImageUrl, colorFor, imageUrlFor, onRetry }) {
+const QUALITY_TEXT = { excellent: 'excellent', good: 'good', poor: 'poor', lost: 'lost' }
+
+// Who is in the space, who is talking and who is muted is shown in the channel
+// tree, so this panel is just the connection: its state, how healthy it is,
+// and how to talk.
+function VoicePanel({ compact, pttKey, pttHookOk, onRetry }) {
   const v = useSyncExternalStore(voice.subscribe, voice.getSnapshot)
   const live = v.status === 'connected' || v.status === 'reconnecting'
 
@@ -19,6 +23,16 @@ function VoicePanel({ compact, pttKey, pttHookOk, localColor, localImageUrl, col
     <div className={'voice-panel' + (compact ? ' compact' : '')}>
       <div className="voice-header">
         <span className={'voice-status ' + v.status}>{STATUS_TEXT[v.status]}</span>
+        {live && (v.quality || v.pingMs !== null) && (
+          <span
+            className={'voice-quality ' + (v.quality || '')}
+            title="Quality of your connection to the voice server"
+          >
+            {v.pingMs !== null && <>ping {v.pingMs} ms</>}
+            {v.pingMs !== null && v.quality && ' · '}
+            {v.quality && <>connection {QUALITY_TEXT[v.quality] || v.quality}</>}
+          </span>
+        )}
       </div>
 
       {v.error && (
@@ -33,31 +47,12 @@ function VoicePanel({ compact, pttKey, pttHookOk, localColor, localImageUrl, col
       )}
 
       {live && (
-        <div className="voice-participants">
-          {v.participants.map((p) => (
-            <div
-              key={p.identity}
-              className={'voice-participant' + (p.isSpeaking ? ' speaking' : '')}
-            >
-              <Avatar
-                color={p.isLocal ? localColor : colorFor(p.name)}
-                name={p.name}
-                imageUrl={p.isLocal ? localImageUrl : imageUrlFor(p.name)}
-                size={20}
-              />
-              <span>
-                {p.name}
-                {p.isLocal ? ' (you)' : ''}
-              </span>
-              {p.isMuted && <span className="voice-muted">muted</span>}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {live && (
         <div className="voice-hint">
-          {v.micMode === 'open' ? (
+          {v.deafened ? (
+            'You are deafened: you can’t hear anyone and your mic is off.'
+          ) : v.muted ? (
+            'You are muted.'
+          ) : v.micMode === 'open' ? (
             'Your mic is open.'
           ) : v.pttHeld ? (
             <strong>Talking…</strong>

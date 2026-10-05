@@ -2,6 +2,7 @@ import { useState, useEffect, useSyncExternalStore } from 'react'
 import * as voice from '../voice'
 import MicSpeakerCheck from '../components/MicSpeakerCheck'
 import { formatKeyLabel } from '../keys'
+import * as unread from '../unread'
 
 const DENSITY_TIERS = ['compact', 'cozy', 'comfortable']
 const ICON_SIZE_TIERS = ['small', 'medium', 'large']
@@ -24,6 +25,7 @@ function SettingsScreen({
   const [keyError, setKeyError] = useState('')
   const micMode = useSyncExternalStore(voice.subscribe, voice.getSnapshot).micMode
   const [version, setVersion] = useState('')
+  const [notifyOn, setNotifyOn] = useState(() => unread.notificationsEnabled())
 
   useEffect(() => {
     if (window.api && window.api.getVersion) window.api.getVersion().then(setVersion)
@@ -107,6 +109,32 @@ function SettingsScreen({
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="settings-section">
+          <h2>desktop notifications</h2>
+          <div className="tier-row">
+            {[
+              [true, 'On'],
+              [false, 'Off']
+            ].map(([value, label]) => (
+              <button
+                key={label}
+                type="button"
+                className={'tier-chip' + (notifyOn === value ? ' active' : '')}
+                onClick={() => {
+                  setNotifyOn(value)
+                  unread.setNotificationsEnabled(value)
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <p className="settings-note">
+            A notification for new messages in text rooms you don’t have open, or in the open room
+            while Rushlight isn’t focused. Unread dots in the tree are always shown.
+          </p>
         </div>
 
         <div className="settings-section">

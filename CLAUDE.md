@@ -29,6 +29,14 @@ say so rather than faking it.
   `subscribe`/`getSnapshot`. PTT starts muted, open mic stays live. Mic input
   gain is a Web Audio GainNode track processor, attached only when gain is
   off 100%, and it falls back to the raw mic on any failure.
+- `unread.js` unread dots and desktop notifications, also outside React. "Read"
+  is the newest message id seen per space (localStorage); new spaces are
+  baselined so old history never shows as unread. The tree's 5s poll checks
+  closed text spaces (persistent ones, or ephemeral ones with someone in them).
+- Who is speaking/muted shows on the channel tree rows (matched to LiveKit
+  participants by display name), not in the voice panel. Per-person volume
+  (right-click someone in your voice space) is keyed by name and is a 0-100%
+  share of the output volume. Mute/deafen live in `voice.js` and gate PTT.
 - `sounds.js` loads sounds by base name from `assets/sounds/` (missing = silent).
 
 ## Gotchas learned the hard way

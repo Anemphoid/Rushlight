@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import * as voice from '../voice'
 import Avatar from './Avatar'
 
@@ -11,6 +11,7 @@ function UserFooter({
   onOpenProfile,
   onOpenAdminTools
 }) {
+  const v = useSyncExternalStore(voice.subscribe, voice.getSnapshot)
   const [micVolume, setMicVolume] = useState(() => Math.round(voice.getInputGain() * 100))
   const [speakerVolume, setSpeakerVolume] = useState(() => Math.round(voice.getOutputVolume() * 100))
 
@@ -24,6 +25,25 @@ function UserFooter({
       >
         <Avatar color={avatarColor} name={displayName} imageUrl={imageUrl} size={28} className="user-avatar" />
         <span className="user-footer-name">{displayName}</span>
+        <span className="foot-toggles" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            className={'foot-toggle' + (v.muted || v.deafened ? ' on' : '')}
+            title={v.deafened ? 'Deafened (mic is off)' : v.muted ? 'Unmute your mic' : 'Mute your mic'}
+            disabled={v.deafened}
+            onClick={voice.toggleMute}
+          >
+            mute
+          </button>
+          <button
+            type="button"
+            className={'foot-toggle' + (v.deafened ? ' on' : '')}
+            title={v.deafened ? 'Undeafen' : 'Deafen: silence everyone and turn your mic off'}
+            onClick={voice.toggleDeafen}
+          >
+            deaf
+          </button>
+        </span>
       </div>
 
       <div className="user-footer-controls">
