@@ -18,6 +18,7 @@ const MIN_SIDEBAR_WIDTH = 200
 const MAX_SIDEBAR_WIDTH = 440
 
 const PRESENCE_BEAT_MS = 5000
+const PRESENCE_RETRY_MS = 1500
 
 // Votes whose progress or result the proposer has already seen and dismissed.
 // Kept outside the component because the tree screen is rebuilt whenever you
@@ -298,9 +299,10 @@ function ChannelTreeScreen({
     const key = spaceKey(space)
     let cancelled = false
     let first = true
+    let retryTimer = null
     prevOthers.current = { key: null, names: new Set() }
 
-    async function beat() {
+    async function beat(isRetry = false) {
       try {
         const { presence: next } = await api.sendPresence(
           sessionToken,
@@ -316,7 +318,9 @@ function ChannelTreeScreen({
         }
         setPresence(next)
       } catch {
-        // transient; the next beat tries again
+        // One dropped beat shouldn't make you flicker out of the room list for
+        // the rest of a 5 second interval, so try once more quickly.
+        if (!cancelled && !isRetry) retryTimer = setTimeout(() => beat(true), PRESENCE_RETRY_MS)
       }
     }
     beat()
@@ -324,6 +328,7 @@ function ChannelTreeScreen({
     return () => {
       cancelled = true
       clearInterval(timer)
+      clearTimeout(retryTimer)
     }
   }, [sessionToken, openSpace && openSpace.type, openSpace && openSpace.channelId, openSpace && openSpace.roomId, avatarColor])
 
@@ -932,7 +937,7 @@ function ChannelTreeScreen({
               type="button"
               className="btn-secondary"
               style={{ marginTop: 14, width: 'auto', padding: '8px 20px' }}
-              onClick={onLeave}
+              onClick={() => onLeave()}
             >
               {leaveLabel}
             </button>

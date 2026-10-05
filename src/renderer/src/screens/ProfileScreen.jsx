@@ -45,6 +45,14 @@ function ProfileScreen({
     }
   }
 
+  // A picture always wins over a color, so choosing a color (or the logo) has to
+  // remove the picture too, the same way the Remove link does.
+  function pickSwatch(value) {
+    if (avatarBusy) return
+    setAvatarColor(value)
+    if (hasCustomImage) handleRemoveImage()
+  }
+
   async function handleRemoveImage() {
     setAvatarBusy(true)
     setAvatarError('')
@@ -95,7 +103,7 @@ function ProfileScreen({
           <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
             <button
               type="button"
-              onClick={() => setAvatarColor(null)}
+              onClick={() => pickSwatch(null)}
               title="Use app logo"
               style={{
                 width: 26,
@@ -111,7 +119,7 @@ function ProfileScreen({
               <button
                 type="button"
                 key={c}
-                onClick={() => setAvatarColor(c)}
+                onClick={() => pickSwatch(c)}
                 title={c}
                 style={{
                   width: 26,

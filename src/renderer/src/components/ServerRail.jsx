@@ -9,7 +9,7 @@ function ServerRail({ servers, currentServerId, onSelect, onHome, onAdd }) {
         type="button"
         className={'rail-btn rail-home' + (currentServerId == null ? ' active' : '')}
         title="Home"
-        onClick={onHome}
+        onClick={() => onHome()}
       >
         <RushlightLogo size={20} />
       </button>
