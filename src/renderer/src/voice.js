@@ -12,7 +12,8 @@ const PREF = {
   mode: 'rushlight-mic-mode',
   volume: 'rushlight-output-volume',
   input: 'rushlight-mic-device',
-  output: 'rushlight-speaker-device'
+  output: 'rushlight-speaker-device',
+  gain: 'rushlight-mic-gain'
 }
 
 function readPref(key, fallback) {
@@ -41,6 +42,11 @@ let desiredMic = false
 let applyingMic = false
 let pttHeld = false
 let outputVolume = clamp01(Number(readPref(PREF.volume, '0.8')))
+const MAX_GAIN = 2 // slider runs 0-200%; 100% is the untouched mic
+const clampGain = (n) => (Number.isFinite(n) ? Math.min(MAX_GAIN, Math.max(0, n)) : 1)
+let inputGain = clampGain(Number(readPref(PREF.gain, '1')))
+let gainNode = null // the live GainNode, once the processor below is attached
+let gainFailed = false // processing broke once; stay on the raw mic from then on
 const remoteAudio = new Set() // subscribed audio tracks, so the volume slider can reach them
 const intentional = new WeakSet() // rooms we disconnected ourselves, vs. dropped on us
 
@@ -128,10 +134,64 @@ function setMic(on) {
   applyMic()
 }
 
+// Mic input gain is a Web Audio GainNode between the mic and LiveKit, attached
+// as a track processor. It is only attached once gain is moved off 100%, so the
+// default mic path is exactly what it was before this existed, and if attaching
+// ever fails the raw mic keeps working.
+const gainProcessor = {
+  name: 'rushlight-input-gain',
+  processedTrack: undefined,
+  nodes: null,
+  async build(opts) {
+    this.teardownNodes()
+    const ctx = opts.audioContext
+    if (ctx.state === 'suspended') await ctx.resume().catch(() => {})
+    const source = ctx.createMediaStreamSource(new MediaStream([opts.track]))
+    const node = ctx.createGain()
+    node.gain.value = inputGain
+    const dest = ctx.createMediaStreamDestination()
+    source.connect(node)
+    node.connect(dest)
+    this.nodes = [source, node, dest]
+    gainNode = node
+    this.processedTrack = dest.stream.getAudioTracks()[0]
+  },
+  teardownNodes() {
+    if (this.nodes) this.nodes.forEach((n) => n.disconnect())
+    this.nodes = null
+    gainNode = null
+  },
+  async init(opts) {
+    await this.build(opts)
+  },
+  async restart(opts) {
+    await this.build(opts)
+  },
+  async destroy() {
+    this.teardownNodes()
+    this.processedTrack = undefined
+  }
+}
+
+async function ensureGainProcessor() {
+  if (!room || gainFailed || gainNode || inputGain === 1) return
+  const pub = room.localParticipant.getTrackPublication(Track.Source.Microphone)
+  const track = pub && pub.audioTrack
+  if (!track) return
+  try {
+    await track.setProcessor(/** @type {any} */ (gainProcessor))
+  } catch (err) {
+    gainFailed = true
+    gainNode = null
+    console.warn('Mic gain unavailable, using the raw mic:', err)
+  }
+}
+
 async function teardown() {
   const old = room
   room = null
   remoteAudio.clear()
+  gainNode = null
   desiredMic = false
   pttHeld = false
   if (old) {
@@ -188,7 +248,10 @@ export async function join({ url, token, key }) {
   r.on(RoomEvent.TrackUnmuted, refreshParticipants)
   r.on(RoomEvent.TrackPublished, refreshParticipants)
   r.on(RoomEvent.TrackUnpublished, refreshParticipants)
-  r.on(RoomEvent.LocalTrackPublished, refreshParticipants)
+  r.on(RoomEvent.LocalTrackPublished, () => {
+    refreshParticipants()
+    ensureGainProcessor()
+  })
   r.on(RoomEvent.LocalTrackUnpublished, refreshParticipants)
 
   r.on(RoomEvent.TrackSubscribed, (incoming) => {
@@ -287,6 +350,17 @@ export function setOutputVolume(volume) {
   outputVolume = clamp01(volume)
   writePref(PREF.volume, String(outputVolume))
   remoteAudio.forEach((track) => track.setVolume(outputVolume))
+}
+
+export function getInputGain() {
+  return inputGain
+}
+
+export function setInputGain(gain) {
+  inputGain = clampGain(gain)
+  writePref(PREF.gain, String(inputGain))
+  if (gainNode) gainNode.gain.value = inputGain
+  else ensureGainProcessor()
 }
 
 export function getSavedDevices() {

@@ -1194,13 +1194,6 @@ button {
   color: var(--accent);
   font-style: normal;
 }
-.vol-slider.disabled {
-  opacity: 0.4;
-}
-.vol-slider.disabled input {
-  cursor: not-allowed;
-}
-
 /* ---- update banner ---- */
 .update-banner {
   position: fixed;
