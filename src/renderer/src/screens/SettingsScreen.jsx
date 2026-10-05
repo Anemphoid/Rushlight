@@ -47,8 +47,13 @@ function SettingsScreen({
   }, [listening, onChangePttKey])
 
   return (
-    <div className="screen">
+    <div className="screen" style={{ justifyContent: 'flex-start' }}>
       <div className="card" style={{ maxWidth: 460 }}>
+        <div className="screen-top-bar">
+          <button type="button" className="btn-secondary" onClick={onBack}>
+            Back
+          </button>
+        </div>
         <h1>Settings</h1>
         <p className="sub">Client display and control settings.</p>
 
@@ -216,10 +221,6 @@ function SettingsScreen({
         </div>
 
         <p className="settings-note">Rushlight {version ? 'v' + version : ''}</p>
-
-        <button type="button" className="btn-secondary" onClick={onBack}>
-          Back
-        </button>
       </div>
     </div>
   )

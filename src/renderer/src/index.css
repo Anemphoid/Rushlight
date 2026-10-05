@@ -1417,3 +1417,19 @@ button {
   min-width: 34px;
   text-align: right;
 }
+
+/* Back button pinned to the top right of a long screen, so it never scrolls away */
+.screen-top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 0 8px;
+  margin-top: -16px;
+  background: var(--bg);
+}
+.screen-top-bar .btn-secondary {
+  width: auto;
+  padding: 6px 16px;
+}
