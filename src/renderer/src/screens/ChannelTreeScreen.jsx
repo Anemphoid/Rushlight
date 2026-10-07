@@ -119,6 +119,7 @@ function ChannelTreeScreen({
   serverName,
   onServerRenamed,
   sessionToken,
+  guestToken,
   accountName,
   pttKey,
   pttHookOk,
@@ -179,7 +180,9 @@ function ChannelTreeScreen({
   const mutationVersion = useRef(0)
   const messageVersion = useRef(0)
   const live = useRef({})
-  live.current = { onLeave, onServerRenamed, serverName, openSpace, channels, accountName, accountId }
+  live.current = { onLeave, onServerRenamed, serverName, openSpace, channels, accountName, accountId, screenName }
+  // Accounts and guests both check in to presence; only accounts have a session token.
+  const authToken = sessionToken || guestToken
   // Who else was in the open space at the last check — the baseline the
   // join/leave sounds are measured against.
   const prevOthers = useRef({ key: null, names: new Set() })
@@ -289,13 +292,15 @@ function ChannelTreeScreen({
   }, [sessionToken, openSpace && openSpace.type, openSpace && openSpace.channelId, openSpace && openSpace.roomId])
 
   function othersIn(list) {
-    return new Set((list || []).map((p) => p.name).filter((n) => n !== live.current.accountName))
+    // Not me: my account name, or my screen name when I am a guest.
+    const me = live.current.accountName || live.current.screenName
+    return new Set((list || []).map((p) => p.name).filter((n) => n !== me))
   }
 
   // Check in to the open space every few seconds. This is what tells the
   // server someone is here, so it knows when an ephemeral space has emptied.
   useEffect(() => {
-    if (!sessionToken || !openSpace) return
+    if (!authToken || !openSpace) return
     const space = openSpace
     const key = spaceKey(space)
     let cancelled = false
@@ -306,7 +311,7 @@ function ChannelTreeScreen({
     async function beat(isRetry = false) {
       try {
         const { presence: next } = await api.sendPresence(
-          sessionToken,
+          authToken,
           space.type,
           spaceId(space),
           avatarColor
@@ -331,18 +336,18 @@ function ChannelTreeScreen({
       clearInterval(timer)
       clearTimeout(retryTimer)
     }
-  }, [sessionToken, openSpace && openSpace.type, openSpace && openSpace.channelId, openSpace && openSpace.roomId, avatarColor])
+  }, [authToken, openSpace && openSpace.type, openSpace && openSpace.channelId, openSpace && openSpace.roomId, avatarColor])
 
   // Actually leaving (going home, another server, or the space being removed)
   // tells the server right away instead of waiting for the check-in to expire.
   // Switching straight to another space doesn't — the next check-in moves me.
   const inSpace = !!openSpace
   useEffect(() => {
-    if (!sessionToken || !inSpace) return
+    if (!authToken || !inSpace) return
     return () => {
-      api.leavePresence(sessionToken).catch(() => {})
+      api.leavePresence(authToken).catch(() => {})
     }
-  }, [sessionToken, inSpace])
+  }, [authToken, inSpace])
 
   // Someone else arriving in or leaving the space I'm in.
   useEffect(() => {
@@ -372,12 +377,14 @@ function ChannelTreeScreen({
     setOpenSpace(space)
   }
 
-  // Everyone currently in a space, straight from the server. Guests aren't
-  // tracked (no account to check in with), so they're shown locally.
+  // Everyone currently in a space, straight from the server, guests included. A
+  // guest who has only just arrived is shown locally until their first check-in
+  // comes back, so they never see an empty room with themselves missing.
   function occupantsFor(key) {
     const list = presence[key] || []
     if (!sessionToken && openSpace && spaceKey(openSpace) === key) {
-      return [...list, { id: 'self', name: screenName, avatarColor }]
+      const listed = list.some((p) => p.guest && p.name === screenName)
+      if (!listed) return [...list, { id: 'self', name: screenName, avatarColor, guest: true }]
     }
     return list
   }

@@ -424,6 +424,7 @@ function App() {
           serverName={currentServer.name}
           onServerRenamed={handleServerRenamed}
           sessionToken={sessionToken}
+          guestToken={guestToken}
           accountName={accountName}
           pttKey={pttKey}
           pttHookOk={pttHookOk}

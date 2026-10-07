@@ -43,6 +43,11 @@ a server change has to wait for a server release.
   participants by display name), not in the voice panel. Per-person volume
   (right-click someone in your voice space) is keyed by name and is a 0-100%
   share of the output volume. Mute/deafen live in `voice.js` and gate PTT.
+- Guests check in to presence with their guest token (`authToken = sessionToken ||
+  guestToken` in the tree screen) and show up flagged `guest` with no avatar image.
+  A guest's check-in answer holds only their own space. Admin Tools lists the guests
+  here now under members (`listServerGuests`); guests can only be removed by revoking
+  their code.
 - `sounds.js` loads sounds by base name from `assets/sounds/` (missing = silent).
 
 ## Gotchas learned the hard way

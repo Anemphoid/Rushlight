@@ -3,7 +3,8 @@ import * as api from '../api'
 import Avatar from '../components/Avatar'
 import { avatarUrl } from '../api'
 import JoinCodesSection from '../components/JoinCodesSection'
-import { formatExpiry } from '../time'
+import { formatExpiry, formatAge } from '../time'
+import { spaceNameFor } from '../spaces'
 
 const TIMED_ACCESS_OPTIONS = [
   { label: '1 hour', minutes: 60 },
@@ -19,6 +20,33 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onBac
   const [rowError, setRowError] = useState({ id: null, message: '' })
   const [confirmBan, setConfirmBan] = useState(null) // { accountId, username } or null
   const [expiryMenuFor, setExpiryMenuFor] = useState(null)
+
+  const [guests, setGuests] = useState(null) // null = still loading
+  const [guestsError, setGuestsError] = useState('')
+  const [channels, setChannels] = useState([]) // just to put names to the spaces guests are in
+
+  const loadGuests = useCallback(async () => {
+    try {
+      const result = await api.listServerGuests(sessionToken, serverId)
+      setGuests(result.guests)
+      setGuestsError('')
+    } catch (err) {
+      setGuestsError(err.message)
+    }
+  }, [sessionToken, serverId])
+
+  useEffect(() => {
+    loadGuests()
+    const timer = setInterval(loadGuests, 5000) // guests come and go without anyone acting here
+    return () => clearInterval(timer)
+  }, [loadGuests])
+
+  useEffect(() => {
+    api
+      .getServer(sessionToken, serverId)
+      .then((s) => setChannels(s.channels || []))
+      .catch(() => {})
+  }, [sessionToken, serverId])
 
   const loadMembers = useCallback(async () => {
     try {
@@ -148,6 +176,37 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onBac
               })}
             </div>
           )}
+
+          <h2 style={{ marginTop: 18 }}>guests here now</h2>
+          {guestsError && <p className="error-text">{guestsError}</p>}
+          {guests === null && !guestsError && <p className="settings-note">Loading…</p>}
+          {guests && guests.length === 0 && <p className="settings-note">No guests here right now.</p>}
+          {guests && guests.length > 0 && (
+            <div className="member-list">
+              {guests.map((g) => {
+                const where = spaceNameFor(channels, g.space)
+                return (
+                  <div className="member-row" key={g.identity}>
+                    <Avatar name={g.name} size={28} />
+                    <div className="member-row-main">
+                      <div className="member-row-name">
+                        {g.name}
+                        <span className="member-badge">guest</span>
+                      </div>
+                      <div className="member-row-expiry">
+                        {where ? `in ${where}` : 'not in a room yet'} · joined {formatAge(g.joinedAt)}
+                        {g.code ? ` · code ${g.code}` : ''}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          <p className="settings-note">
+            Guests have no account, so they can't be kicked or banned. To remove one, revoke the code they
+            came in with, under active codes above.
+          </p>
         </div>
 
         {confirmBan && (

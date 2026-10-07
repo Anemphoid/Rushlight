@@ -187,3 +187,61 @@ test('access that ends is explained: expired, removed and banned come back with 
   // and the server rail no longer lists it
   assert.ok(!(await api.listServers(expiring.token)).servers.some((s) => s.id === server.id))
 })
+
+test('a guest checks in and sees only their own space, while members see the guest', async () => {
+  const { admin, server, voice } = await world()
+  const elsewhere = await api.createChannel(admin.token, server.id, { name: 'elsewhere', mode: 'voice', persistent: false })
+  const made = await api.createServerCode(admin.token, server.id, { singleUse: false, expiresInMinutes: null })
+  const member = await account()
+  await api.joinServerWithCode(member.token, made.code)
+  await api.sendPresence(member.token, 'channel', elsewhere.id, null) // a member in the other channel
+
+  const guest = await api.joinWithCode(made.code, 'Guest Presence')
+  assert.deepEqual(guest.server.presence, {}) // nothing shown before they are in a room
+  const mine = await api.sendPresence(guest.guestToken, 'channel', voice.id, '#aabbcc')
+  assert.deepEqual(Object.keys(mine.presence), [`channel:${voice.id}`])
+  const me = mine.presence[`channel:${voice.id}`][0]
+  assert.equal(me.name, 'Guest Presence')
+  assert.equal(me.guest, true)
+  assert.equal(me.avatarUpdatedAt, null)
+
+  // the tree a member loads shows the guest in their room, and the member where they are
+  const tree = await api.getServer(admin.token, server.id)
+  assert.deepEqual(tree.presence[`channel:${voice.id}`].map((p) => p.name), ['Guest Presence'])
+  assert.equal(tree.presence[`channel:${elsewhere.id}`].length, 1)
+})
+
+test('admins can list the guests here, and leaving takes a guest off the list and out of the room', async () => {
+  const { admin, server, voice } = await world()
+  const made = await api.createServerCode(admin.token, server.id, { singleUse: false, expiresInMinutes: null })
+  const member = await account()
+  await api.joinServerWithCode(member.token, made.code)
+  const guest = await api.joinWithCode(made.code, 'Listed Guest')
+
+  let { guests } = await api.listServerGuests(admin.token, server.id)
+  assert.equal(guests.length, 1)
+  assert.deepEqual(Object.keys(guests[0]).sort(), ['code', 'codeId', 'expiresAt', 'identity', 'joinedAt', 'name', 'space'])
+  assert.equal(guests[0].name, 'Listed Guest')
+  assert.equal(guests[0].code, made.code)
+  assert.equal(guests[0].space, null) // joined, not in a room yet
+
+  await api.sendPresence(guest.guestToken, 'channel', voice.id, null)
+  guests = (await api.listServerGuests(admin.token, server.id)).guests
+  assert.equal(guests[0].space, `channel:${voice.id}`)
+
+  assert.equal((await rejection(api.listServerGuests(member.token, server.id))).status, 403)
+  assert.equal((await rejection(api.listServerGuests(guest.guestToken, server.id))).status, 401)
+
+  await api.leavePresence(guest.guestToken)
+  const tree = await api.getServer(admin.token, server.id)
+  assert.equal(tree.presence[`channel:${voice.id}`], undefined)
+})
+
+test('a guest cannot check in to another server', async () => {
+  const a = await world()
+  const b = await world()
+  const made = await api.createServerCode(a.admin.token, a.server.id, { singleUse: false, expiresInMinutes: null })
+  const guest = await api.joinWithCode(made.code, 'Out Of Bounds')
+  const err = await rejection(api.sendPresence(guest.guestToken, 'channel', b.voice.id, null))
+  assert.equal(err.status, 403)
+})

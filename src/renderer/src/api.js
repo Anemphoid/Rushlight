@@ -112,6 +112,12 @@ export const listServerCodes = (token, serverId) =>
 export const revokeServerCode = (token, serverId, codeId) =>
   request(`/api/servers/${serverId}/codes/${codeId}`, { method: 'DELETE', token })
 
+// Admin only. The guests here now (they have no account, so they are not in the
+// members list): [{ identity, name, code, codeId, joinedAt, expiresAt, space }],
+// where space is 'channel:3' / 'room:7' once they are in a room, or null.
+export const listServerGuests = (token, serverId) =>
+  request(`/api/servers/${serverId}/guests`, { token })
+
 // --- Moderation ---
 export const getMembers = (token, serverId) =>
   request(`/api/servers/${serverId}/members`, { token })
