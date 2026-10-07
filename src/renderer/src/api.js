@@ -52,6 +52,8 @@ async function request(path, { method = 'GET', body, token } = {}) {
   if (!res.ok) {
     const err = new Error(data.error || `Request failed (${res.status})`)
     err.status = res.status
+    // Set when the server says why someone lost access: 'expired', 'removed' or 'banned'.
+    if (data.reason) err.reason = data.reason
     throw err
   }
   return data
