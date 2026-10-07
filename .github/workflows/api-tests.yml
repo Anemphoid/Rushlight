@@ -9,7 +9,9 @@ on:
     branches: [main]
 
 env:
-  SERVER_REF: v0.3.0
+  # Temporary: this change needs the server's guest-presence branch. Move it to the
+  # release tag (v0.4.0) once that is published.
+  SERVER_REF: claude/guest-presence
 
 jobs:
   api-tests:
