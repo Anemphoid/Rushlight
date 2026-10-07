@@ -103,7 +103,9 @@ export const createServerCode = (token, serverId, options) =>
 
 // Admin only. The codes that can still bring someone in (spent, expired and
 // revoked ones are not listed): [{ id, code, persistent, singleUse, expiresAt,
-// createdAt, guestsNow }]
+// createdAt, guestsNow, scope }] where scope is null (whole server) or
+// { type: 'channel' | 'room', id, name }. Create with options.scope = { type, id }
+// to limit a code to one voice channel or room; those codes are for guests only.
 export const listServerCodes = (token, serverId) =>
   request(`/api/servers/${serverId}/codes`, { token })
 

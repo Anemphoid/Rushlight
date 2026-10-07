@@ -36,7 +36,7 @@ test('listServerCodes returns the real response shape for a timed single-use cod
   const { codes } = await api.listServerCodes(admin.token, server.id)
   assert.equal(codes.length, 1)
   const c = codes[0]
-  assert.deepEqual(Object.keys(c).sort(), ['code', 'createdAt', 'expiresAt', 'guestsNow', 'id', 'persistent', 'singleUse'])
+  assert.deepEqual(Object.keys(c).sort(), ['code', 'createdAt', 'expiresAt', 'guestsNow', 'id', 'persistent', 'scope', 'singleUse'])
   assert.equal(c.code, made.code)
   assert.equal(c.singleUse, true)
   assert.equal(c.persistent, false)
@@ -44,6 +44,7 @@ test('listServerCodes returns the real response shape for a timed single-use cod
   assert.ok(c.expiresAt > Date.now() + 59 * 60 * 1000 && c.expiresAt < Date.now() + 61 * 60 * 1000)
   assert.ok(c.createdAt <= Date.now() && c.createdAt > Date.now() - 60 * 1000)
   assert.equal(c.guestsNow, 0)
+  assert.equal(c.scope, null)
 })
 
 test('a reusable code with no expiry has expiresAt null', async () => {
@@ -244,4 +245,34 @@ test('a guest cannot check in to another server', async () => {
   const guest = await api.joinWithCode(made.code, 'Out Of Bounds')
   const err = await rejection(api.sendPresence(guest.guestToken, 'channel', b.voice.id, null))
   assert.equal(err.status, 403)
+})
+
+test('a code limited to one room: the list says so, the guest sees only that, an account is refused', async () => {
+  const { admin, server, voice } = await world()
+  const room = await api.createRoom(admin.token, server.id, voice.id, { name: 'back', mode: 'voice', persistent: false })
+  const other = await api.createRoom(admin.token, server.id, voice.id, { name: 'front', mode: 'voice', persistent: false })
+  const made = await api.createServerCode(admin.token, server.id, {
+    singleUse: false,
+    expiresInMinutes: null,
+    scope: { type: 'room', id: room.id }
+  })
+  assert.equal(made.scope.type, 'room')
+  const row = (await api.listServerCodes(admin.token, server.id)).codes[0]
+  assert.deepEqual(row.scope, { type: 'room', id: room.id, name: 'voice / back' })
+
+  const guest = await api.joinWithCode(made.code, 'Back Room Guest')
+  const tree = guest.server.channels
+  assert.equal(tree.length, 1)
+  assert.equal(tree[0].joinable, false)
+  assert.deepEqual(tree[0].rooms.map((r) => r.id), [room.id])
+
+  const err = await rejection(api.joinServerWithCode((await account()).token, made.code))
+  assert.equal(err.status, 403)
+  assert.match(err.message, /guest invite for one room/)
+
+  const bad = await rejection(
+    api.createServerCode(admin.token, server.id, { singleUse: false, expiresInMinutes: null, scope: { type: 'room', id: 999999 } })
+  )
+  assert.equal(bad.status, 400)
+  assert.ok(other.id)
 })

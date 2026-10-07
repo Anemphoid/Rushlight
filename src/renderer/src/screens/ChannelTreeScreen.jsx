@@ -681,12 +681,14 @@ function ChannelTreeScreen({
                 className={
                   'channel-row' +
                   (dragOverId === 'c' + ch.id ? ' drag-over' : '') +
-                  ' clickable'
+                  (ch.joinable === false ? '' : ' clickable')
                 }
                 draggable={isAdmin}
-                onClick={() =>
+                onClick={() => {
+                  // A guest with a one-room invite sees the parent for context only.
+                  if (ch.joinable === false) return
                   selectSpace({ type: 'channel', channelId: ch.id, name: ch.name, mode: ch.mode })
-                }
+                }}
                 onDragStart={() => (dragItem.current = { type: 'channel', id: ch.id })}
                 onDragOver={(e) => {
                   e.preventDefault()

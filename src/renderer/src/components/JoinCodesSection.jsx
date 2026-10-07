@@ -19,6 +19,8 @@ function JoinCodesSection({ serverId, serverName, sessionToken }) {
   const [codeError, setCodeError] = useState('')
   const [generating, setGenerating] = useState(false)
   const [copiedKey, setCopiedKey] = useState(null)
+  const [scopeValue, setScopeValue] = useState('') // '' = whole server, else 'channel:3' / 'room:7'
+  const [spaces, setSpaces] = useState([]) // voice spaces a code can be limited to
 
   const [codes, setCodes] = useState(null) // null = still loading
   const [listError, setListError] = useState('')
@@ -43,15 +45,34 @@ function JoinCodesSection({ serverId, serverName, sessionToken }) {
     return () => clearInterval(timer)
   }, [loadCodes])
 
+  useEffect(() => {
+    api
+      .getServer(sessionToken, serverId)
+      .then((s) => {
+        const list = []
+        for (const ch of s.channels || []) {
+          if (ch.mode !== 'text') list.push({ value: `channel:${ch.id}`, label: `${ch.name} (and its rooms)` })
+          for (const r of ch.rooms || []) {
+            if (r.mode !== 'text') list.push({ value: `room:${r.id}`, label: `${ch.name} / ${r.name}` })
+          }
+        }
+        setSpaces(list)
+        setScopeValue((cur) => (list.some((o) => o.value === cur) ? cur : ''))
+      })
+      .catch(() => {}) // the picker just stays on "whole server"
+  }, [sessionToken, serverId])
+
   async function generate() {
     setCodeError('')
     setCopiedKey(null)
     setGenerating(true)
     try {
-      const result = await api.createServerCode(sessionToken, serverId, {
-        singleUse,
-        expiresInMinutes: expiryMinutes
-      })
+      const options = { singleUse, expiresInMinutes: expiryMinutes }
+      if (scopeValue) {
+        const [type, id] = scopeValue.split(':')
+        options.scope = { type, id: Number(id) }
+      }
+      const result = await api.createServerCode(sessionToken, serverId, options)
       setCode(result.code)
       await loadCodes()
     } catch (err) {
@@ -117,6 +138,16 @@ function JoinCodesSection({ serverId, serverName, sessionToken }) {
             </button>
           ))}
         </div>
+        <div className="field" style={{ marginBottom: 10 }}>
+          <select value={scopeValue} onChange={(e) => setScopeValue(e.target.value)} aria-label="What the code covers">
+            <option value="">Whole server</option>
+            {spaces.map((o) => (
+              <option key={o.value} value={o.value}>
+                Guests only: {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
         <button type="button" className="btn-primary" disabled={generating} onClick={generate}>
           {generating ? 'Generating…' : 'Generate join code'}
         </button>
@@ -130,8 +161,9 @@ function JoinCodesSection({ serverId, serverName, sessionToken }) {
               </button>
             </div>
             <p className="settings-note">
-              With an account: paste it under the + on the home screen to join {serverName}.
-              Without one: enter it in the login screen's join box to come in as a guest.
+              {scopeValue
+                ? 'This code is for guests only: enter it in the login screen\'s join box. It can\'t make someone a member.'
+                : `With an account: paste it under the + on the home screen to join ${serverName}. Without one: enter it in the login screen's join box to come in as a guest.`}
             </p>
           </>
         )}
@@ -155,6 +187,11 @@ function JoinCodesSection({ serverId, serverName, sessionToken }) {
                       <div className="member-row-name">
                         <code className="code-row-code">{c.code}</code>
                         <span className="member-badge">{c.singleUse ? 'single use' : 'reusable'}</span>
+                        {c.scope && (
+                          <span className="member-badge">
+                            guests only: {c.scope.name}
+                          </span>
+                        )}
                         {c.guestsNow > 0 && (
                           <span className="member-badge">
                             {c.guestsNow} guest{c.guestsNow === 1 ? '' : 's'} in now
