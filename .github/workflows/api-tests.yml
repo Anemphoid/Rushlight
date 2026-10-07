@@ -1,0 +1,37 @@
+# Runs the client's api tests against a real Rushlight server: the server repo is
+# checked out at a pinned release and started as a real process by the tests.
+# Move SERVER_REF forward when the client starts to depend on a newer server.
+name: API tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+env:
+  SERVER_REF: v0.2.0
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: Anemphoid/Rushlight-Server
+          ref: ${{ env.SERVER_REF }}
+          path: .server-under-test
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install the server's dependencies
+        run: npm ci --omit=dev
+        working-directory: .server-under-test
+
+      - name: Client api tests
+        run: npm test
+        env:
+          RUSHLIGHT_SERVER_DIR: ${{ github.workspace }}/.server-under-test

@@ -1435,3 +1435,11 @@ button {
   width: auto;
   padding: 6px 16px;
 }
+
+/* Admin Tools: the list of active join codes */
+.code-row-code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.8125rem;
+  color: var(--accent);
+  font-weight: 700;
+}

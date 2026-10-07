@@ -2,13 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import * as api from '../api'
 import Avatar from '../components/Avatar'
 import { avatarUrl } from '../api'
-
-const EXPIRY_OPTIONS = [
-  { label: '1 hour', minutes: 60 },
-  { label: '24 hours', minutes: 1440 },
-  { label: '7 days', minutes: 10080 },
-  { label: 'No expiry', minutes: null }
-]
+import JoinCodesSection from '../components/JoinCodesSection'
+import { formatExpiry } from '../time'
 
 const TIMED_ACCESS_OPTIONS = [
   { label: '1 hour', minutes: 60 },
@@ -16,17 +11,6 @@ const TIMED_ACCESS_OPTIONS = [
   { label: '7 days', minutes: 10080 },
   { label: 'No limit', minutes: null }
 ]
-
-function formatExpiry(ts) {
-  if (!ts) return null
-  const diffMs = ts - Date.now()
-  if (diffMs <= 0) return 'expiring now'
-  const mins = Math.round(diffMs / 60000)
-  if (mins < 60) return `${mins}m left`
-  const hours = Math.round(mins / 60)
-  if (hours < 48) return `${hours}h left`
-  return `${Math.round(hours / 24)}d left`
-}
 
 function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onBack }) {
   const [members, setMembers] = useState(null) // null = still loading
@@ -66,95 +50,13 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onBac
     }
   }
 
-  const [singleUse, setSingleUse] = useState(true)
-  const [expiryMinutes, setExpiryMinutes] = useState(1440)
-  const [code, setCode] = useState(null)
-  const [codeError, setCodeError] = useState('')
-  const [generating, setGenerating] = useState(false)
-  const [copied, setCopied] = useState(false)
-
-  async function generate() {
-    setCodeError('')
-    setCopied(false)
-    setGenerating(true)
-    try {
-      const result = await api.createServerCode(sessionToken, serverId, {
-        singleUse,
-        expiresInMinutes: expiryMinutes
-      })
-      setCode(result.code)
-    } catch (err) {
-      setCodeError(err.message)
-    } finally {
-      setGenerating(false)
-    }
-  }
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(code)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    } catch {
-      // clipboard blocked — the code is on screen to copy by hand
-    }
-  }
-
   return (
     <div className="screen">
       <div className="card" style={{ maxWidth: 440 }}>
         <h1>Admin Tools</h1>
         <p className="sub">{serverName}</p>
 
-        <div className="settings-section">
-          <h2>invite someone</h2>
-          <div className="tier-row" style={{ marginBottom: 8 }}>
-            {[
-              { label: 'Single use', value: true },
-              { label: 'Reusable', value: false }
-            ].map((o) => (
-              <button
-                key={o.label}
-                type="button"
-                className={'tier-chip' + (singleUse === o.value ? ' active' : '')}
-                onClick={() => setSingleUse(o.value)}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-          <div className="tier-row" style={{ marginBottom: 10 }}>
-            {EXPIRY_OPTIONS.map((o) => (
-              <button
-                key={o.label}
-                type="button"
-                className={'tier-chip' + (expiryMinutes === o.minutes ? ' active' : '')}
-                onClick={() => setExpiryMinutes(o.minutes)}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-          <button type="button" className="btn-primary" disabled={generating} onClick={generate}>
-            {generating ? 'Generating…' : 'Generate join code'}
-          </button>
-          {codeError && <div className="error-text">{codeError}</div>}
-          {code && (
-            <>
-              <div className="code-box">
-                <code>{code}</code>
-                <button type="button" className="btn-secondary" onClick={copy}>
-                  {copied ? 'Copied' : 'Copy'}
-                </button>
-              </div>
-              <p className="settings-note">
-                With an account: paste it under the + on the home screen to join{' '}
-                {serverName}. Without one: enter it in the login screen's join box to
-                come in as a guest.
-              </p>
-            </>
-          )}
-        </div>
+        <JoinCodesSection serverId={serverId} serverName={serverName} sessionToken={sessionToken} />
 
         <div className="settings-section">
           <h2>members</h2>
