@@ -8,3 +8,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <App />
   </React.StrictMode>
 )
+
+// THROWAWAY: deliberately broken to prove CI fails. Never merge.
+const = ;
