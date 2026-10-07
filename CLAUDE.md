@@ -11,8 +11,13 @@ a server change has to wait for a server release.
 ## Commands
 
 - `npm install`, `npm run dev` (dev defaults to a localhost server)
-- `npm run build` (the check to run before committing; there is no lint or
-  test script)
+- `npm run build` (check this before committing; there is no lint script)
+- `npm test` runs the api tests (`test/`) against a real Rushlight server process.
+  It needs a checkout of Anemphoid/Rushlight-Server with `npm ci` run, found at
+  `../rushlight-server` or `RUSHLIGHT_SERVER_DIR`. CI checks out a pinned release
+  (see `SERVER_REF` in `.github/workflows/api-tests.yml`); move it forward when the
+  client starts to depend on a newer server. The tests cover the calls the screens
+  make, not the GUI.
 - `npm run dist` builds the AppImage. Releases are made by pushing a `vX.Y.Z`
   tag; see `RELEASING.md`.
 
@@ -84,11 +89,6 @@ flag those as untested for the owner to try on their desktop.
 
 ## Backlog (not built yet)
 
-- **Admin Tools screen to list and revoke join codes.** The server (v0.2.0)
-  already has `GET` / `DELETE /api/servers/:id/codes`. Revoking is the only way to
-  remove a guest, since guests have no account to kick or ban.
-- **Guest join screen should show the server's message** when a screen name is
-  refused. The server answers 409 if the name matches an account or a live guest.
 - **Client-only ideas the owner liked:** keyboard navigation in the channel tree,
   collapsible channels that remember their state, a system tray icon with
   close-to-tray, system-wide mute/deafen hotkeys (needs main-process work).

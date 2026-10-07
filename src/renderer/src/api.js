@@ -99,6 +99,17 @@ export const joinServerWithCode = (token, code) =>
 export const createServerCode = (token, serverId, options) =>
   request(`/api/servers/${serverId}/codes`, { method: 'POST', token, body: options })
 
+// Admin only. The codes that can still bring someone in (spent, expired and
+// revoked ones are not listed): [{ id, code, persistent, singleUse, expiresAt,
+// createdAt, guestsNow }]
+export const listServerCodes = (token, serverId) =>
+  request(`/api/servers/${serverId}/codes`, { token })
+
+// Admin only. Also removes the guests who joined with this code, including from
+// live voice. People who made an account with it keep their membership.
+export const revokeServerCode = (token, serverId, codeId) =>
+  request(`/api/servers/${serverId}/codes/${codeId}`, { method: 'DELETE', token })
+
 // --- Moderation ---
 export const getMembers = (token, serverId) =>
   request(`/api/servers/${serverId}/members`, { token })
