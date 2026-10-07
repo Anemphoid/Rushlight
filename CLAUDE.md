@@ -49,8 +49,9 @@ a server change has to wait for a server release.
 - Guests check in to presence with their guest token (`authToken = sessionToken ||
   guestToken` in the tree screen) and show up flagged `guest` with no avatar image.
   A guest's check-in answer holds only their own space. Admin Tools lists the guests
-  here now under members (`listServerGuests`); guests can only be removed by revoking
-  their code.
+  here now under members (`listServerGuests`), each with a Remove button
+  (`removeServerGuest`); revoking a code removes everyone who used it. A used
+  single-use code stays in the code list while its guest is here.
 - `sounds.js` loads sounds by base name from `assets/sounds/` (missing = silent).
 
 ## Gotchas learned the hard way
