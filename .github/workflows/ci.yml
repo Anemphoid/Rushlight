@@ -1,0 +1,31 @@
+# Checks every pull request and every push to main: installs from the lockfile,
+# lints if the project has a lint script, and runs the electron-vite build.
+# It does not package the AppImage. Publishing is the Release workflow's job
+# (on a v* tag) and this file does not touch it.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # The project has no lint script today; --if-present makes this a no-op
+      # until one is added, and starts checking the day it is.
+      - name: Lint (only if there is a lint script)
+        run: npm run lint --if-present
+
+      - name: Build
+        run: npm run build
