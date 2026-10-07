@@ -12,6 +12,7 @@ import { avatarUrl } from '../api'
 import { playSound } from '../sounds'
 import * as voice from '../voice'
 import * as unread from '../unread'
+import { accessEndedNotice } from '../accessEnded'
 
 const MODE_LABEL = { voice: 'v', text: 't', both: 'v/t' }
 const MIN_SIDEBAR_WIDTH = 200
@@ -241,7 +242,7 @@ function ChannelTreeScreen({
         }
       } catch (err) {
         // Removed from the server, or it was deleted — nothing left to show.
-        if (err.status === 403) live.current.onLeave('You were removed from this server.')
+        if (err.status === 403) live.current.onLeave(accessEndedNotice(err))
         else if (err.status === 404) live.current.onLeave()
       }
     }, 5000)
