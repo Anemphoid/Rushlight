@@ -103,7 +103,8 @@ export const createServerCode = (token, serverId, options) =>
 
 // Admin only. The codes that can still bring someone in (spent, expired and
 // revoked ones are not listed): [{ id, code, persistent, singleUse, expiresAt,
-// createdAt, guestsNow, scope }] where scope is null (whole server) or
+// createdAt, guestsNow, used, scope }]. A used single-use code is listed while a guest
+// who came in with it is still here. where scope is null (whole server) or
 // { type: 'channel' | 'room', id, name }. Create with options.scope = { type, id }
 // to limit a code to one voice channel or room; those codes are for guests only.
 export const listServerCodes = (token, serverId) =>
@@ -113,6 +114,11 @@ export const listServerCodes = (token, serverId) =>
 // live voice. People who made an account with it keep their membership.
 export const revokeServerCode = (token, serverId, codeId) =>
   request(`/api/servers/${serverId}/codes/${codeId}`, { method: 'DELETE', token })
+
+// Admin only. Ends one guest's session without revoking their code, so the other
+// guests of a reusable code stay. LiveKit is told first, then presence clears.
+export const removeServerGuest = (token, serverId, identity) =>
+  request(`/api/servers/${serverId}/guests/${encodeURIComponent(identity)}`, { method: 'DELETE', token })
 
 // Admin only. The guests here now (they have no account, so they are not in the
 // members list): [{ identity, name, code, codeId, joinedAt, expiresAt, space }],

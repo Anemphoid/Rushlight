@@ -24,6 +24,9 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onBac
   const [guests, setGuests] = useState(null) // null = still loading
   const [guestsError, setGuestsError] = useState('')
   const [channels, setChannels] = useState([]) // just to put names to the spaces guests are in
+  const [confirmRemoveGuest, setConfirmRemoveGuest] = useState(null) // a row from guests, or null
+  const [removingGuest, setRemovingGuest] = useState(false)
+  const [removeGuestError, setRemoveGuestError] = useState('')
 
   const loadGuests = useCallback(async () => {
     try {
@@ -47,6 +50,26 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onBac
       .then((s) => setChannels(s.channels || []))
       .catch(() => {})
   }, [sessionToken, serverId])
+
+  async function removeGuest(g) {
+    setRemovingGuest(true)
+    setRemoveGuestError('')
+    try {
+      await api.removeServerGuest(sessionToken, serverId, g.identity)
+      setConfirmRemoveGuest(null)
+      await loadGuests()
+    } catch (err) {
+      // already gone is the same outcome the admin wanted
+      if (err.status === 404) {
+        setConfirmRemoveGuest(null)
+        await loadGuests()
+      } else {
+        setRemoveGuestError(err.message)
+      }
+    } finally {
+      setRemovingGuest(false)
+    }
+  }
 
   const loadMembers = useCallback(async () => {
     try {
@@ -186,7 +209,8 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onBac
               {guests.map((g) => {
                 const where = spaceNameFor(channels, g.space)
                 return (
-                  <div className="member-row" key={g.identity}>
+                  <div key={g.identity}>
+                  <div className="member-row">
                     <Avatar name={g.name} size={28} />
                     <div className="member-row-main">
                       <div className="member-row-name">
@@ -198,14 +222,56 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onBac
                         {g.code ? ` · code ${g.code}` : ''}
                       </div>
                     </div>
+                    <div className="member-row-actions">
+                      <button
+                        type="button"
+                        className="link-btn danger"
+                        onClick={() => {
+                          setRemoveGuestError('')
+                          setConfirmRemoveGuest((cur) => (cur && cur.identity === g.identity ? null : g))
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                  {confirmRemoveGuest && confirmRemoveGuest.identity === g.identity && (
+                    <div className="create-form">
+                      <p style={{ fontSize: 12, margin: '0 0 10px', color: 'var(--text)' }}>
+                        Remove <strong>{g.name}</strong>? They are dropped from voice now and can't come
+                        back with the invite they hold. Their code stays valid, so a reusable one can
+                        still bring them in again under a new name; revoke the code to stop that.
+                      </p>
+                      {removeGuestError && <div className="error-text">{removeGuestError}</div>}
+                      <div className="create-form-actions">
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          disabled={removingGuest}
+                          onClick={() => setConfirmRemoveGuest(null)}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-primary"
+                          style={{ background: 'var(--danger)' }}
+                          disabled={removingGuest}
+                          onClick={() => removeGuest(g)}
+                        >
+                          {removingGuest ? 'Removing…' : 'Remove'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   </div>
                 )
               })}
             </div>
           )}
           <p className="settings-note">
-            Guests have no account, so they can't be kicked or banned. To remove one, revoke the code they
-            came in with, under active codes above.
+            Guests have no account, so they can't be kicked or banned. Remove one here, or revoke the code
+            they came in with (under active codes above) to remove everyone who used it.
           </p>
         </div>
 
