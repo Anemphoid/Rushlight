@@ -141,3 +141,49 @@ test('a guest screen name that clashes with an account is refused with a readabl
   assert.match(err.message, /account/i)
   assert.ok(err.message.length > 10)
 })
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+test('access that ends is explained: expired, removed and banned come back with a reason', async () => {
+  const { accessEndedNotice } = await import('../src/renderer/src/accessEnded.js')
+  const { admin, server } = await world()
+
+  // expiry: a member whose timed code runs out (a few seconds)
+  const timed = await api.createServerCode(admin.token, server.id, { singleUse: false, expiresInMinutes: 0.04 })
+  const expiring = await account()
+  await api.joinServerWithCode(expiring.token, timed.code)
+  assert.equal((await api.getServer(expiring.token, server.id)).id, server.id)
+
+  // kick and ban, on members of a permanent code
+  const open = await api.createServerCode(admin.token, server.id, { singleUse: false, expiresInMinutes: null })
+  const kicked = await account()
+  const banned = await account()
+  for (const m of [kicked, banned]) await api.joinServerWithCode(m.token, open.code)
+  await api.kickMember(admin.token, server.id, kicked.id)
+  await api.banMember(admin.token, server.id, banned.id, 'test')
+
+  const kickedErr = await rejection(api.getServer(kicked.token, server.id))
+  assert.equal(kickedErr.status, 403)
+  assert.equal(kickedErr.reason, 'removed')
+  assert.equal(accessEndedNotice(kickedErr), 'You were removed from this server.')
+  const bannedErr = await rejection(api.getServer(banned.token, server.id))
+  assert.equal(bannedErr.reason, 'banned')
+  assert.equal(accessEndedNotice(bannedErr), 'You were banned from this server.')
+
+  // wait for the timer to run out, then the real message the screen shows
+  let expiredErr
+  for (let i = 0; i < 80 && !expiredErr; i++) {
+    try {
+      await api.getServer(expiring.token, server.id)
+      await sleep(100)
+    } catch (err) {
+      expiredErr = err
+    }
+  }
+  assert.ok(expiredErr, 'the timed member never lost access')
+  assert.equal(expiredErr.status, 403)
+  assert.equal(expiredErr.reason, 'expired')
+  assert.equal(accessEndedNotice(expiredErr), 'Your access to this server has expired.')
+  // and the server rail no longer lists it
+  assert.ok(!(await api.listServers(expiring.token)).servers.some((s) => s.id === server.id))
+})
