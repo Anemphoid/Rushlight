@@ -349,6 +349,19 @@ function ChannelTreeScreen({
     }
   }, [authToken, inSpace])
 
+  // Closing the window (the X, Alt+F4, quitting) never runs the cleanup above, so tell the
+  // server on the way out. Without this the entry lingers until its 20 second timeout.
+  useEffect(() => {
+    if (!authToken || !inSpace) return
+    const onExit = () => api.leavePresenceOnExit(authToken)
+    window.addEventListener('pagehide', onExit)
+    window.addEventListener('beforeunload', onExit)
+    return () => {
+      window.removeEventListener('pagehide', onExit)
+      window.removeEventListener('beforeunload', onExit)
+    }
+  }, [authToken, inSpace])
+
   // Someone else arriving in or leaving the space I'm in.
   useEffect(() => {
     if (!sessionToken || !openSpace || openSpace.mode !== 'text') return
