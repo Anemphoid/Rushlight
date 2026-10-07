@@ -192,7 +192,12 @@ function JoinCodesSection({ serverId, serverName, sessionToken }) {
                             guests only: {c.scope.name}
                           </span>
                         )}
-                        {c.guestsNow > 0 && (
+                        {c.used && c.singleUse && (
+                          <span className="member-badge">
+                            used{c.guestsNow > 0 ? `, ${c.guestsNow} guest${c.guestsNow === 1 ? '' : 's'} in` : ''}
+                          </span>
+                        )}
+                        {c.guestsNow > 0 && !(c.used && c.singleUse) && (
                           <span className="member-badge">
                             {c.guestsNow} guest{c.guestsNow === 1 ? '' : 's'} in now
                           </span>

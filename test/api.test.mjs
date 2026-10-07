@@ -36,7 +36,7 @@ test('listServerCodes returns the real response shape for a timed single-use cod
   const { codes } = await api.listServerCodes(admin.token, server.id)
   assert.equal(codes.length, 1)
   const c = codes[0]
-  assert.deepEqual(Object.keys(c).sort(), ['code', 'createdAt', 'expiresAt', 'guestsNow', 'id', 'persistent', 'scope', 'singleUse'])
+  assert.deepEqual(Object.keys(c).sort(), ['code', 'createdAt', 'expiresAt', 'guestsNow', 'id', 'persistent', 'scope', 'singleUse', 'used'])
   assert.equal(c.code, made.code)
   assert.equal(c.singleUse, true)
   assert.equal(c.persistent, false)
@@ -45,6 +45,7 @@ test('listServerCodes returns the real response shape for a timed single-use cod
   assert.ok(c.createdAt <= Date.now() && c.createdAt > Date.now() - 60 * 1000)
   assert.equal(c.guestsNow, 0)
   assert.equal(c.scope, null)
+  assert.equal(c.used, false)
 })
 
 test('a reusable code with no expiry has expiresAt null', async () => {
@@ -275,4 +276,38 @@ test('a code limited to one room: the list says so, the guest sees only that, an
   )
   assert.equal(bad.status, 400)
   assert.ok(other.id)
+})
+
+test('a used single-use code stays listed while its guest is here; revoking it removes the guest', async () => {
+  const { admin, server, voice } = await world()
+  const made = await api.createServerCode(admin.token, server.id, { singleUse: true, expiresInMinutes: null })
+  const guest = await api.joinWithCode(made.code, 'Used Code Guest')
+  const row = (await api.listServerCodes(admin.token, server.id)).codes.find((c) => c.code === made.code)
+  assert.ok(row, 'the used code vanished while its guest is still in')
+  assert.equal(row.used, true)
+  assert.equal(row.guestsNow, 1)
+  await api.revokeServerCode(admin.token, server.id, row.id)
+  assert.equal((await rejection(api.getVoiceToken(guest.guestToken, 'channel', voice.id))).status, 403)
+  assert.equal((await api.listServerCodes(admin.token, server.id)).codes.length, 0)
+})
+
+test('removing one guest leaves the other, and the removed guest is refused', async () => {
+  const { admin, server, voice } = await world()
+  const made = await api.createServerCode(admin.token, server.id, { singleUse: false, expiresInMinutes: null })
+  const stays = await api.joinWithCode(made.code, 'Stays Put')
+  const goes = await api.joinWithCode(made.code, 'Sent Away')
+  const list = (await api.listServerGuests(admin.token, server.id)).guests
+  const target = list.find((g) => g.name === 'Sent Away')
+  await api.removeServerGuest(admin.token, server.id, target.identity)
+
+  assert.deepEqual((await api.listServerGuests(admin.token, server.id)).guests.map((g) => g.name), ['Stays Put'])
+  const err = await rejection(api.getVoiceToken(goes.guestToken, 'channel', voice.id))
+  assert.equal(err.status, 403)
+  assert.match(err.message, /removed/i)
+  assert.equal((await api.getVoiceToken(stays.guestToken, 'channel', voice.id)).room, `s${server.id}-channel-${voice.id}`)
+
+  const again = await rejection(api.removeServerGuest(admin.token, server.id, target.identity))
+  assert.equal(again.status, 404)
+  const notAdmin = await rejection(api.removeServerGuest(stays.guestToken, server.id, target.identity))
+  assert.equal(notAdmin.status, 401)
 })
