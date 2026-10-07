@@ -52,6 +52,9 @@ a server change has to wait for a server release.
   here now under members (`listServerGuests`), each with a Remove button
   (`removeServerGuest`); revoking a code removes everyone who used it. A used
   single-use code stays in the code list while its guest is here.
+- Closing the window never runs React cleanup, so `ChannelTreeScreen` also sends
+  `leavePresenceOnExit` (a keepalive request) on `pagehide`/`beforeunload`. The server's
+  20 second timeout is only the backstop for crashes. Untested in a real window.
 - `sounds.js` loads sounds by base name from `assets/sounds/` (missing = silent).
 
 ## Gotchas learned the hard way

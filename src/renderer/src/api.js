@@ -224,3 +224,20 @@ export const sendPresence = (token, type, id, avatarColor) =>
   request('/api/presence', { method: 'POST', token, body: { type, id, avatarColor } })
 
 export const leavePresence = (token) => request('/api/presence/leave', { method: 'POST', token })
+
+// For when the window is closing: an ordinary request can be cut off with the page, a
+// keepalive one is allowed to finish. Fire and forget; the server's 20 second
+// timeout is still the backstop for a crash or a dropped network.
+export function leavePresenceOnExit(token) {
+  if (!token || !cachedBaseUrl) return
+  try {
+    fetch(cachedBaseUrl + '/api/presence/leave', {
+      method: 'POST',
+      keepalive: true,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: '{}'
+    }).catch(() => {})
+  } catch {
+    // closing anyway
+  }
+}
