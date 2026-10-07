@@ -39,6 +39,9 @@ a server change has to wait for a server release.
   is the newest message id seen per space (localStorage); new spaces are
   baselined so old history never shows as unread. The tree's 5s poll checks
   closed text spaces (persistent ones, or ephemeral ones with someone in them).
+- Join codes can be limited to one voice channel/room (`scope`, picker in
+  `JoinCodesSection`). Those are guest-only; a scoped guest's tree has the parent
+  channel with `joinable: false` for a room code, which the tree must not open.
 - Who is speaking/muted shows on the channel tree rows (matched to LiveKit
   participants by display name), not in the voice panel. Per-person volume
   (right-click someone in your voice space) is keyed by name and is a 0-100%
