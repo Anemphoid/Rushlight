@@ -9,7 +9,7 @@ on:
     branches: [main]
 
 env:
-  SERVER_REF: v0.2.0
+  SERVER_REF: v0.3.0
 
 jobs:
   api-tests:
