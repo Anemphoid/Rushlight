@@ -276,3 +276,20 @@ test('a code limited to one room: the list says so, the guest sees only that, an
   assert.equal(bad.status, 400)
   assert.ok(other.id)
 })
+
+test('the leave sent on the way out clears a guest and an account from presence', async () => {
+  const { admin, server, voice } = await world()
+  const made = await api.createServerCode(admin.token, server.id, { singleUse: false, expiresInMinutes: null })
+  const guest = await api.joinWithCode(made.code, 'Closing The Window')
+  await api.sendPresence(guest.guestToken, 'channel', voice.id)
+  await api.sendPresence(admin.token, 'channel', voice.id)
+  const here = async () => ((await api.getServer(admin.token, server.id)).presence[`channel:${voice.id}`] || []).map((p) => p.name)
+  assert.equal((await here()).length, 2)
+
+  api.leavePresenceOnExit(guest.guestToken)
+  api.leavePresenceOnExit(admin.token)
+  api.leavePresenceOnExit(null) // no token: does nothing, does not throw
+  const end = Date.now() + 3000
+  while ((await here()).length > 0 && Date.now() < end) await new Promise((r) => setTimeout(r, 100))
+  assert.deepEqual(await here(), [])
+})

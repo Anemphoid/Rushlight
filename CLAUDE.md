@@ -51,6 +51,9 @@ a server change has to wait for a server release.
   A guest's check-in answer holds only their own space. Admin Tools lists the guests
   here now under members (`listServerGuests`); guests can only be removed by revoking
   their code.
+- Closing the window never runs React cleanup, so `ChannelTreeScreen` also sends
+  `leavePresenceOnExit` (a keepalive request) on `pagehide`/`beforeunload`. The server's
+  20 second timeout is only the backstop for crashes. Untested in a real window.
 - `sounds.js` loads sounds by base name from `assets/sounds/` (missing = silent).
 
 ## Gotchas learned the hard way
