@@ -52,6 +52,8 @@ a server change has to wait for a server release.
   here now under members (`listServerGuests`), each with a Remove button
   (`removeServerGuest`); revoking a code removes everyone who used it. A used
   single-use code stays in the code list while its guest is here.
+- Admin Tools also has a banned list with Unban (`getBans`, `unbanMember`). An unbanned
+  account does not rejoin by itself; it needs a code again.
 - Closing the window never runs React cleanup, so `ChannelTreeScreen` also sends
   `leavePresenceOnExit` (a keepalive request) on `pagehide`/`beforeunload`. The server's
   20 second timeout is only the backstop for crashes. Untested in a real window.
