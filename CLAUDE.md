@@ -35,6 +35,9 @@ a server change has to wait for a server release.
   `subscribe`/`getSnapshot`. PTT starts muted, open mic stays live. Mic input
   gain is a Web Audio GainNode track processor, attached only when gain is
   off 100%, and it falls back to the raw mic on any failure.
+- `audioOutput.js` attaches remote audio and applies deafen/volume to it. livekit-client's
+  `RemoteAudioTrack.attach()` ignores a stored volume of 0, so volume is set AFTER attach
+  and the element is also muted while deafened; don't set it before attaching.
 - `unread.js` unread dots and desktop notifications, also outside React. "Read"
   is the newest message id seen per space (localStorage); new spaces are
   baselined so old history never shows as unread. The tree's 5s poll checks
@@ -52,6 +55,8 @@ a server change has to wait for a server release.
   here now under members (`listServerGuests`), each with a Remove button
   (`removeServerGuest`); revoking a code removes everyone who used it. A used
   single-use code stays in the code list while its guest is here.
+- Admin Tools also has a banned list with Unban (`getBans`, `unbanMember`). An unbanned
+  account does not rejoin by itself; it needs a code again.
 - Closing the window never runs React cleanup, so `ChannelTreeScreen` also sends
   `leavePresenceOnExit` (a keepalive request) on `pagehide`/`beforeunload`. The server's
   20 second timeout is only the backstop for crashes. Untested in a real window.

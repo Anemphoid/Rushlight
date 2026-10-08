@@ -9,7 +9,7 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "dist": "electron-vite build && electron-builder --linux AppImage",
-    "test": "node --test --test-concurrency=1 test/time.test.mjs test/spaces.test.mjs test/access-ended.test.mjs test/recovery-key.test.mjs test/api.test.mjs"
+    "test": "node --test --test-concurrency=1 test/time.test.mjs test/spaces.test.mjs test/access-ended.test.mjs test/recovery-key.test.mjs test/audio-output.test.mjs test/api.test.mjs"
   },
   "dependencies": {
     "@livekit/components-react": "^2.9.24",

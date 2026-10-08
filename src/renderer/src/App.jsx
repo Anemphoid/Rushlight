@@ -336,6 +336,44 @@ function App() {
     setView('login')
   }
 
+  // The channel tree. Its effects send the presence check-ins and the leave, so it has
+  // to stay mounted for as long as the person is in a server, even while Settings,
+  // Profile or Admin Tools is on screen (see treeKept below).
+  function renderTree() {
+    return (
+      <ChannelTreeScreen
+        key={currentServer.id}
+        screenName={screenName}
+        avatarColor={avatarColor}
+        accountId={accountId}
+        ownAvatarUpdatedAt={ownAvatarUpdatedAt}
+        onLeave={sessionToken ? handleGoHome : resetToLogin}
+        leaveLabel={sessionToken ? 'Back to home' : 'Leave'}
+        onOpenSettings={() => openOverlay('settings')}
+        onOpenProfile={() => openOverlay('profile')}
+        onOpenAdminTools={() => openOverlay('adminTools')}
+        serverId={currentServer.id}
+        serverName={currentServer.name}
+        onServerRenamed={handleServerRenamed}
+        sessionToken={sessionToken}
+        guestToken={guestToken}
+        accountName={accountName}
+        pttKey={pttKey}
+        pttHookOk={pttHookOk}
+        onRetryVoice={() => setVoiceRetry((n) => n + 1)}
+        presence={presence}
+        setPresence={setPresence}
+        channels={channels}
+        setChannels={setChannels}
+        sidebarWidth={sidebarWidth}
+        setSidebarWidth={setSidebarWidth}
+        isAdmin={currentServer.isAdmin}
+        openSpace={openSpace}
+        setOpenSpace={setOpenSpace}
+      />
+    )
+  }
+
   function renderView() {
     if (checkingSession) {
       return (
@@ -438,38 +476,7 @@ function App() {
     }
 
     if (view === 'connected' && currentServer) {
-      return (
-        <ChannelTreeScreen
-          key={currentServer.id}
-          screenName={screenName}
-          avatarColor={avatarColor}
-          accountId={accountId}
-          ownAvatarUpdatedAt={ownAvatarUpdatedAt}
-          onLeave={sessionToken ? handleGoHome : resetToLogin}
-          leaveLabel={sessionToken ? 'Back to home' : 'Leave'}
-          onOpenSettings={() => openOverlay('settings')}
-          onOpenProfile={() => openOverlay('profile')}
-          onOpenAdminTools={() => openOverlay('adminTools')}
-          serverId={currentServer.id}
-          serverName={currentServer.name}
-          onServerRenamed={handleServerRenamed}
-          sessionToken={sessionToken}
-          guestToken={guestToken}
-          accountName={accountName}
-          pttKey={pttKey}
-          pttHookOk={pttHookOk}
-          onRetryVoice={() => setVoiceRetry((n) => n + 1)}
-          presence={presence}
-          setPresence={setPresence}
-          channels={channels}
-          setChannels={setChannels}
-          sidebarWidth={sidebarWidth}
-          setSidebarWidth={setSidebarWidth}
-          isAdmin={currentServer.isAdmin}
-          openSpace={openSpace}
-          setOpenSpace={setOpenSpace}
-        />
-      )
+      return renderTree()
     }
 
     return (
@@ -499,12 +506,43 @@ function App() {
   // guests only ever see the one server they were let into.
   const showRail = !!sessionToken && !checkingSession && (view === 'home' || view === 'connected')
 
+  // Opening Settings, Profile or Admin Tools from inside a server must not leave it:
+  // the tree screen sends the presence check-ins, and unmounting it would send a leave
+  // while voice (which lives outside React) carries on. So it stays mounted, hidden,
+  // under the overlay. Going home or to another server still unmounts it.
+  const OVERLAY_VIEWS = ['settings', 'profile', 'adminTools']
+  const treeKept =
+    !!currentServer &&
+    !checkingSession &&
+    (view === 'connected' || (OVERLAY_VIEWS.includes(view) && returnView === 'connected'))
+  const overlayOpen = treeKept && view !== 'connected'
+
   return (
     <div className={'app-shell' + (isMaximized ? ' maximized' : '')}>
       <TitleBar />
       <UpdateBanner />
       <div className="app-content">
-        {showRail ? (
+        {treeKept ? (
+          <>
+            <div style={{ display: overlayOpen ? 'none' : 'contents' }}>
+              {sessionToken ? (
+                <div className="rail-layout">
+                  <ServerRail
+                    servers={servers}
+                    currentServerId={currentServer.id}
+                    onSelect={handleSelectServer}
+                    onHome={handleGoHome}
+                    onAdd={() => setShowServerDialog(true)}
+                  />
+                  <div className="rail-content">{renderTree()}</div>
+                </div>
+              ) : (
+                renderTree()
+              )}
+            </div>
+            {overlayOpen && renderView()}
+          </>
+        ) : showRail ? (
           <div className="rail-layout">
             <ServerRail
               servers={servers}
