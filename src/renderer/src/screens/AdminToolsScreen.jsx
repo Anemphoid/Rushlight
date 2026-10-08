@@ -13,7 +13,7 @@ const TIMED_ACCESS_OPTIONS = [
   { label: 'No limit', minutes: null }
 ]
 
-function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onBack }) {
+function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onServerDeleted, onBack }) {
   const [members, setMembers] = useState(null) // null = still loading
   const [membersError, setMembersError] = useState('')
   const [busyId, setBusyId] = useState(null) // one row's action in flight at a time
@@ -26,6 +26,17 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onBac
   const [confirmUnban, setConfirmUnban] = useState(null) // a row from bans, or null
   const [unbanning, setUnbanning] = useState(false)
   const [unbanError, setUnbanError] = useState('')
+
+  // Owner-only: hand the server on, or delete it. Both need the owner's password.
+  const [transferTo, setTransferTo] = useState('') // accountId as a string, '' = nobody picked
+  const [transferPassword, setTransferPassword] = useState('')
+  const [confirmTransfer, setConfirmTransfer] = useState(false)
+  const [transferBusy, setTransferBusy] = useState(false)
+  const [transferError, setTransferError] = useState('')
+  const [deletePassword, setDeletePassword] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleteBusy, setDeleteBusy] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
 
   const [guests, setGuests] = useState(null) // null = still loading
   const [guestsError, setGuestsError] = useState('')
@@ -113,6 +124,36 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onBac
     }
   }
 
+  async function handOver() {
+    const target = members && members.find((m) => String(m.accountId) === transferTo)
+    if (!target) return
+    setTransferBusy(true)
+    setTransferError('')
+    try {
+      await api.transferServer(sessionToken, serverId, target.accountId, transferPassword)
+      setConfirmTransfer(false)
+      setTransferTo('')
+      setTransferPassword('')
+      await loadMembers() // the owner badge moves, and this person's owner-only sections go
+    } catch (err) {
+      setTransferError(err.message)
+    } finally {
+      setTransferBusy(false)
+    }
+  }
+
+  async function removeServer() {
+    setDeleteBusy(true)
+    setDeleteError('')
+    try {
+      await api.deleteServer(sessionToken, serverId, deletePassword)
+      onServerDeleted(serverName)
+    } catch (err) {
+      setDeleteError(err.message)
+      setDeleteBusy(false)
+    }
+  }
+
   const loadMembers = useCallback(async () => {
     try {
       const result = await api.getMembers(sessionToken, serverId)
@@ -143,6 +184,12 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onBac
     }
   }
 
+  // Whether this person owns the server comes from the members list, which refreshes every
+  // few seconds, so the owner-only sections follow a handover without anyone reopening the screen.
+  const isOwner = !!(members && members.some((m) => m.accountId === accountId && m.isOwner))
+  const others = (members || []).filter((m) => m.accountId !== accountId)
+  const transferTarget = members && members.find((m) => String(m.accountId) === transferTo)
+
   return (
     <div className="screen">
       <div className="card" style={{ maxWidth: 440 }}>
@@ -167,7 +214,8 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onBac
                     <div className="member-row-main">
                       <div className="member-row-name">
                         {m.username}
-                        {m.isAdmin && <span className="member-badge">admin</span>}
+                        {m.isOwner && <span className="member-badge">owner</span>}
+                        {m.isAdmin && !m.isOwner && <span className="member-badge">admin</span>}
                         {m.muted && <span className="member-badge muted">muted</span>}
                       </div>
                       {m.accessExpiresAt && (
@@ -376,6 +424,148 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onBac
             they came in with (under active codes above) to remove everyone who used it.
           </p>
         </div>
+
+        {isOwner && (
+          <>
+            <div className="settings-section">
+              <h2>hand over ownership</h2>
+              <p className="settings-note">
+                You can give this server to any member. Only the owner can delete it or hand it on, and
+                the change is immediate: you stay an admin, and you cannot take it back yourself.
+              </p>
+              {others.length === 0 ? (
+                <p className="settings-note">There is no one else here to hand it to yet.</p>
+              ) : (
+                <>
+                  <div className="field">
+                    <label>New owner</label>
+                    <select
+                      value={transferTo}
+                      onChange={(e) => {
+                        setTransferTo(e.target.value)
+                        setConfirmTransfer(false)
+                      }}
+                    >
+                      <option value="">Pick a member</option>
+                      {others.map((m) => (
+                        <option key={m.accountId} value={m.accountId}>
+                          {m.username}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label>Your password</label>
+                    <input
+                      type="password"
+                      value={transferPassword}
+                      onChange={(e) => setTransferPassword(e.target.value)}
+                      autoComplete="current-password"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    disabled={!transferTo || !transferPassword}
+                    onClick={() => {
+                      setTransferError('')
+                      setConfirmTransfer(true)
+                    }}
+                  >
+                    Hand over ownership
+                  </button>
+                  {confirmTransfer && transferTarget && (
+                    <div className="create-form">
+                      <p style={{ fontSize: 12, margin: '0 0 10px', color: 'var(--text)' }}>
+                        <strong>{transferTarget.username}</strong> becomes the owner of {serverName}. You become
+                        an admin. Only they can delete the server or hand it on again, and you can't undo this
+                        yourself.
+                      </p>
+                      {transferError && <div className="error-text">{transferError}</div>}
+                      <div className="create-form-actions">
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          disabled={transferBusy}
+                          onClick={() => setConfirmTransfer(false)}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-primary"
+                          style={{ background: 'var(--danger)' }}
+                          disabled={transferBusy}
+                          onClick={handOver}
+                        >
+                          {transferBusy ? 'Handing over…' : `Make ${transferTarget.username} the owner`}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {!confirmTransfer && transferError && <div className="error-text">{transferError}</div>}
+                </>
+              )}
+            </div>
+
+            <div className="settings-section">
+              <h2>delete this server</h2>
+              <p className="settings-note">
+                Deletes {serverName} for everyone: every channel, room and message, every code, and everyone's
+                membership. This can't be undone. To keep the server and leave it, hand over ownership above
+                instead.
+              </p>
+              <div className="field">
+                <label>Your password</label>
+                <input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  autoComplete="current-password"
+                />
+              </div>
+              <button
+                type="button"
+                className="btn-secondary"
+                disabled={!deletePassword}
+                onClick={() => {
+                  setDeleteError('')
+                  setConfirmDelete(true)
+                }}
+              >
+                Delete this server
+              </button>
+              {confirmDelete && (
+                <div className="create-form">
+                  <p style={{ fontSize: 12, margin: '0 0 10px', color: 'var(--text)' }}>
+                    Delete <strong>{serverName}</strong> and everything in it, for everyone, for good?
+                  </p>
+                  {deleteError && <div className="error-text">{deleteError}</div>}
+                  <div className="create-form-actions">
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      disabled={deleteBusy}
+                      onClick={() => setConfirmDelete(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      style={{ background: 'var(--danger)' }}
+                      disabled={deleteBusy}
+                      onClick={removeServer}
+                    >
+                      {deleteBusy ? 'Deleting…' : 'Delete it for good'}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {!confirmDelete && deleteError && <div className="error-text">{deleteError}</div>}
+            </div>
+          </>
+        )}
 
         {confirmBan && (
           <div className="poll-backdrop">

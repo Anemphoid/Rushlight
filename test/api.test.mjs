@@ -410,3 +410,43 @@ test('a banned account shows in the ban list and can rejoin only after an unban'
   await api.joinServerWithCode(troublemaker.token, code.code) // allowed again
   await api.unbanMember(admin.token, server.id, member.accountId) // already unbanned: fine, not an error
 })
+
+// --- Phase 2b: ownership transfer and owner-only delete ---
+
+test('the server list and server say who owns it, and the owner hands it to a member', async () => {
+  const { admin, server } = await world()
+  const code = await api.createServerCode(admin.token, server.id, { singleUse: false, expiresInMinutes: null })
+  const friend = await account()
+  await api.joinServerWithCode(friend.token, code.code)
+
+  assert.equal((await api.getServer(admin.token, server.id)).isOwner, true)
+  assert.equal((await api.getServer(friend.token, server.id)).isOwner, false)
+  assert.equal((await api.listServers(admin.token)).servers.find((s) => s.id === server.id).isOwner, true)
+  const before = (await api.getMembers(admin.token, server.id)).members
+  assert.deepEqual(before.filter((m) => m.isOwner).map((m) => m.accountId), [admin.id])
+
+  assert.equal((await rejection(api.transferServer(admin.token, server.id, friend.id, 'wrong-password'))).status, 401)
+  assert.equal((await rejection(api.transferServer(friend.token, server.id, admin.id, PASSWORD))).status, 403)
+  await api.transferServer(admin.token, server.id, friend.id, PASSWORD)
+
+  const after = (await api.getMembers(admin.token, server.id)).members
+  assert.deepEqual(after.filter((m) => m.isOwner).map((m) => m.accountId), [friend.id])
+  assert.equal(after.find((m) => m.accountId === admin.id).isAdmin, true) // the old owner stays an admin
+  assert.equal((await api.getServer(friend.token, server.id)).isOwner, true)
+  assert.equal((await api.getServer(admin.token, server.id)).isOwner, false)
+})
+
+test('only the owner can delete a server, and only with their password', async () => {
+  const { admin, server } = await world()
+  const code = await api.createServerCode(admin.token, server.id, { singleUse: false, expiresInMinutes: null })
+  const friend = await account()
+  await api.joinServerWithCode(friend.token, code.code)
+  await api.transferServer(admin.token, server.id, friend.id, PASSWORD)
+
+  const old = await rejection(api.deleteServer(admin.token, server.id, PASSWORD)) // now just an admin
+  assert.equal(old.status, 403)
+  assert.match(old.message, /owner/)
+  assert.equal((await rejection(api.deleteServer(friend.token, server.id, 'wrong-password'))).status, 401)
+  await api.deleteServer(friend.token, server.id, PASSWORD)
+  assert.equal((await rejection(api.getServer(friend.token, server.id))).status, 403)
+})

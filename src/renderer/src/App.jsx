@@ -266,6 +266,11 @@ function App() {
     }
   }
 
+  // The owner deleted the server from Admin Tools: leave it and say so on the home screen.
+  function handleServerDeleted(name) {
+    handleGoHome(`${name} was deleted.`)
+  }
+
   function handleGoHome(notice) {
     if (notice) setHomeNotice(notice)
     if (openSpace) playSound('self-leave', 0.5)
@@ -454,6 +459,7 @@ function App() {
           serverName={currentServer.name}
           sessionToken={sessionToken}
           accountId={accountId}
+          onServerDeleted={handleServerDeleted}
           onBack={closeOverlay}
         />
       )
