@@ -68,6 +68,11 @@ a server change has to wait for a server release.
   none (`RecoveryKeyPrompt`, `recoveryKeyAcked === false` from login or `/api/me`), and from
   Settings (`AccountSecuritySection`). A password change returns a new token, which
   `App.handleSessionChanged` must keep, including the saved session.
+- Ownership: only the owner sees "hand over ownership" and "delete this server" in Admin
+  Tools, both asking for their password (`transferServer`, `deleteServer`). The owner is
+  read from the members list (`isOwner`), which refreshes, so the sections follow a handover.
+  The old owner stays an admin. Deleting a server sends everyone home through
+  `App.handleServerDeleted`.
 - `sounds.js` loads sounds by base name from `assets/sounds/` (missing = silent).
 
 ## Gotchas learned the hard way

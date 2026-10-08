@@ -10,7 +10,8 @@ let api
 let counter = 0
 
 before(async () => {
-  srv = await startServer()
+  // the password routes are rate limited tightly; this file makes many calls from one address
+  srv = await startServer({ ACCOUNT_LIMIT: '1000', RECOVER_LIMIT: '1000' })
   installBridge(srv.url)
   api = await import('../src/renderer/src/api.js')
 })
