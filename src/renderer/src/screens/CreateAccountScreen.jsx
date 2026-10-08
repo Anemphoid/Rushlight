@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import * as api from '../api'
+import RecoveryKeyScreen from '../components/RecoveryKeyScreen'
 
 function CreateAccountScreen({ onBack, onAccountCreated }) {
   const [username, setUsername] = useState('')
@@ -7,6 +8,7 @@ function CreateAccountScreen({ onBack, onAccountCreated }) {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [creating, setCreating] = useState(false)
+  const [created, setCreated] = useState(null) // the new account, held until its recovery key is saved
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -25,8 +27,7 @@ function CreateAccountScreen({ onBack, onAccountCreated }) {
     setError('')
     setCreating(true)
     try {
-      const { token, username: confirmedName, id, avatarUpdatedAt } = await api.register(username.trim(), password)
-      onAccountCreated({ screenName: confirmedName, sessionToken: token, id, avatarUpdatedAt })
+      setCreated(await api.register(username.trim(), password))
     } catch (err) {
       setError(err.message)
     } finally {
@@ -34,13 +35,34 @@ function CreateAccountScreen({ onBack, onAccountCreated }) {
     }
   }
 
+  // The account exists as soon as the server answers, but the person doesn't get into the app
+  // until they have saved the recovery key. If they close the window first, the next login
+  // asks for a key again, so no account is left without a way to recover it.
+  if (created) {
+    return (
+      <RecoveryKeyScreen
+        recoveryKey={created.recoveryKey}
+        onConfirm={async () => {
+          await api.ackRecoveryKey(created.token)
+          onAccountCreated({
+            screenName: created.username,
+            sessionToken: created.token,
+            id: created.id,
+            avatarUpdatedAt: created.avatarUpdatedAt,
+            recoveryKeyAcked: true
+          })
+        }}
+      />
+    )
+  }
+
   return (
     <div className="screen">
       <div className="card">
         <h1>Create account</h1>
         <p className="sub">
-          No recovery-phrase step yet — that's specific to the managed hosting
-          tier, not needed for a self-hosted account like this one.
+          After you create it you will be given a 12 word recovery key. It is the only way back in
+          if you forget your password, so you'll be asked to save it.
         </p>
 
         <form onSubmit={handleSubmit}>

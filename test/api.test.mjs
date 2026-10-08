@@ -328,3 +328,63 @@ test('the leave sent on the way out clears a guest and an account from presence'
   while ((await here()).length > 0 && Date.now() < end) await new Promise((r) => setTimeout(r, 100))
   assert.deepEqual(await here(), [])
 })
+
+// --- Phase 2a: recovery key, password change and reset ---
+
+const PASSWORD = 'password123'
+const newName = () => `keyer${++counter}y`
+
+test('sign-up returns a recovery key to save, and confirming it makes it the working key', async () => {
+  const username = newName()
+  const r = await api.register(username, PASSWORD)
+  assert.equal(r.recoveryKey.split(' ').length, 12)
+  assert.equal(r.recoveryKeyAcked, false)
+  assert.equal((await api.login(username, PASSWORD)).recoveryKeyAcked, false)
+  assert.equal((await api.getMe(r.token)).recoveryKeyAcked, false)
+  await api.ackRecoveryKey(r.token)
+  assert.equal((await api.login(username, PASSWORD)).recoveryKeyAcked, true)
+  assert.equal((await api.getMe(r.token)).recoveryKeyAcked, true)
+  assert.equal((await rejection(api.ackRecoveryKey(r.token))).status, 409) // nothing waiting to confirm
+})
+
+test('the recovery key resets a forgotten password and hands back the next key', async () => {
+  const username = newName()
+  const r = await api.register(username, PASSWORD)
+  await api.ackRecoveryKey(r.token)
+
+  const wrong = await rejection(api.recoverAccount(username, r.recoveryKey.split(' ').reverse().join(' '), 'a-new-password-1'))
+  assert.equal(wrong.status, 401)
+  assert.match(wrong.message, /don't match/)
+
+  const back = await api.recoverAccount(username, r.recoveryKey.toUpperCase().split(' ').join('-'), 'a-new-password-1')
+  assert.equal(back.recoveryKey.split(' ').length, 12)
+  assert.notEqual(back.recoveryKey, r.recoveryKey)
+  assert.equal(back.recoveryKeyAcked, false)
+  assert.equal((await api.getMe(back.token)).username, username)
+  assert.equal((await rejection(api.login(username, PASSWORD))).status, 401)
+  await api.login(username, 'a-new-password-1')
+  // the old session ended, and the spent key is dead
+  assert.equal((await rejection(api.getMe(r.token))).status, 401)
+  assert.equal((await rejection(api.recoverAccount(username, r.recoveryKey, 'third-password-1'))).status, 401)
+  // the new key works once confirmed
+  await api.ackRecoveryKey(back.token)
+  await api.recoverAccount(username, back.recoveryKey, 'third-password-1')
+})
+
+test('changing the password needs the current one and keeps this session; a new key needs it too', async () => {
+  const username = newName()
+  const r = await api.register(username, PASSWORD)
+  await api.ackRecoveryKey(r.token)
+  const other = await api.login(username, PASSWORD)
+
+  assert.equal((await rejection(api.changePassword(r.token, 'wrong-password', 'brand-new-pass-1'))).status, 401)
+  assert.equal((await rejection(api.changePassword(r.token, PASSWORD, 'short'))).status, 400)
+  const changed = await api.changePassword(r.token, PASSWORD, 'brand-new-pass-1')
+  assert.equal((await api.getMe(changed.token)).username, username)
+  assert.equal((await rejection(api.getMe(r.token))).status, 401)
+  assert.equal((await rejection(api.getMe(other.token))).status, 401)
+
+  assert.equal((await rejection(api.createRecoveryKey(changed.token, PASSWORD))).status, 401) // the old password no longer works
+  const made = await api.createRecoveryKey(changed.token, 'brand-new-pass-1')
+  assert.equal(made.recoveryKey.split(' ').length, 12)
+})

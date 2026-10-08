@@ -11,7 +11,7 @@ on:
 env:
   # Temporary: this change needs the server's guest-presence branch. Move it to the
   # release tag (v0.4.0) once that is published.
-  SERVER_REF: v0.4.1
+  SERVER_REF: claude/account-recovery-key
 
 jobs:
   api-tests:

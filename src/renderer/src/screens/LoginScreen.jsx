@@ -4,7 +4,7 @@ import * as api from '../api'
 
 const TITLE_BAR_HEIGHT = 32
 
-function LoginScreen({ onGoToCreateAccount, onJoinAnonymous, onLoginSuccess }) {
+function LoginScreen({ onGoToCreateAccount, onJoinAnonymous, onLoginSuccess, onForgotPassword }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(true)
@@ -44,11 +44,11 @@ function LoginScreen({ onGoToCreateAccount, onJoinAnonymous, onLoginSuccess }) {
     setLoginError('')
     setLoggingIn(true)
     try {
-      const { token, username: confirmedName, id, avatarUpdatedAt } = await api.login(username.trim(), password)
+      const { token, username: confirmedName, id, avatarUpdatedAt, recoveryKeyAcked } = await api.login(username.trim(), password)
       if (rememberMe) {
         localStorage.setItem('rushlight-session', token)
       }
-      onLoginSuccess({ screenName: confirmedName, sessionToken: token, id, avatarUpdatedAt })
+      onLoginSuccess({ screenName: confirmedName, sessionToken: token, id, avatarUpdatedAt, recoveryKeyAcked })
     } catch (err) {
       setLoginError(err.message)
     } finally {
@@ -108,6 +108,10 @@ function LoginScreen({ onGoToCreateAccount, onJoinAnonymous, onLoginSuccess }) {
           </button>
           {loginError && <div className="error-text">{loginError}</div>}
         </form>
+
+        <button type="button" className="link-btn" onClick={() => onForgotPassword()}>
+          Forgot your password?
+        </button>
 
         <button
           type="button"

@@ -9,6 +9,8 @@ import ScreenNamePrompt from './screens/ScreenNamePrompt'
 import UpdateBanner from './components/UpdateBanner'
 import HomeScreen from './screens/HomeScreen'
 import ChannelTreeScreen from './screens/ChannelTreeScreen'
+import RecoverScreen from './screens/RecoverScreen'
+import RecoveryKeyPrompt from './components/RecoveryKeyPrompt'
 import SettingsScreen from './screens/SettingsScreen'
 import ProfileScreen from './screens/ProfileScreen'
 import AdminToolsScreen from './screens/AdminToolsScreen'
@@ -105,8 +107,8 @@ function App() {
     }
     api
       .getMe(saved)
-      .then(({ username, id, avatarUpdatedAt }) =>
-        handleAccountReady({ screenName: username, sessionToken: saved, id, avatarUpdatedAt })
+      .then(({ username, id, avatarUpdatedAt, recoveryKeyAcked }) =>
+        handleAccountReady({ screenName: username, sessionToken: saved, id, avatarUpdatedAt, recoveryKeyAcked })
       )
       .catch((err) => {
         if (err.status === 401) localStorage.removeItem('rushlight-session')
@@ -213,7 +215,7 @@ function App() {
   }
 
   // Login, account creation, and a valid remembered session all end up here.
-  async function handleAccountReady({ screenName: name, sessionToken: token, id, avatarUpdatedAt }) {
+  async function handleAccountReady({ screenName: name, sessionToken: token, id, avatarUpdatedAt, recoveryKeyAcked }) {
     setScreenName(name)
     setAccountName(name)
     setAccountId(id ?? null)
@@ -224,7 +226,19 @@ function App() {
     setChannels([])
     setPresence({})
     await refreshServers(token)
-    setView('home')
+    // An account with no confirmed recovery key is asked to make one before anything else.
+    setView(recoveryKeyAcked === false ? 'recoveryKey' : 'home')
+  }
+
+  // A password change gives this session a new token (the others end). Keep the saved one
+  // in step, or the next launch would find it rejected.
+  function handleSessionChanged(token) {
+    setSessionToken(token)
+    try {
+      if (localStorage.getItem('rushlight-session')) localStorage.setItem('rushlight-session', token)
+    } catch {
+      // storage unavailable: this session still carries on
+    }
   }
 
   // Guest join: one server's real tree, no account and no server list.
@@ -335,6 +349,20 @@ function App() {
       return <CreateAccountScreen onBack={resetToLogin} onAccountCreated={handleAccountReady} />
     }
 
+    if (view === 'recover') {
+      return <RecoverScreen onBack={resetToLogin} onRecovered={handleAccountReady} />
+    }
+
+    if (view === 'recoveryKey' && sessionToken) {
+      return (
+        <RecoveryKeyPrompt
+          sessionToken={sessionToken}
+          onDone={() => setView('home')}
+          onLogout={resetToLogin}
+        />
+      )
+    }
+
     if (view === 'screenNamePrompt') {
       return (
         <ScreenNamePrompt
@@ -359,6 +387,8 @@ function App() {
           onChangeSkin={setSkin}
           mode={mode}
           onChangeMode={setMode}
+          sessionToken={sessionToken}
+          onSessionChanged={handleSessionChanged}
           onBack={closeOverlay}
         />
       )
@@ -456,6 +486,10 @@ function App() {
         onLoginSuccess={(result) => {
           window.api?.windowRestoreNormalSize()
           handleAccountReady(result)
+        }}
+        onForgotPassword={() => {
+          window.api?.windowRestoreNormalSize()
+          setView('recover')
         }}
       />
     )
