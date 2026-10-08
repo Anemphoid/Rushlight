@@ -114,6 +114,15 @@ export const getServer = (token, serverId) => request(`/api/servers/${serverId}`
 export const renameServer = (token, serverId, name) =>
   request(`/api/servers/${serverId}`, { method: 'PATCH', token, body: { name } })
 
+// Owner only, both need the owner's password. Handing the server to another member is
+// immediate: the old owner stays an admin. Deleting removes every channel, room, message,
+// code and membership.
+export const transferServer = (token, serverId, accountId, password) =>
+  request(`/api/servers/${serverId}/transfer`, { method: 'POST', token, body: { accountId, password } })
+
+export const deleteServer = (token, serverId, password) =>
+  request(`/api/servers/${serverId}`, { method: 'DELETE', token, body: { password } })
+
 export const joinServerWithCode = (token, code) =>
   request('/api/servers/join', { method: 'POST', token, body: { code } })
 
