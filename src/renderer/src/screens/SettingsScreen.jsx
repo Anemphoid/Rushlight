@@ -1,6 +1,9 @@
 import { useState, useEffect, useSyncExternalStore } from 'react'
 import * as voice from '../voice'
 import MicSpeakerCheck from '../components/MicSpeakerCheck'
+import AccountSecuritySection from '../components/AccountSecuritySection'
+import RecoveryKeyScreen from '../components/RecoveryKeyScreen'
+import * as api from '../api'
 import { formatKeyLabel } from '../keys'
 import * as unread from '../unread'
 
@@ -19,8 +22,11 @@ function SettingsScreen({
   onChangeSkin,
   mode,
   onChangeMode,
+  sessionToken,
+  onSessionChanged,
   onBack
 }) {
+  const [newKey, setNewKey] = useState(null) // a recovery key just made, shown until it is confirmed or dropped
   const [listening, setListening] = useState(false)
   const [keyError, setKeyError] = useState('')
   const micMode = useSyncExternalStore(voice.subscribe, voice.getSnapshot).micMode
@@ -45,6 +51,22 @@ function SettingsScreen({
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [listening, onChangePttKey])
+
+  if (newKey) {
+    return (
+      <RecoveryKeyScreen
+        title="Save your new recovery key"
+        recoveryKey={newKey}
+        confirmLabel="I saved it, use this key"
+        cancelLabel="Cancel, keep my old key"
+        onCancel={() => setNewKey(null)}
+        onConfirm={async () => {
+          await api.ackRecoveryKey(sessionToken)
+          setNewKey(null)
+        }}
+      />
+    )
+  }
 
   return (
     <div className="screen" style={{ justifyContent: 'flex-start' }}>
@@ -219,6 +241,14 @@ function SettingsScreen({
           <h2>mic / speaker devices</h2>
           <MicSpeakerCheck />
         </div>
+
+        {sessionToken && (
+          <AccountSecuritySection
+            sessionToken={sessionToken}
+            onSessionChanged={onSessionChanged}
+            onKeyIssued={setNewKey}
+          />
+        )}
 
         <p className="settings-note">Rushlight {version ? 'v' + version : ''}</p>
       </div>

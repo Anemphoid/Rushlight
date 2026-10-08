@@ -1443,3 +1443,32 @@ button {
   color: var(--accent);
   font-weight: 700;
 }
+
+/* Recovery key */
+.key-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 12px 0 10px;
+}
+.key-word {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 9px;
+  font-size: 0.875rem;
+  color: var(--text);
+  user-select: all;
+}
+.key-num {
+  display: inline-block;
+  min-width: 1.4em;
+  margin-right: 4px;
+  color: var(--dim);
+  font-size: 0.6875rem;
+}
+.key-check {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}

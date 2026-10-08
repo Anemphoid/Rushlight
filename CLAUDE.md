@@ -60,6 +60,14 @@ a server change has to wait for a server release.
 - Closing the window never runs React cleanup, so `ChannelTreeScreen` also sends
   `leavePresenceOnExit` (a keepalive request) on `pagehide`/`beforeunload`. The server's
   20 second timeout is only the backstop for crashes. Untested in a real window.
+- Accounts have a 12 word recovery key (`RecoveryKeyScreen`, helpers in `recoveryKey.js`).
+  The server shows it once; it only counts after `ackRecoveryKey`, and the person must
+  save it, tick the box and type 3 of its words back. It appears at sign-up
+  (`CreateAccountScreen` holds the account until it is saved), after a reset
+  (`RecoverScreen`, from "Forgot your password?"), on a one-time prompt for accounts with
+  none (`RecoveryKeyPrompt`, `recoveryKeyAcked === false` from login or `/api/me`), and from
+  Settings (`AccountSecuritySection`). A password change returns a new token, which
+  `App.handleSessionChanged` must keep, including the saved session.
 - `sounds.js` loads sounds by base name from `assets/sounds/` (missing = silent).
 
 ## Gotchas learned the hard way

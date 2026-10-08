@@ -77,6 +77,25 @@ export const login = (username, password) =>
 
 export const getMe = (token) => request('/api/me', { token })
 
+// --- Recovery key, password change and reset ---
+// Sign-up (register) and a reset (recoverAccount) answer with `recoveryKey`: 12 words,
+// shown once. Nothing but a hash is kept, so it cannot be fetched again. It only counts
+// once ackRecoveryKey confirms the person saved it. login and getMe say whether they have
+// confirmed one (`recoveryKeyAcked`).
+export const createRecoveryKey = (token, password) =>
+  request('/api/me/recovery-key', { method: 'POST', token, body: { password } })
+
+export const ackRecoveryKey = (token) => request('/api/me/recovery-key/ack', { method: 'POST', token })
+
+// Answers with a fresh `token`: every other session of the account ends.
+export const changePassword = (token, currentPassword, newPassword) =>
+  request('/api/me/password', { method: 'POST', token, body: { currentPassword, newPassword } })
+
+// Forgot the password: username + recovery key + new password. Answers like a login, plus
+// the next `recoveryKey` to confirm.
+export const recoverAccount = (username, key, newPassword) =>
+  request('/api/recover', { method: 'POST', body: { username, key, newPassword } })
+
 // image: base64 (no data: prefix), mime: one of image/jpeg, image/png, image/webp
 export const uploadAvatar = (token, image, mime) =>
   request('/api/me/avatar', { method: 'POST', token, body: { image, mime } })
