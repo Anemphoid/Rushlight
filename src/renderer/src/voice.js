@@ -7,6 +7,7 @@
 // open mic stays live, and the mode survives room switches.
 import { Room, RoomEvent, Track, DisconnectReason } from 'livekit-client'
 import { playSound } from './sounds'
+import { applyTrackVolume, attachRemoteAudio } from './audioOutput'
 
 const PREF = {
   mode: 'rushlight-mic-mode',
@@ -153,7 +154,7 @@ function setMic(on) {
 }
 
 function applyVolume(track, name) {
-  track.setVolume(state.deafened ? 0 : outputVolume * userVolume(name))
+  applyTrackVolume(track, outputVolume * userVolume(name), state.deafened)
 }
 
 function applyAllVolumes() {
@@ -358,7 +359,10 @@ export async function join({ url, token, key }) {
   })
   r.on(RoomEvent.ActiveSpeakersChanged, refreshParticipants)
   r.on(RoomEvent.TrackMuted, refreshParticipants)
-  r.on(RoomEvent.TrackUnmuted, refreshParticipants)
+  r.on(RoomEvent.TrackUnmuted, () => {
+    applyAllVolumes() // an admin unmuting someone must not make them audible while deafened
+    refreshParticipants()
+  })
   r.on(RoomEvent.TrackPublished, refreshParticipants)
   r.on(RoomEvent.TrackUnpublished, refreshParticipants)
   r.on(RoomEvent.LocalTrackPublished, () => {
@@ -377,8 +381,9 @@ export async function join({ url, token, key }) {
     const track = /** @type {any} */ (incoming)
     const name = participant.name || participant.identity
     remoteAudio.set(track, name)
-    applyVolume(track, name)
-    const el = track.attach()
+    // Attach first and set the volume after (see audioOutput.js): a track that arrives while
+    // deafened must come up silent.
+    const el = attachRemoteAudio(track, outputVolume * userVolume(name), state.deafened)
     el.dataset.lkAudio = '1'
     document.body.appendChild(el)
   })
