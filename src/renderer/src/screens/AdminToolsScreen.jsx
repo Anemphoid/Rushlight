@@ -21,6 +21,12 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onBac
   const [confirmBan, setConfirmBan] = useState(null) // { accountId, username } or null
   const [expiryMenuFor, setExpiryMenuFor] = useState(null)
 
+  const [bans, setBans] = useState(null) // null = still loading
+  const [bansError, setBansError] = useState('')
+  const [confirmUnban, setConfirmUnban] = useState(null) // a row from bans, or null
+  const [unbanning, setUnbanning] = useState(false)
+  const [unbanError, setUnbanError] = useState('')
+
   const [guests, setGuests] = useState(null) // null = still loading
   const [guestsError, setGuestsError] = useState('')
   const [channels, setChannels] = useState([]) // just to put names to the spaces guests are in
@@ -71,6 +77,42 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onBac
     }
   }
 
+  const loadBans = useCallback(async () => {
+    try {
+      const result = await api.getBans(sessionToken, serverId)
+      setBans(result.bans)
+      setBansError('')
+    } catch (err) {
+      setBansError(err.message)
+    }
+  }, [sessionToken, serverId])
+
+  useEffect(() => {
+    loadBans()
+    const timer = setInterval(loadBans, 5000) // another admin may ban or unban
+    return () => clearInterval(timer)
+  }, [loadBans])
+
+  async function unban(row) {
+    setUnbanning(true)
+    setUnbanError('')
+    try {
+      await api.unbanMember(sessionToken, serverId, row.accountId)
+      setConfirmUnban(null)
+      await loadBans()
+    } catch (err) {
+      // someone else already unbanned them: same outcome
+      if (err.status === 404) {
+        setConfirmUnban(null)
+        await loadBans()
+      } else {
+        setUnbanError(err.message)
+      }
+    } finally {
+      setUnbanning(false)
+    }
+  }
+
   const loadMembers = useCallback(async () => {
     try {
       const result = await api.getMembers(sessionToken, serverId)
@@ -92,7 +134,7 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onBac
     setRowError({ id: null, message: '' })
     try {
       await fn()
-      await loadMembers()
+      await Promise.all([loadMembers(), loadBans()]) // a ban moves someone from one list to the other
     } catch (err) {
       setRowError({ id: targetId, message: err.message })
     } finally {
@@ -197,6 +239,66 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onBac
                   </div>
                 )
               })}
+            </div>
+          )}
+
+          <h2 style={{ marginTop: 18 }}>banned</h2>
+          {bansError && <p className="error-text">{bansError}</p>}
+          {bans === null && !bansError && <p className="settings-note">Loading…</p>}
+          {bans && bans.length === 0 && <p className="settings-note">No one is banned.</p>}
+          {bans && bans.length > 0 && (
+            <div className="member-list">
+              {bans.map((b) => (
+                <div key={b.accountId}>
+                  <div className="member-row">
+                    <Avatar name={b.username} imageUrl={avatarUrl(b.accountId, null)} size={28} />
+                    <div className="member-row-main">
+                      <div className="member-row-name">
+                        {b.username}
+                        <span className="member-badge muted">banned</span>
+                      </div>
+                      <div className="member-row-expiry">
+                        {formatAge(b.bannedAt)}
+                        {b.reason ? ` · ${b.reason}` : ''}
+                      </div>
+                    </div>
+                    <div className="member-row-actions">
+                      <button
+                        type="button"
+                        className="link-btn"
+                        onClick={() => {
+                          setUnbanError('')
+                          setConfirmUnban((cur) => (cur && cur.accountId === b.accountId ? null : b))
+                        }}
+                      >
+                        Unban
+                      </button>
+                    </div>
+                  </div>
+                  {confirmUnban && confirmUnban.accountId === b.accountId && (
+                    <div className="create-form">
+                      <p style={{ fontSize: 12, margin: '0 0 10px', color: 'var(--text)' }}>
+                        Unban <strong>{b.username}</strong>? They can come back to this server with a join
+                        code. They don't rejoin on their own.
+                      </p>
+                      {unbanError && <div className="error-text">{unbanError}</div>}
+                      <div className="create-form-actions">
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          disabled={unbanning}
+                          onClick={() => setConfirmUnban(null)}
+                        >
+                          Cancel
+                        </button>
+                        <button type="button" className="btn-primary" disabled={unbanning} onClick={() => unban(b)}>
+                          {unbanning ? 'Unbanning…' : 'Unban'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
 

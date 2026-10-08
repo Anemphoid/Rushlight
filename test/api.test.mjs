@@ -328,3 +328,25 @@ test('the leave sent on the way out clears a guest and an account from presence'
   while ((await here()).length > 0 && Date.now() < end) await new Promise((r) => setTimeout(r, 100))
   assert.deepEqual(await here(), [])
 })
+
+test('a banned account shows in the ban list and can rejoin only after an unban', async () => {
+  const { admin, server } = await world()
+  const code = await api.createServerCode(admin.token, server.id, { singleUse: false, expiresInMinutes: null })
+  const troublemaker = await account()
+  await api.joinServerWithCode(troublemaker.token, code.code)
+  const member = (await api.getMembers(admin.token, server.id)).members.find((m) => m.accountId === troublemaker.id)
+  assert.ok(member, 'the joined account is in the member list')
+
+  await api.banMember(admin.token, server.id, member.accountId, 'testing')
+  const { bans } = await api.getBans(admin.token, server.id)
+  assert.equal(bans.length, 1)
+  assert.deepEqual(Object.keys(bans[0]).sort(), ['accountId', 'bannedAt', 'reason', 'username'])
+  assert.equal(bans[0].accountId, member.accountId)
+  assert.equal(bans[0].reason, 'testing')
+  assert.equal((await rejection(api.joinServerWithCode(troublemaker.token, code.code))).status, 403)
+
+  await api.unbanMember(admin.token, server.id, member.accountId)
+  assert.deepEqual((await api.getBans(admin.token, server.id)).bans, [])
+  await api.joinServerWithCode(troublemaker.token, code.code) // allowed again
+  await api.unbanMember(admin.token, server.id, member.accountId) // already unbanned: fine, not an error
+})
