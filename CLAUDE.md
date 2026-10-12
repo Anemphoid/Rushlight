@@ -73,6 +73,13 @@ a server change has to wait for a server release.
   read from the members list (`isOwner`), which refreshes, so the sections follow a handover.
   The old owner stays an admin. Deleting a server sends everyone home through
   `App.handleServerDeleted`.
+- A request that finds the session over (the server's 401 carries `reason`
+  `session_ended` or `session_expired`) calls the handler `App` registers with
+  `api.setSessionEndedHandler`, which sends the person to sign-in with the server's message;
+  requests sent with an older token are ignored, and a wrong password (a 401 with no reason) never
+  triggers it. The tree's 5s check also updates `isAdmin`/`isOwner` (`handleRoleChanged`) so the
+  Admin/Owner Tools button follows a role change, and the owner makes or removes admins from the
+  member list (`setMemberAdmin`).
 - `sounds.js` loads sounds by base name from `assets/sounds/` (missing = silent).
 
 ## Gotchas learned the hard way
