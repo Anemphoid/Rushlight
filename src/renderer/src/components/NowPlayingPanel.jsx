@@ -1,4 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useSyncExternalStore } from 'react'
+import * as voice from '../voice'
+import Visualizer from '../visualizer/Visualizer'
 import * as api from '../api'
 import Avatar from './Avatar'
 import jellyboxImage from '../assets/images/jellybox.png'
@@ -25,6 +27,7 @@ function NowPlayingPanel({ sessionToken, serverId, space }) {
   const [volume, setVolume] = useState(100)
   const draggingVolume = useRef(false)
   const alive = useRef(true)
+  const v = useSyncExternalStore(voice.subscribe, voice.getSnapshot)
 
   useEffect(() => {
     alive.current = true
@@ -179,6 +182,8 @@ function NowPlayingPanel({ sessionToken, serverId, space }) {
         </label>
         {canControl && st.queue.length > 0 && btn('clear queue', 'Clear everything waiting', () => act({ action: 'clear' }))}
       </div>
+
+      <Visualizer playing={!!playing && st.state === 'playing'} botAudioId={v.botAudioId} deafened={v.deafened} />
 
       {st.queue.length > 0 && (
         <ol className="np-queue">

@@ -1,3 +1,4 @@
+import Credits from '../components/Credits'
 import { useState, useEffect, useSyncExternalStore } from 'react'
 import * as voice from '../voice'
 import MicSpeakerCheck from '../components/MicSpeakerCheck'
@@ -253,6 +254,8 @@ function SettingsScreen({
             onOpenOwnerTools={onOpenOwnerTools}
           />
         )}
+
+        <Credits />
 
         <p className="settings-note">Rushlight {version ? 'v' + version : ''}</p>
       </div>

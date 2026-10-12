@@ -59,6 +59,7 @@ try {
 } catch {
   userVolumes = {}
 }
+let botTrack = null // Jellybox's audio track while we are subscribed to it, for the visualizer
 const remoteAudio = new Map() // subscribed audio track -> speaker's name, so volume changes can reach them
 const intentional = new WeakSet() // rooms we disconnected ourselves, vs. dropped on us
 
@@ -73,7 +74,8 @@ let state = {
   deafened: false, // also silences everyone else, and implies muted
   quality: null, // your connection quality: excellent | good | poor | lost
   pingMs: null,
-  participants: []
+  participants: [],
+  botAudioId: null // changes when Jellybox's audio track arrives or goes, so the visualizer can re-tap it
 }
 
 const listeners = new Set()
@@ -81,6 +83,19 @@ const listeners = new Set()
 function update(patch) {
   state = { ...state, ...patch }
   listeners.forEach((listener) => listener())
+}
+
+// The raw MediaStreamTrack of Jellybox, or null. The visualizer only reads it (a Web Audio analyser that
+// is never connected to the speakers), so nothing is heard twice and it shows what this person is sent.
+export function getBotMediaTrack() {
+  return botTrack ? botTrack.mediaStreamTrack || null : null
+}
+
+function clearBotTrack() {
+  if (botTrack) {
+    botTrack = null
+    update({ botAudioId: null })
+  }
 }
 
 export function subscribe(listener) {
@@ -285,6 +300,7 @@ async function teardown() {
   const old = room
   room = null
   remoteAudio.clear()
+  clearBotTrack()
   gainNode = null
   stopPing()
   wantMic = false
@@ -381,6 +397,10 @@ export async function join({ url, token, key }) {
     const track = /** @type {any} */ (incoming)
     const name = participant.name || participant.identity
     remoteAudio.set(track, name)
+    if (typeof participant.identity === 'string' && participant.identity.startsWith('jellybox-')) {
+      botTrack = track
+      update({ botAudioId: track.sid || track.mediaStreamTrack?.id || 'bot' })
+    }
     // Attach first and set the volume after (see audioOutput.js): a track that arrives while
     // deafened must come up silent.
     const el = attachRemoteAudio(track, outputVolume * userVolume(name), state.deafened)
@@ -390,6 +410,7 @@ export async function join({ url, token, key }) {
   r.on(RoomEvent.TrackUnsubscribed, (track) => {
     if (track.kind !== Track.Kind.Audio) return
     remoteAudio.delete(track)
+    if (track === botTrack) clearBotTrack()
     track.detach().forEach((el) => el.remove())
   })
 
@@ -403,6 +424,7 @@ export async function join({ url, token, key }) {
     if (intentional.has(r) || room !== r) return // we did this ourselves
     room = null
     remoteAudio.clear()
+    clearBotTrack()
     stopPing()
     wantMic = false
     desiredMic = false
