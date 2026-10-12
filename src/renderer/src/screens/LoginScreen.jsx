@@ -4,7 +4,7 @@ import * as api from '../api'
 
 const TITLE_BAR_HEIGHT = 32
 
-function LoginScreen({ onGoToCreateAccount, onJoinAnonymous, onLoginSuccess, onForgotPassword }) {
+function LoginScreen({ onGoToCreateAccount, onJoinAnonymous, onLoginSuccess, onForgotPassword, notice }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(true)
@@ -74,6 +74,11 @@ function LoginScreen({ onGoToCreateAccount, onJoinAnonymous, onLoginSuccess, onF
         </div>
         <h1>Rushlight</h1>
         <p className="sub">Log in to your account, or join anonymously below.</p>
+        {notice && (
+          <p className="error-text" role="alert" style={{ marginBottom: 12 }}>
+            {notice}
+          </p>
+        )}
 
         <form onSubmit={handleLogin}>
           <div className="field">

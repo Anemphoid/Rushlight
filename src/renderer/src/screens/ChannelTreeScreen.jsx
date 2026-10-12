@@ -131,6 +131,8 @@ function ChannelTreeScreen({
   sidebarWidth,
   setSidebarWidth,
   isAdmin,
+  isOwner,
+  onRoleChanged,
   openSpace,
   setOpenSpace
 }) {
@@ -180,7 +182,7 @@ function ChannelTreeScreen({
   const mutationVersion = useRef(0)
   const messageVersion = useRef(0)
   const live = useRef({})
-  live.current = { onLeave, onServerRenamed, serverName, openSpace, channels, accountName, accountId, screenName }
+  live.current = { onLeave, onServerRenamed, onRoleChanged, isAdmin, isOwner, serverName, openSpace, channels, accountName, accountId, screenName }
   // Accounts and guests both check in to presence; only accounts have a session token.
   const authToken = sessionToken || guestToken
   // Who else was in the open space at the last check — the baseline the
@@ -237,6 +239,13 @@ function ChannelTreeScreen({
         setProposals(data.proposals || [])
         checkUnread(data)
         if (data.name !== live.current.serverName) live.current.onServerRenamed(data.name)
+        // Made an admin or the owner (or demoted) since this person last looked.
+        if (
+          live.current.onRoleChanged &&
+          (!!data.isAdmin !== !!live.current.isAdmin || !!data.isOwner !== !!live.current.isOwner)
+        ) {
+          live.current.onRoleChanged({ isAdmin: !!data.isAdmin, isOwner: !!data.isOwner })
+        }
         const cur = live.current.openSpace
         if (cur) {
           const ch = data.channels.find((c) => c.id === cur.channelId)
@@ -907,6 +916,7 @@ function ChannelTreeScreen({
           avatarColor={avatarColor}
           imageUrl={avatarUrl(accountId, ownAvatarUpdatedAt)}
           isAdmin={isAdmin}
+          isOwner={isOwner}
           onOpenSettings={onOpenSettings}
           onOpenProfile={onOpenProfile}
           onOpenAdminTools={onOpenAdminTools}

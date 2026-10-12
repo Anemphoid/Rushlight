@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import '@livekit/components-styles'
 import TitleBar from './components/TitleBar'
 import ServerRail from './components/ServerRail'
@@ -50,7 +50,8 @@ function App() {
   // structure itself lives in the backend database — this is just a cache.
   const [servers, setServers] = useState([])
   const [serversError, setServersError] = useState('')
-  const [currentServer, setCurrentServer] = useState(null) // { id, name, isAdmin }
+  const [currentServer, setCurrentServer] = useState(null) // { id, name, isAdmin, isOwner }
+  const [loginNotice, setLoginNotice] = useState('') // why you were sent to sign-in, if you were
   const [channels, setChannels] = useState([])
   const [presence, setPresence] = useState({}) // 'room:3' / 'channel:1' -> who is in it
   const [sidebarWidth, setSidebarWidth] = useState(260)
@@ -111,9 +112,32 @@ function App() {
         handleAccountReady({ screenName: username, sessionToken: saved, id, avatarUpdatedAt, recoveryKeyAcked })
       )
       .catch((err) => {
-        if (err.status === 401) localStorage.removeItem('rushlight-session')
+        if (err.status === 401) {
+          localStorage.removeItem('rushlight-session')
+          // Say why, when the server did (the password was changed, the session ran out).
+          if (err.reason) setLoginNotice(err.message)
+        }
       })
       .finally(() => setCheckingSession(false))
+  }, [])
+
+  // Any request that finds this session is over (the password was changed or reset in another
+  // window, or the session ran out) sends the person to sign-in with the server's message,
+  // dropping voice like any other leave. Requests that were sent with an older token, such as
+  // ones still in flight when this window changed its own password, are ignored.
+  const currentToken = useRef(null)
+  currentToken.current = sessionToken || guestToken
+  const endSession = useRef(null)
+  endSession.current = (message) => {
+    resetToLogin()
+    setLoginNotice(message)
+  }
+  useEffect(() => {
+    api.setSessionEndedHandler(({ token, message }) => {
+      if (token !== currentToken.current) return
+      endSession.current(message)
+    })
+    return () => api.setSessionEndedHandler(null)
   }, [])
 
   async function refreshServers(token) {
@@ -128,7 +152,7 @@ function App() {
 
   async function enterServer(token, serverId) {
     const data = await api.getServer(token, serverId)
-    setCurrentServer({ id: data.id, name: data.name, isAdmin: data.isAdmin })
+    setCurrentServer({ id: data.id, name: data.name, isAdmin: data.isAdmin, isOwner: !!data.isOwner })
     setChannels(withEmptyMessages(data.channels))
     setPresence(data.presence || {})
     setOpenSpace(null)
@@ -225,6 +249,7 @@ function App() {
     setCurrentServer(null)
     setChannels([])
     setPresence({})
+    setLoginNotice('')
     await refreshServers(token)
     // An account with no confirmed recovery key is asked to make one before anything else.
     setView(recoveryKeyAcked === false ? 'recoveryKey' : 'home')
@@ -247,7 +272,7 @@ function App() {
     setSessionToken(null)
     setGuestToken(token)
     setServers([])
-    setCurrentServer({ id: server.id, name: server.name, isAdmin: false })
+    setCurrentServer({ id: server.id, name: server.name, isAdmin: false, isOwner: false })
     setChannels(withEmptyMessages(server.channels))
     setPresence(server.presence || {})
     setOpenSpace(null)
@@ -264,6 +289,14 @@ function App() {
       setServersError(err.message)
       handleGoHome()
     }
+  }
+
+  // The tree's check found this person's role in the server changed (made an admin, made the
+  // owner, or demoted). Update it now, so the Admin Tools button appears or goes without
+  // leaving and re-entering. If they were looking at Admin Tools when it was taken away, leave it.
+  function handleRoleChanged({ isAdmin, isOwner }) {
+    setCurrentServer((s) => (s ? { ...s, isAdmin, isOwner } : s))
+    if (!isAdmin && view === 'adminTools') closeOverlay()
   }
 
   // The owner deleted the server from Admin Tools: leave it and say so on the home screen.
@@ -373,6 +406,8 @@ function App() {
         sidebarWidth={sidebarWidth}
         setSidebarWidth={setSidebarWidth}
         isAdmin={currentServer.isAdmin}
+        isOwner={!!currentServer.isOwner}
+        onRoleChanged={handleRoleChanged}
         openSpace={openSpace}
         setOpenSpace={setOpenSpace}
       />
@@ -500,6 +535,7 @@ function App() {
           window.api?.windowRestoreNormalSize()
           handleAccountReady(result)
         }}
+        notice={loginNotice}
         onForgotPassword={() => {
           window.api?.windowRestoreNormalSize()
           setView('recover')

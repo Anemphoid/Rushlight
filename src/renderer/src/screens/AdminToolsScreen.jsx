@@ -27,7 +27,10 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onSer
   const [unbanning, setUnbanning] = useState(false)
   const [unbanError, setUnbanError] = useState('')
 
-  // Owner-only: hand the server on, or delete it. Both need the owner's password.
+  // Owner-only: make or remove an admin (no password, but a confirmation), hand the server on, or delete it.
+  const [confirmRole, setConfirmRole] = useState(null) // { accountId, username, makeAdmin } or null
+  const [roleBusy, setRoleBusy] = useState(false)
+  const [roleError, setRoleError] = useState('')
   const [transferTo, setTransferTo] = useState('') // accountId as a string, '' = nobody picked
   const [transferPassword, setTransferPassword] = useState('')
   const [confirmTransfer, setConfirmTransfer] = useState(false)
@@ -124,6 +127,21 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onSer
     }
   }
 
+  async function changeRole() {
+    if (!confirmRole) return
+    setRoleBusy(true)
+    setRoleError('')
+    try {
+      await api.setMemberAdmin(sessionToken, serverId, confirmRole.accountId, confirmRole.makeAdmin)
+      setConfirmRole(null)
+      await loadMembers()
+    } catch (err) {
+      setRoleError(err.message)
+    } finally {
+      setRoleBusy(false)
+    }
+  }
+
   async function handOver() {
     const target = members && members.find((m) => String(m.accountId) === transferTo)
     if (!target) return
@@ -193,7 +211,7 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onSer
   return (
     <div className="screen">
       <div className="card" style={{ maxWidth: 440 }}>
-        <h1>Admin Tools</h1>
+        <h1>{isOwner ? 'Owner Tools' : 'Admin Tools'}</h1>
         <p className="sub">{serverName}</p>
 
         <JoinCodesSection serverId={serverId} serverName={serverName} sessionToken={sessionToken} />
@@ -222,6 +240,38 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onSer
                         <div className="member-row-expiry">{formatExpiry(m.accessExpiresAt)}</div>
                       )}
                       {rowError.id === m.accountId && <div className="error-text">{rowError.message}</div>}
+                      {confirmRole && confirmRole.accountId === m.accountId && (
+                        <div className="create-form">
+                          <p style={{ fontSize: 12, margin: '0 0 10px', color: 'var(--text)' }}>
+                            {confirmRole.makeAdmin ? (
+                              <>
+                                Make <strong>{m.username}</strong> an admin? They can make join codes, mute, kick and
+                                ban members, remove guests and edit channels. They can't delete the server or hand it
+                                over. You can take it back with Remove admin.
+                              </>
+                            ) : (
+                              <>
+                                Remove <strong>{m.username}</strong> as an admin? They stay a member and lose the
+                                admin tools straight away.
+                              </>
+                            )}
+                          </p>
+                          {roleError && <div className="error-text">{roleError}</div>}
+                          <div className="create-form-actions">
+                            <button
+                              type="button"
+                              className="btn-secondary"
+                              disabled={roleBusy}
+                              onClick={() => setConfirmRole(null)}
+                            >
+                              Cancel
+                            </button>
+                            <button type="button" className="btn-primary" disabled={roleBusy} onClick={changeRole}>
+                              {roleBusy ? 'Saving…' : confirmRole.makeAdmin ? 'Make admin' : 'Remove admin'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     {!isSelf && (
                       <div className="member-row-actions">
@@ -266,6 +316,19 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onSer
                             </div>
                           )}
                         </div>
+                        {isOwner && !m.isOwner && (
+                          <button
+                            type="button"
+                            className="link-btn"
+                            disabled={busy}
+                            onClick={() => {
+                              setRoleError('')
+                              setConfirmRole({ accountId: m.accountId, username: m.username, makeAdmin: !m.isAdmin })
+                            }}
+                          >
+                            {m.isAdmin ? 'Remove admin' : 'Make admin'}
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="link-btn"
