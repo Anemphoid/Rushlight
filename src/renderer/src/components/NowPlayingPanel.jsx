@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import * as api from '../api'
+import Avatar from './Avatar'
+import jellyboxImage from '../assets/images/jellybox.png'
 
 const POLL_MS = 3000
 
@@ -127,8 +129,9 @@ function NowPlayingPanel({ sessionToken, serverId, space }) {
   return (
     <div className="now-playing">
       <div className="np-header">
-        <span className="mode-label">m</span>
+        <Avatar name="Jellybox" imageUrl={jellyboxImage} size={28} />
         <strong>Jellybox</strong>
+        <span className="member-badge">bot</span>
         <span className="settings-note" style={{ margin: 0 }}>
           {playing ? (st.state === 'paused' ? 'paused' : 'playing') : 'ready. Type /play in chat, or ask an admin'}
         </span>

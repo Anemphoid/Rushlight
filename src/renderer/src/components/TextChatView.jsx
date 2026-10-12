@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import Avatar from './Avatar'
 import { avatarUrl } from '../api'
 import { redactionBars } from '../redaction'
+import jellyboxImage from '../assets/images/jellybox.png'
 
 function TextChatView({ roomName, screenName, avatarColor, messages, onSend, localOnly, persistent }) {
   const [draft, setDraft] = useState('')
@@ -78,7 +79,7 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, loc
             </div>
           ) : (
           <div className="text-chat-message" key={i}>
-            <Avatar color={m.avatarColor} name={m.author} imageUrl={avatarUrl(m.authorId, m.avatarUpdatedAt)} size={36} />
+            <Avatar color={m.avatarColor} name={m.author} imageUrl={m.bot ? jellyboxImage : avatarUrl(m.authorId, m.avatarUpdatedAt)} size={36} />
             <div className="text-chat-message-content">
               <div className="text-chat-message-meta">
                 <strong>{m.author}</strong>
