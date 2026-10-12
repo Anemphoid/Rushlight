@@ -85,6 +85,15 @@ a server change has to wait for a server release.
   account arrive with `redacted: true` and nothing else; `TextChatView` draws a black REDACTED name
   box (text from CSS, so nothing to copy) over one to three black bars whose lengths come from the
   message id (`redaction.js`), outlined with `--redact-outline` so a skin can keep them visible.
+- Jellybox (music bot, needs server v0.9.0): the owner links one Jellyfin library per server in Owner Tools
+  (`MusicSection`: address plus an API key, or a username and password that is exchanged once; Test and
+  Unlink). Everything goes through the Rushlight server, so the client never sees a Jellyfin address (except
+  the owner's own) or token. `NowPlayingPanel` sits under the voice panel in a voice-capable space: it polls
+  `getMusicState` every 3s, hidden when `available` is false, and moves the progress bar locally from the last
+  position. Everyone sees it; the buttons, volume, seek-by-click and search box need `canControl` (admins and
+  the owner). Slash commands are typed in chat and answered by the server as a `bot: true` message (shown with
+  a "bot" badge). Cover art needs the token, so `fetchMusicCover` returns a blob URL (revoked on change). A
+  voice-only space has no chat, so there only admins can start music, from the panel.
 - `sounds.js` loads sounds by base name from `assets/sounds/` (missing = silent).
 
 ## Gotchas learned the hard way

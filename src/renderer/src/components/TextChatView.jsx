@@ -82,6 +82,7 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, loc
             <div className="text-chat-message-content">
               <div className="text-chat-message-meta">
                 <strong>{m.author}</strong>
+                {m.bot && <span className="member-badge">bot</span>}
                 <span className="settings-note" style={{ margin: 0 }}>
                   {m.time}
                 </span>

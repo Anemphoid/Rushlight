@@ -5,6 +5,7 @@ import ContextMenu from '../components/ContextMenu'
 import PersistenceVote from '../components/PersistenceVote'
 import TextChatView from '../components/TextChatView'
 import VoicePanel from '../components/VoicePanel'
+import NowPlayingPanel from '../components/NowPlayingPanel'
 import UserVolumeMenu from '../components/UserVolumeMenu'
 import Avatar from '../components/Avatar'
 import * as api from '../api'
@@ -937,6 +938,13 @@ function ChannelTreeScreen({
                 pttKey={pttKey}
                 pttHookOk={pttHookOk}
                 onRetry={onRetryVoice}
+              />
+            )}
+            {openSpace.mode !== 'text' && sessionToken && (
+              <NowPlayingPanel
+                sessionToken={sessionToken}
+                serverId={serverId}
+                space={{ type: openSpace.type, id: spaceId(openSpace) }}
               />
             )}
             {openSpace.mode !== 'voice' && (
