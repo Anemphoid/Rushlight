@@ -6,6 +6,7 @@ import PersistenceVote from '../components/PersistenceVote'
 import TextChatView from '../components/TextChatView'
 import VoicePanel from '../components/VoicePanel'
 import NowPlayingPanel from '../components/NowPlayingPanel'
+import jellyboxImage from '../assets/images/jellybox.png'
 import UserVolumeMenu from '../components/UserVolumeMenu'
 import Avatar from '../components/Avatar'
 import * as api from '../api'
@@ -50,8 +51,9 @@ function Occupant({ p, channelLevel, vp, onContextMenu }) {
       }
       onContextMenu={onContextMenu}
     >
-      <Avatar color={p.avatarColor} name={p.name} imageUrl={avatarUrl(p.id, p.avatarUpdatedAt)} size={16} />
+      <Avatar color={p.avatarColor} name={p.name} imageUrl={p.bot ? jellyboxImage : avatarUrl(p.id, p.avatarUpdatedAt)} size={16} />
       <span className="occupant-name">{p.name}</span>
+      {p.bot && <span className="member-badge">bot</span>}
       {vp && vp.isMuted && <span className="occupant-muted">muted</span>}
     </div>
   )
