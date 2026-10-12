@@ -106,7 +106,7 @@ export function observe({ key, title, messages, isOpen, selfId }) {
     counts[key] = fresh.length
     publish()
   }
-  const toAnnounce = fresh.filter((m) => m.id > (notified[key] || 0))
+  const toAnnounce = fresh.filter((m) => m.id > (notified[key] || 0) && !m.redacted) // nothing to say about a redacted one
   if (toAnnounce.length) {
     notified[key] = toAnnounce[toAnnounce.length - 1].id
     notify(title, toAnnounce)

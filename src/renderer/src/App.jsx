@@ -291,6 +291,23 @@ function App() {
     }
   }
 
+  // Their account is gone: the server has wiped what it keeps, so sign out and say so.
+  function handleAccountDeleted() {
+    resetToLogin()
+    setLoginNotice('Your account was deleted.')
+  }
+
+  // From the account deletion refusal: go to a server this person owns and open its Owner Tools.
+  async function handleOpenOwnerTools(serverId) {
+    try {
+      await enterServer(sessionToken, serverId)
+      setReturnView('connected')
+      setView('adminTools')
+    } catch (err) {
+      setServersError(err.message)
+    }
+  }
+
   // The tree's check found this person's role in the server changed (made an admin, made the
   // owner, or demoted). Update it now, so the Admin Tools button appears or goes without
   // leaving and re-entering. If they were looking at Admin Tools when it was taken away, leave it.
@@ -467,6 +484,8 @@ function App() {
           onChangeMode={setMode}
           sessionToken={sessionToken}
           onSessionChanged={handleSessionChanged}
+          onAccountDeleted={handleAccountDeleted}
+          onOpenOwnerTools={handleOpenOwnerTools}
           onBack={closeOverlay}
         />
       )

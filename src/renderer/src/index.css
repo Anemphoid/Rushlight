@@ -1472,3 +1472,44 @@ button {
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
+
+/* Redacted messages: the author deleted their account. Pure black bars and a black name box with
+   white text, like a redacted document. The outline keeps them visible on a dark window; a skin
+   can set --redact-outline (the skin specs give each one's value). */
+:root {
+  --redact-outline: color-mix(in srgb, var(--text) 32%, transparent);
+}
+.redacted-gutter {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+.redacted-author {
+  display: inline-block;
+  background: #000;
+  color: #fff;
+  outline: 1px solid var(--redact-outline);
+  padding: 1px 8px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  user-select: none;
+}
+.redacted-author::before {
+  content: 'REDACTED';
+}
+.redacted-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 4px;
+  user-select: none;
+}
+.redacted-bar {
+  display: block;
+  height: 0.8rem;
+  max-width: 100%;
+  background: #000;
+  outline: 1px solid var(--redact-outline);
+}

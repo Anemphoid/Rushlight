@@ -71,6 +71,8 @@ async function request(path, { method = 'GET', body, token } = {}) {
     }
     // Set when the server says why someone lost access: 'expired', 'removed' or 'banned'.
     if (data.reason) err.reason = data.reason
+    // The servers an owner still has to hand over or delete before deleting their account.
+    if (Array.isArray(data.servers)) err.servers = data.servers
     throw err
   }
   return data
@@ -101,6 +103,11 @@ export const getMe = (token) => request('/api/me', { token })
 // confirmed one (`recoveryKeyAcked`).
 export const createRecoveryKey = (token, password) =>
   request('/api/me/recovery-key', { method: 'POST', token, body: { password } })
+
+// Permanent and immediate. Refused (409, reason 'owns_servers', err.servers) while the account owns a
+// server. Their messages stay but are wiped and redacted, and the username becomes free.
+export const deleteAccount = (token, password) =>
+  request('/api/me', { method: 'DELETE', token, body: { password } })
 
 export const ackRecoveryKey = (token) => request('/api/me/recovery-key/ack', { method: 'POST', token })
 

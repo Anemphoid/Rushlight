@@ -24,6 +24,8 @@ function SettingsScreen({
   onChangeMode,
   sessionToken,
   onSessionChanged,
+  onAccountDeleted,
+  onOpenOwnerTools,
   onBack
 }) {
   const [newKey, setNewKey] = useState(null) // a recovery key just made, shown until it is confirmed or dropped
@@ -247,6 +249,8 @@ function SettingsScreen({
             sessionToken={sessionToken}
             onSessionChanged={onSessionChanged}
             onKeyIssued={setNewKey}
+            onAccountDeleted={onAccountDeleted}
+            onOpenOwnerTools={onOpenOwnerTools}
           />
         )}
 
