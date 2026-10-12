@@ -4,6 +4,7 @@
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { startServer, installBridge, rejection } from './helpers.mjs'
+import { accessEndedNotice } from '../src/renderer/src/accessEnded.js'
 
 let srv
 let api
@@ -450,4 +451,75 @@ test('only the owner can delete a server, and only with their password', async (
   assert.equal((await rejection(api.deleteServer(friend.token, server.id, 'wrong-password'))).status, 401)
   await api.deleteServer(friend.token, server.id, PASSWORD)
   assert.equal((await rejection(api.getServer(friend.token, server.id))).status, 403)
+})
+
+// --- 2b follow-ups: admins, session ended, deleted server ---
+
+test('the owner makes a member an admin and takes it away; others cannot', async () => {
+  const { admin, server } = await world()
+  const code = await api.createServerCode(admin.token, server.id, { singleUse: false, expiresInMinutes: null })
+  const a = await account()
+  const b = await account()
+  await api.joinServerWithCode(a.token, code.code)
+  await api.joinServerWithCode(b.token, code.code)
+
+  assert.equal((await api.getServer(a.token, server.id)).isAdmin, false)
+  const made = await api.setMemberAdmin(admin.token, server.id, a.id, true)
+  assert.equal(made.member.isAdmin, true)
+  assert.equal((await api.getServer(a.token, server.id)).isAdmin, true) // what the tree's check picks up
+  assert.equal((await rejection(api.setMemberAdmin(a.token, server.id, b.id, true))).status, 403) // an admin cannot
+  assert.equal((await rejection(api.setMemberAdmin(b.token, server.id, a.id, false))).status, 403) // nor a member
+  assert.equal((await rejection(api.setMemberAdmin(admin.token, server.id, admin.id, false))).status, 400) // the owner stays one
+
+  const back = await api.setMemberAdmin(admin.token, server.id, a.id, false)
+  assert.equal(back.member.isAdmin, false)
+  assert.equal((await api.getServer(a.token, server.id)).isAdmin, false)
+})
+
+test('a request that finds the session over tells the app, but a wrong password does not', async () => {
+  const username = newName()
+  const r = await api.register(username, PASSWORD)
+  await api.ackRecoveryKey(r.token)
+  const other = await api.login(username, PASSWORD)
+
+  const seen = []
+  api.setSessionEndedHandler((info) => seen.push(info))
+  try {
+    // a wrong password on a route that asks for one is not the session ending
+    await rejection(api.changePassword(r.token, 'wrong-password', 'brand-new-pass-1'))
+    await rejection(api.login(username, 'wrong-password'))
+    assert.deepEqual(seen, [])
+
+    const changed = await api.changePassword(r.token, PASSWORD, 'brand-new-pass-1')
+    const err = await rejection(api.getMe(other.token)) // the other window's next request
+    assert.equal(err.status, 401)
+    assert.equal(err.reason, 'session_ended')
+    assert.equal(seen.length, 1)
+    assert.equal(seen[0].token, other.token) // so the app can ignore requests from an older token
+    assert.equal(seen[0].reason, 'session_ended')
+    assert.match(seen[0].message, /password was changed/)
+    await api.getMe(changed.token) // the window that changed it carries on, with no call to the handler
+    assert.equal(seen.length, 1)
+  } finally {
+    api.setSessionEndedHandler(null)
+  }
+})
+
+test('people in a deleted server are told it was deleted, and a kick keeps its wording', async () => {
+  const { admin, server } = await world()
+  const code = await api.createServerCode(admin.token, server.id, { singleUse: false, expiresInMinutes: null })
+  const a = await account()
+  const kicked = await account()
+  await api.joinServerWithCode(a.token, code.code)
+  await api.joinServerWithCode(kicked.token, code.code)
+  await api.kickMember(admin.token, server.id, kicked.id)
+  const k = await rejection(api.getServer(kicked.token, server.id))
+  assert.equal(k.reason, 'removed')
+  assert.match(accessEndedNotice(k), /removed/)
+
+  await api.deleteServer(admin.token, server.id, PASSWORD)
+  const gone = await rejection(api.getServer(a.token, server.id))
+  assert.equal(gone.status, 403)
+  assert.equal(gone.reason, 'deleted')
+  assert.equal(accessEndedNotice(gone), 'This server was deleted.')
 })

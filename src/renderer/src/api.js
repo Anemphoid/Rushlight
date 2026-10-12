@@ -22,6 +22,16 @@ async function getBaseUrl() {
   return cachedBaseUrl
 }
 
+// A 401 from the server that carries a `reason` of session_ended (the password was changed
+// or reset somewhere) or session_expired (the token ran out, or the account is gone) means this
+// session is over, whatever request noticed first. The app registers one handler to send the
+// person to sign-in with the server's message. A wrong password on a route that asks for one is
+// also a 401, but carries no reason, so it never triggers this.
+let sessionEndedHandler = null
+export function setSessionEndedHandler(fn) {
+  sessionEndedHandler = fn
+}
+
 async function request(path, { method = 'GET', body, token } = {}) {
   let baseUrl
   try {
@@ -52,6 +62,13 @@ async function request(path, { method = 'GET', body, token } = {}) {
   if (!res.ok) {
     const err = new Error(data.error || `Request failed (${res.status})`)
     err.status = res.status
+    if (token && res.status === 401 && (data.reason === 'session_ended' || data.reason === 'session_expired')) {
+      try {
+        if (sessionEndedHandler) sessionEndedHandler({ token, reason: data.reason, message: err.message })
+      } catch {
+        // the request still fails below
+      }
+    }
     // Set when the server says why someone lost access: 'expired', 'removed' or 'banned'.
     if (data.reason) err.reason = data.reason
     throw err
@@ -155,6 +172,11 @@ export const listServerGuests = (token, serverId) =>
   request(`/api/servers/${serverId}/guests`, { token })
 
 // --- Moderation ---
+// Owner only. Makes an account-holding member an admin, or takes it away (admin: false). No
+// password: it is undone with the same button. The owner is always an admin.
+export const setMemberAdmin = (token, serverId, accountId, admin) =>
+  request(`/api/servers/${serverId}/members/${accountId}/admin`, { method: 'POST', token, body: { admin } })
+
 export const getMembers = (token, serverId) =>
   request(`/api/servers/${serverId}/members`, { token })
 

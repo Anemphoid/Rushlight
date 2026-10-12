@@ -7,6 +7,7 @@ function UserFooter({
   avatarColor,
   imageUrl,
   isAdmin,
+  isOwner,
   onOpenSettings,
   onOpenProfile,
   onOpenAdminTools
@@ -83,10 +84,10 @@ function UserFooter({
           <button
             type="button"
             className="gear-btn admin-tools-btn"
-            title="Admin Tools"
+            title={isOwner ? 'Owner Tools' : 'Admin Tools'}
             onClick={onOpenAdminTools}
           >
-            admin
+            {isOwner ? 'owner' : 'admin'}
           </button>
         )}
         <button
