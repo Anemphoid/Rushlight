@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Avatar from './Avatar'
 import { avatarUrl } from '../api'
+import { redactionBars } from '../redaction'
 
 function TextChatView({ roomName, screenName, avatarColor, messages, onSend, localOnly, persistent }) {
   const [draft, setDraft] = useState('')
@@ -55,7 +56,27 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, loc
               : 'No messages yet.'}
           </p>
         )}
-        {messages.map((m, i) => (
+        {messages.map((m, i) =>
+          m.redacted ? (
+            // The author deleted their account: the server kept nothing, so this is only a mark.
+            // No avatar, no name, no profile, and no text for anyone to select or copy.
+            <div className="text-chat-message redacted-message" key={i}>
+              <div className="redacted-gutter" aria-hidden="true" />
+              <div className="text-chat-message-content">
+                <div className="text-chat-message-meta">
+                  <span className="redacted-author" role="img" aria-label="Redacted author" />
+                  <span className="settings-note" style={{ margin: 0 }}>
+                    {m.time}
+                  </span>
+                </div>
+                <div className="redacted-bars" role="img" aria-label="Redacted message">
+                  {redactionBars(m.id).map((w, j) => (
+                    <span className="redacted-bar" key={j} style={{ width: w + '%' }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
           <div className="text-chat-message" key={i}>
             <Avatar color={m.avatarColor} name={m.author} imageUrl={avatarUrl(m.authorId, m.avatarUpdatedAt)} size={36} />
             <div className="text-chat-message-content">
@@ -68,7 +89,8 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, loc
               <div className="text-chat-message-body">{m.text}</div>
             </div>
           </div>
-        ))}
+          )
+        )}
       </div>
 
       {sendError && (

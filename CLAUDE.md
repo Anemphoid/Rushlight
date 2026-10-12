@@ -80,6 +80,11 @@ a server change has to wait for a server release.
   triggers it. The tree's 5s check also updates `isAdmin`/`isOwner` (`handleRoleChanged`) so the
   Admin/Owner Tools button follows a role change, and the owner makes or removes admins from the
   member list (`setMemberAdmin`).
+- Deleting an account (Settings, `deleteAccount`) is permanent and immediate. An owner is refused
+  with the servers named (`err.servers`), each with a way to Owner Tools. Messages from a deleted
+  account arrive with `redacted: true` and nothing else; `TextChatView` draws a black REDACTED name
+  box (text from CSS, so nothing to copy) over one to three black bars whose lengths come from the
+  message id (`redaction.js`), outlined with `--redact-outline` so a skin can keep them visible.
 - `sounds.js` loads sounds by base name from `assets/sounds/` (missing = silent).
 
 ## Gotchas learned the hard way

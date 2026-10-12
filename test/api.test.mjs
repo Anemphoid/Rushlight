@@ -523,3 +523,34 @@ test('people in a deleted server are told it was deleted, and a kick keeps its w
   assert.equal(gone.reason, 'deleted')
   assert.equal(accessEndedNotice(gone), 'This server was deleted.')
 })
+
+// --- Phase 2c: deleting an account, and what its messages become ---
+
+test('deleting an account needs the password, is refused for an owner with the servers named, then redacts the messages', async () => {
+  const { admin, server } = await world()
+  const code = await api.createServerCode(admin.token, server.id, { singleUse: false, expiresInMinutes: null })
+  const leaver = await account()
+  await api.joinServerWithCode(leaver.token, code.code)
+  const chat = await api.createChannel(admin.token, server.id, { name: 'persistent', mode: 'text', persistent: true })
+  await api.postMessage(leaver.token, 'channel', chat.id, { text: 'a secret that should go', avatarColor: '#abcdef' })
+  await api.postMessage(admin.token, 'channel', chat.id, { text: 'this one stays' })
+
+  assert.equal((await rejection(api.deleteAccount(leaver.token, 'wrong-password'))).status, 401)
+  // the owner of a server is refused, and told which one
+  const refused = await rejection(api.deleteAccount(admin.token, PASSWORD))
+  assert.equal(refused.status, 409)
+  assert.equal(refused.reason, 'owns_servers')
+  assert.deepEqual(refused.servers.map((s) => s.id), [server.id])
+
+  await api.deleteAccount(leaver.token, PASSWORD)
+  const msgs = await api.getMessages(admin.token, 'channel', chat.id)
+  assert.equal(msgs.length, 2)
+  assert.equal(msgs[0].redacted, true)
+  assert.equal(msgs[0].text, '')
+  assert.equal(msgs[0].author, null)
+  assert.equal(typeof msgs[0].time, 'string') // still has a time, so the conversation reads in order
+  assert.equal(msgs[1].text, 'this one stays')
+  assert.equal(msgs[1].redacted, false)
+  // the deleted account's window is told so, and its username is free
+  assert.equal((await rejection(api.getMe(leaver.token))).reason, 'session_expired')
+})
