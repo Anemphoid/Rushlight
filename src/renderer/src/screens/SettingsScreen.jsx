@@ -7,6 +7,7 @@ import RecoveryKeyScreen from '../components/RecoveryKeyScreen'
 import * as api from '../api'
 import { formatKeyLabel } from '../keys'
 import * as unread from '../unread'
+import { SKINS, MODES } from '../skins'
 
 const DENSITY_TIERS = ['compact', 'cozy', 'comfortable']
 const ICON_SIZE_TIERS = ['small', 'medium', 'large']
@@ -211,14 +212,14 @@ function SettingsScreen({
         <div className="settings-section">
           <h2>skin</h2>
           <div className="tier-row">
-            {['parchment', 'cool-slate'].map((s) => (
+            {SKINS.map((s) => (
               <button
-                key={s}
+                key={s.id}
                 type="button"
-                className={'tier-chip' + (skin === s ? ' active' : '')}
-                onClick={() => onChangeSkin(s)}
+                className={'tier-chip' + (skin === s.id ? ' active' : '')}
+                onClick={() => onChangeSkin(s.id)}
               >
-                {s === 'parchment' ? 'Parchment' : 'Cool Slate'}
+                {s.name}
               </button>
             ))}
           </div>
@@ -227,7 +228,7 @@ function SettingsScreen({
         <div className="settings-section">
           <h2>mode</h2>
           <div className="tier-row">
-            {['dark', 'light'].map((m) => (
+            {MODES.map((m) => (
               <button
                 key={m}
                 type="button"

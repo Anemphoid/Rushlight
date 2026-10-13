@@ -242,8 +242,7 @@ function JoinCodesSection({ serverId, serverName, sessionToken }) {
                         </button>
                         <button
                           type="button"
-                          className="btn-primary"
-                          style={{ background: 'var(--danger)' }}
+                          className="btn-primary btn-danger"
                           disabled={revoking}
                           onClick={() => revoke(c)}
                         >

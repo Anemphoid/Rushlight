@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import '@livekit/components-styles'
 import TitleBar from './components/TitleBar'
+import { LogoSprite } from './components/RushlightLogo'
+import { DEFAULT_SKIN, DEFAULT_MODE } from './skins'
 import ServerRail from './components/ServerRail'
 import ServerDialog from './components/ServerDialog'
 import LoginScreen from './screens/LoginScreen'
@@ -70,8 +72,8 @@ function App() {
     }
   })
   const [pttHookOk, setPttHookOk] = useState(true)
-  const [skin, setSkin] = useState(() => localStorage.getItem('rushlight-skin') || 'parchment')
-  const [mode, setMode] = useState(() => localStorage.getItem('rushlight-mode') || 'dark')
+  const [skin, setSkin] = useState(() => localStorage.getItem('rushlight-skin') || DEFAULT_SKIN)
+  const [mode, setMode] = useState(() => localStorage.getItem('rushlight-mode') || DEFAULT_MODE)
   const [isMaximized, setIsMaximized] = useState(false)
 
   useEffect(() => {
@@ -587,6 +589,7 @@ function App() {
 
   return (
     <div className={'app-shell' + (isMaximized ? ' maximized' : '')}>
+      <LogoSprite />
       <TitleBar />
       <UpdateBanner />
       <div className="app-content">

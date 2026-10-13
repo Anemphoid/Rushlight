@@ -1,0 +1,326 @@
+[
+ {
+  "tag": "button",
+  "name": "Minimize",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Maximize",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Close",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Home",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "C",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "×",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "×",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "×",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "×",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "×",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "mute",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "deaf",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "input:range",
+  "name": "100",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "input:range",
+  "name": "80",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "owner",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "⚙",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "Back to home",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "Upload a picture",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 320,
+  "h": 40
+ },
+ {
+  "tag": "button",
+  "name": "Use app logo",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 26,
+  "h": 26
+ },
+ {
+  "tag": "button",
+  "name": "#d9903f",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 26,
+  "h": 26
+ },
+ {
+  "tag": "button",
+  "name": "#e0836b",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 26,
+  "h": 26
+ },
+ {
+  "tag": "button",
+  "name": "#4a9d8f",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 26,
+  "h": 26
+ },
+ {
+  "tag": "button",
+  "name": "#7a9d6e",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 26,
+  "h": 26
+ },
+ {
+  "tag": "button",
+  "name": "#6e89b8",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 26,
+  "h": 26
+ },
+ {
+  "tag": "button",
+  "name": "#a878b8",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 26,
+  "h": 26
+ },
+ {
+  "tag": "input:text",
+  "name": "Display name",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 320,
+  "h": 38
+ },
+ {
+  "tag": "button",
+  "name": "Save",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 320,
+  "h": 38
+ },
+ {
+  "tag": "button",
+  "name": "Back",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 31,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "Pick an image",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 298,
+  "h": 38
+ },
+ {
+  "tag": "input:file",
+  "name": "",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "Cancel",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 43,
+  "h": 14
+ }
+]

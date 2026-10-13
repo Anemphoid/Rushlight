@@ -150,7 +150,7 @@ function MicSpeakerCheck() {
   }, [])
 
   const levelColor =
-    level > 90 ? 'var(--danger)' : level > 70 ? 'var(--label)' : 'var(--accent)'
+    level > 90 ? 'var(--meter-high)' : level > 70 ? 'var(--meter-mid)' : 'var(--meter-low)'
 
   return (
     <>

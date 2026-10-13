@@ -164,8 +164,7 @@ function AccountSecuritySection({ sessionToken, onSessionChanged, onKeyIssued, o
               </button>
               <button
                 type="button"
-                className="btn-primary"
-                style={{ background: 'var(--danger)' }}
+                className="btn-primary btn-danger"
                 disabled={delBusy}
                 onClick={deleteAccount}
               >

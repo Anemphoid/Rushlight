@@ -1,0 +1,290 @@
+[
+ {
+  "tag": "button",
+  "name": "Minimize",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Maximize",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Close",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Back",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 70,
+  "h": 30
+ },
+ {
+  "tag": "button",
+  "name": "Compact",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 136,
+  "h": 33
+ },
+ {
+  "tag": "button",
+  "name": "Cozy",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 136,
+  "h": 33
+ },
+ {
+  "tag": "button",
+  "name": "Comfortable",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 136,
+  "h": 33
+ },
+ {
+  "tag": "button",
+  "name": "Small",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 136,
+  "h": 33
+ },
+ {
+  "tag": "button",
+  "name": "Medium",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 136,
+  "h": 33
+ },
+ {
+  "tag": "button",
+  "name": "Large",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 136,
+  "h": 33
+ },
+ {
+  "tag": "button",
+  "name": "On",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 207,
+  "h": 33
+ },
+ {
+  "tag": "button",
+  "name": "Off",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 207,
+  "h": 33
+ },
+ {
+  "tag": "button",
+  "name": "Push to talk",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 207,
+  "h": 33
+ },
+ {
+  "tag": "button",
+  "name": "Open mic",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 207,
+  "h": 33
+ },
+ {
+  "tag": "button",
+  "name": "Left Ctrl",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 37
+ },
+ {
+  "tag": "button",
+  "name": "Parchment",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 207,
+  "h": 33
+ },
+ {
+  "tag": "button",
+  "name": "Cool Slate",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 207,
+  "h": 33
+ },
+ {
+  "tag": "button",
+  "name": "Dark",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 207,
+  "h": 33
+ },
+ {
+  "tag": "button",
+  "name": "Light",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 207,
+  "h": 33
+ },
+ {
+  "tag": "select",
+  "name": "Microphone",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 40
+ },
+ {
+  "tag": "button",
+  "name": "Test microphone",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 40
+ },
+ {
+  "tag": "select",
+  "name": "Speaker",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 40
+ },
+ {
+  "tag": "button",
+  "name": "Test speaker",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 40
+ },
+ {
+  "tag": "input:password",
+  "name": "Current password",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 38
+ },
+ {
+  "tag": "input:password",
+  "name": "New password",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 38
+ },
+ {
+  "tag": "input:password",
+  "name": "Confirm new password",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 38
+ },
+ {
+  "tag": "button",
+  "name": "Change password",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 40
+ },
+ {
+  "tag": "input:password",
+  "name": "Your password",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 38
+ },
+ {
+  "tag": "button",
+  "name": "Make a new recovery key",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 40
+ },
+ {
+  "tag": "input:password",
+  "name": "Your password",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 38
+ },
+ {
+  "tag": "button",
+  "name": "Delete my account",
+  "disabled": true,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 40
+ },
+ {
+  "tag": "button",
+  "name": "Show license text",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 115,
+  "h": 14
+ }
+]
