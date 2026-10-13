@@ -19,6 +19,26 @@ function fmt(ms) {
 // nothing is linked or Jellybox is not in the room (a voice-only room is the exception for admins, who have no chat
 // to type /play in, so they keep the thin tab and can start music from here). It folds to a thin line with a tab.
 // The progress bar runs from the last reported position, so it moves smoothly between the few-second polls.
+// While the column is showing, ask the window for its width on top of the chat's; hand it back after.
+const COLUMN_WIDTH = 340
+function WidenWindow() {
+  useEffect(() => {
+    try {
+      window.api?.windowWiden?.(COLUMN_WIDTH)
+    } catch {
+      // no window API (tests): nothing to widen
+    }
+    return () => {
+      try {
+        window.api?.windowWiden?.(0)
+      } catch {
+        // ignore
+      }
+    }
+  }, [])
+  return null
+}
+
 function NowPlayingPanel({ sessionToken, serverId, space, voiceOnly = false }) {
   const [st, setSt] = useState(null)
   const [fetchedAt, setFetchedAt] = useState(0)
@@ -195,6 +215,7 @@ function NowPlayingPanel({ sessionToken, serverId, space, voiceOnly = false }) {
     <>
       {toast}
       <aside className="now-playing side" aria-label="Jellybox">
+        <WidenWindow />
         <div className="np-header">
           <Avatar name="Jellybox" imageUrl={jellyboxImage} size={24} />
           <strong>Jellybox</strong>

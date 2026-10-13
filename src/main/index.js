@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, screen } from 'electron'
 import { join } from 'path'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { is } from '@electron-toolkit/utils'
@@ -172,12 +172,42 @@ ipcMain.handle('window-set-login-size', (event, { width, height }) => {
 ipcMain.handle('window-restore-normal-size', (event) => {
   const win = BrowserWindow.fromWebContents(event.sender)
   if (!win) return
+  widenedBy = 0
   win.setMinimumSize(NORMAL_MIN_WIDTH, NORMAL_MIN_HEIGHT)
   win.setResizable(true)
   win.setContentSize(NORMAL_WIDTH, NORMAL_HEIGHT)
   win.center()
 })
 
+// The Jellybox column needs room of its own: widen the window by its width while it is showing and
+// give the width back when it folds or goes away, so the chat and the tree are not squeezed. Not done
+// when maximized or full screen (there is no room to grow into). The give-back waits a moment so
+// moving between two rooms that both have Jellybox does not flicker the window.
+let widenedBy = 0
+let giveBackTimer = null
+ipcMain.handle('window-widen', (event, extra) => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  if (!win || win.isDestroyed()) return
+  clearTimeout(giveBackTimer)
+  const want = Math.max(0, Math.min(1000, Math.round(Number(extra) || 0)))
+  if (want === widenedBy) return
+  const apply = () => {
+    if (win.isDestroyed() || win.isMaximized() || win.isFullScreen()) {
+      widenedBy = want
+      return
+    }
+    const b = win.getBounds()
+    const area = screen.getDisplayMatching(b).workArea
+    const delta = want - widenedBy
+    const width = Math.min(Math.max(b.width + delta, NORMAL_MIN_WIDTH), area.width)
+    let x = b.x
+    if (x + width > area.x + area.width) x = Math.max(area.x, area.x + area.width - width)
+    win.setBounds({ x, y: b.y, width, height: b.height })
+    widenedBy = want
+  }
+  if (want < widenedBy) giveBackTimer = setTimeout(apply, 400)
+  else apply()
+})
 app.whenReady().then(() => {
   createWindow()
   startPttHook()
