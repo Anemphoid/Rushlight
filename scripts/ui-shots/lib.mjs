@@ -71,6 +71,11 @@ export async function setup({ outDir, only = null, distDir = join(root, 'out', '
     const page = await ctx.newPage()
     await page.clock.setFixedTime(NOW)
     await page.addInitScript(stub(world.url, '0.14.0'))
+    // a fixed sequence for anything the app picks at random (the guest's suggested name, which words to re-type)
+    await page.addInitScript(() => {
+      let seed = 1234567
+      Math.random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296)
+    })
     await page.addInitScript(
       ({ session, skin, mode, density, iconSize, css }) => {
         try {

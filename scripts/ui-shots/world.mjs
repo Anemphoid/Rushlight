@@ -53,6 +53,8 @@ export async function startWorld() {
       LIVEKIT_API_SECRET: 'shots-secret-shots-secret-shots-secret-2',
       DB_PATH: dbPath,
       PORT: String(port),
+      NODE_OPTIONS: `--require=${join(here, 'fixed-clock.cjs')}`,
+      FIXED_NOW: String(NOW),
       JELLYBOX_TEST_SINK_DIR: sinks,
       JELLYBOX_RATE_MAX: '1000',
       LOGIN_LIMIT: '1000',

@@ -18,6 +18,14 @@ a server change has to wait for a server release.
   (see `SERVER_REF` in `.github/workflows/api-tests.yml`); move it forward when the
   client starts to depend on a newer server. The tests cover the calls the screens
   make, not the GUI.
+- UI refresh tools (Phase 4, see `docs/ui-audit.md`): `npm run ui:audit` prints the counts of hard-coded colours, sizes,
+  radii, inline styles and button patterns; `npm run ui:shots` photographs every screen of the production build against a
+  real server with a fixed world (needs `npm run build`, Playwright's Chromium, ffmpeg and `RUSHLIGHT_SERVER_DIR`; the clock,
+  names and random choices are fixed so two runs of one build match); `node scripts/ui-shots/compare.mjs before after` compares
+  two folders of pictures pixel by pixel. The style gallery is a dev-only page (`npm run dev`, then Ctrl+Shift+G or `#gallery`
+  in the address): `src/renderer/src/dev/`, loaded only through `import.meta.env.DEV` in `main.jsx` and kept out of production
+  builds (a test guards it). It shows the skin variables, their contrast, the type and today's controls with switches for skin,
+  mode, density and icon size.
 - `npm run dist` builds the AppImage. Releases are made by pushing a `vX.Y.Z`
   tag; see `RELEASING.md`.
 

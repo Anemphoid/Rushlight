@@ -1,7 +1,11 @@
 // The screens, in the order a person meets them. Each `shot` is one picture named for what it shows.
 // Steps that cannot be reached are logged and skipped, so one change in a screen does not stop the rest.
 export async function flows(s) {
-  const { newPage, shot, world, cast, browser } = s
+  const { newPage, world, cast, browser } = s
+  const shot = async (p, name, o) => {
+    await mask(p).catch(() => {})
+    return s.shot(p, name, o)
+  }
   const owner = cast.owner.token
   const skipped = []
   const step = async (name, fn) => {
@@ -19,6 +23,16 @@ export async function flows(s) {
     await fn()
     await p.setViewportSize(vp)
   }
+  // text the server makes up at random (join codes, recovery words) is replaced by the same text every run
+  const mask = (p) =>
+    p.evaluate(() => {
+      document.querySelectorAll('.code-row-code').forEach((n, i) => (n.textContent = `amber-wolf-${String(1000 + i)}`))
+      document.querySelectorAll('.key-word').forEach((n, i) => {
+        const num = n.querySelector('.key-num')
+        ;[...n.childNodes].forEach((c) => c !== num && c.remove())
+        n.append(document.createTextNode(`word${i + 1}`))
+      })
+    })
   const look = (p, { density, iconSize } = {}) =>
     p.evaluate(({ density, iconSize }) => {
       if (density) document.documentElement.dataset.density = density

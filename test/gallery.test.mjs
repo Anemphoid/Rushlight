@@ -30,6 +30,9 @@ test('contrast ratios match the published WCAG values', () => {
   assert.ok(contrastRatio('#949494', '#ffffff') >= MIN_CONTROL)
   assert.equal(luminance([0, 0, 0]), 0)
   assert.equal(luminance([255, 255, 255]), 1)
+  // the two branches of the sRGB curve meet near 0.039; a value just above it must use the power branch
+  assert.equal(luminance([12, 12, 12]).toFixed(4), '0.0037')
+  assert.equal(luminance([10, 10, 10]).toFixed(4), '0.0030')
 })
 
 test('blending a translucent colour over a surface gives what the eye sees', () => {
