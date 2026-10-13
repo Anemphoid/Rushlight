@@ -2,7 +2,7 @@
 
 Written for the owner to read before pull request 2. Nothing in the app was changed to produce it. It comes from
 reading the code, from `scripts/ui-audit.mjs` (the counts), and from screenshots of the real production build
-against a real server (`scripts/ui-shots/`, pictures in `docs/ui-audit/screens/`).
+against a real server (`scripts/ui-shots/`, 47 pictures in `docs/ui-audit/screens/`).
 
 Build audited: `main` at `46a7d69` (client v0.14.0, server v0.12.0), default look (Parchment, dark, cozy, medium
 icons), a 900 by 670 window unless a picture says otherwise.
@@ -12,6 +12,15 @@ connects. The voice panel is shown in its "Connection problem" state, nobody is 
 the visualizer's large view shows "Waiting for Jellybox" instead of a picture. Real window chrome (Electron's
 transparent frameless window) is not there either: the title bar is drawn by the app, but the window edge and
 shadow are not. The fonts in the pictures are the sandbox's sans-serif, not the owner's system font.
+
+## What this pull request changes
+
+No visible change to the app. It adds: this audit and its numbers (`docs/ui-audit/numbers.md`), the tools that made
+them (`scripts/ui-audit.mjs`, `scripts/ui-shots/`), and a development-only style gallery (`src/renderer/src/dev/`,
+Ctrl+Shift+G in `npm run dev`; it is not in a production build, and a test keeps it out). The only edit to app
+code is `main.jsx`, which loads the gallery only when `import.meta.env.DEV` is true. **Checked:** 47 pictures of the
+production build from `main` and from this branch compare identical, apart from two pixels of the window-resize
+wobble described below (`node scripts/ui-shots/compare.mjs`).
 
 ## The short version
 
@@ -336,7 +345,48 @@ only be right for the open server.
 
 All in `docs/ui-audit/screens/`. `NN` is the order a person meets the screens.
 
-SCREEN_TABLE
+| Picture | What it shows | Notes |
+| --- | --- | --- |
+| `01-login` | Log in, window sized to the form (as the app does) | Title Case "Log In"; the form is the card; the join key sits below |
+| `02-login-error` | Wrong password | error under the button, text from the server |
+| `03-forgot-password` | Reset your password | Back is a link at the bottom |
+| `04-create-account` | Create account | |
+| `05-create-account-error` | Password too short | |
+| `06-recovery-key-new-account` | The 12 words at sign-up | words masked to `word1` to `word12` |
+| `07-guest-screen-name` | Joining with a code as a guest | Back is a link at the bottom |
+| `08-recovery-key-prompt` | One-time prompt for an account with no key | |
+| `09-login-session-ended` | Sent back to log in after a password change elsewhere | the server's message above the form |
+| `10-home` | Home, with a server in the rail | |
+| `11-add-server-dialog` | Add a server (modal) | `poll-backdrop`, no focus trap |
+| `12-home-no-servers` | Home with nothing yet | |
+| `13-update-banner` | Update ready | "Later" has no class |
+| `20-tree-nothing-open` | Tree, no space open | "Back to home" is a button in the middle |
+| `21-chat-and-voice` | Voice and text room: day dividers, messages, composer | voice shows its error state (no LiveKit) |
+| `22-chat-text-only` | Text room | |
+| `23-voice-only` | Voice room | |
+| `24-chat-empty` | A room with no messages | one line of italic text |
+| `25-add-channel-form`, `26-add-room-form` | The inline create forms | Cancel is a secondary button here |
+| `27-room-context-menu` | Right-click menu | |
+| `28-delete-room-confirm` | Inline delete confirmation | |
+| `29-tree-unread-dot` | Unread dot and bold name on a closed room | |
+| `30-jellybox-column` | Jellybox column, window 1,240 wide, song toast bottom right | bot greeting in chat; the search box is a plain white field |
+| `31-visualizer-small-bars`, `32-visualizer-small-milkdrop` | The small visualizer | no audio track here, so no drawing |
+| `33-visualizer-large` | Large view | "Waiting for Jellybox" (no voice) |
+| `34-jellybox-folded` | Column folded to its thin line | |
+| `40-settings-top` | Settings | title clipped by the Back bar |
+| `41-settings-scrolled-back-bar` | Settings scrolled 420 px | the blank bar bug (section 1) |
+| `42-settings-full` | Settings, whole page (tall window) | |
+| `43-profile` | Profile | Back is a link at the bottom |
+| `44-settings-form-errors` | Change password and delete account answered with an error | |
+| `45-settings-new-recovery-key` | The new-key screen from Settings | |
+| `46-avatar-cropper-empty`, `47-avatar-cropper` | Choose a picture (modal) | |
+| `50-admin-tools-top` | Owner Tools | member actions overlap the name at 900 px |
+| `51-admin-tools-full` | Owner Tools, whole page | Back at the very bottom |
+| `52-admin-ban-confirm` | Ban confirmation (modal) | |
+| `53-admin-timed-access` | Timed access menu | |
+| `54-admin-tools-with-guest` | With a guest present and someone banned | |
+| `60-look-*-chat` | The chat screen in the four skin and mode looks | |
+| `61-look-*` | Compact with small icons, comfortable with large icons | |
 
 ## 14. Not captured at all
 
@@ -382,5 +432,7 @@ npm run dev, then Ctrl+Shift+G (or add #gallery to the address)                 
 ```
 
 The harness freezes the clock, uses fixed names and message times, and turns animation and the text caret off, so
-two runs of the same build give the same pictures. The live Jellybox pictures and the visualizer are the exception
-(a progress bar and a synthetic tone move), and `BASELINE_NOTE`.
+two runs of the same build give the same pictures. The test server's clock and random numbers are fixed too, and
+random text (join codes, recovery words, the test Jellyfin's port) is replaced by fixed text, so even the Jellybox
+pictures match. In three repeated runs the only wobble left was two pixels at the left edge of two login-sized
+pictures (`05` and `06`), where the window is resized while the picture is taken.
