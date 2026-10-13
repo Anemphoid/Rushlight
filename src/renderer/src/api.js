@@ -135,6 +135,11 @@ export const createServer = (token, name) =>
 
 export const getServer = (token, serverId) => request(`/api/servers/${serverId}`, { token })
 
+// Owner only: how many months persistent history is kept (3, 6, 9 or 12). With dryRun the server only says how
+// many messages that window would remove at the next cleanup, and changes nothing.
+export const setRetention = (token, serverId, months, { dryRun = false } = {}) =>
+  request(`/api/servers/${serverId}/retention`, { method: 'PUT', token, body: dryRun ? { months, dryRun: true } : { months } })
+
 export const renameServer = (token, serverId, name) =>
   request(`/api/servers/${serverId}`, { method: 'PATCH', token, body: { name } })
 

@@ -105,6 +105,12 @@ a server change has to wait for a server release.
   simple styles at 15 fps. Without WebGL 2 the large view says so and shows the simple styles. MIT notices are
   in Settings (`Credits`). Rendering was checked in headless Chromium with a synthetic track; not with the
   real LiveKit track or a real GPU.
+- History retention (needs server v0.10.0, migration 12): persistent chat is kept 3, 6, 9 or 12 months
+  (default 12) per server and the owner picks in Owner Tools (`RetentionSection`: a dry run first says how many
+  messages a shorter window would delete, and the owner has to confirm). `getServer` carries `retentionMonths`;
+  `App` keeps it on `currentServer` and the tree's 5s check updates it. It is said plainly when creating a
+  persistent room or channel (`CreateItemForm`) and in the chat header. Chat has day dividers (`dayLabel` in
+  `time.js`: Today, Yesterday, then the date, in the viewer's own timezone); redacted messages sit under them too.
 - `sounds.js` loads sounds by base name from `assets/sounds/` (missing = silent).
 
 ## Gotchas learned the hard way

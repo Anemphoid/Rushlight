@@ -630,3 +630,25 @@ test('music: the owner links Jellyfin, members only learn that it is linked, the
     await jelly.stop()
   }
 })
+test('history window: the owner sets it, everyone reads it, a dry run changes nothing, others are refused', async () => {
+  const { admin: owner, server } = await world()
+  const code = await api.createServerCode(owner.token, server.id, { singleUse: false, expiresInMinutes: null })
+  const member = await account()
+  await api.joinServerWithCode(member.token, code.code)
+
+  assert.equal((await api.getServer(member.token, server.id)).retentionMonths, 12) // the default
+  assert.equal((await rejection(api.setRetention(member.token, server.id, 6))).status, 403)
+  assert.equal((await rejection(api.setRetention(owner.token, server.id, 5))).status, 400)
+
+  const dry = await api.setRetention(owner.token, server.id, 3, { dryRun: true })
+  assert.equal(dry.saved, false)
+  assert.equal(typeof dry.willDeleteAtNextCleanup, 'number')
+  assert.equal((await api.getServer(owner.token, server.id)).retentionMonths, 12)
+
+  const done = await api.setRetention(owner.token, server.id, 6)
+  assert.equal(done.saved, true)
+  assert.equal(done.retentionMonths, 6)
+  assert.equal(done.willDeleteAtNextCleanup, 0)
+  assert.equal((await api.getServer(member.token, server.id)).retentionMonths, 6)
+})
+

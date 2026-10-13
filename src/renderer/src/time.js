@@ -22,3 +22,21 @@ export function formatAge(ts) {
   if (hours < 48) return `${hours}h ago`
   return `${Math.floor(hours / 24)}d ago`
 }
+
+// The calendar day a timestamp falls on, in the viewer's own timezone, as a sortable key.
+export function dayKey(ts) {
+  const d = new Date(ts)
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+}
+
+// "Today", "Yesterday", then the date ("Mon, Oct 5", with the year once it is not this year), all in the
+// viewer's own timezone and language. `locale` is only for tests.
+export function dayLabel(ts, now = Date.now(), locale = undefined) {
+  if (dayKey(ts) === dayKey(now)) return 'Today'
+  const yesterday = new Date(now)
+  yesterday.setDate(yesterday.getDate() - 1)
+  if (dayKey(ts) === dayKey(yesterday.getTime())) return 'Yesterday'
+  const sameYear = new Date(ts).getFullYear() === new Date(now).getFullYear()
+  return new Date(ts).toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric', ...(sameYear ? {} : { year: 'numeric' }) })
+}
+
