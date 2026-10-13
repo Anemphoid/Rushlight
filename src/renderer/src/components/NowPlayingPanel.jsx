@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useSyncExternalStore } from 'react'
 import * as voice from '../voice'
 import Visualizer from '../visualizer/Visualizer'
+import SongToast from './SongToast'
 import * as api from '../api'
 import Avatar from './Avatar'
 import jellyboxImage from '../assets/images/jellybox.png'
@@ -34,6 +35,21 @@ function NowPlayingPanel({ sessionToken, serverId, space }) {
       return false
     }
   })
+  const [toastOn, setToastOn] = useState(() => {
+    try {
+      return localStorage.getItem('rushlight.songToast') !== '0'
+    } catch {
+      return true
+    }
+  })
+  function setToast(on) {
+    setToastOn(on)
+    try {
+      localStorage.setItem('rushlight.songToast', on ? '1' : '0')
+    } catch {
+      // not remembered
+    }
+  }
   function toggleOpen() {
     setOpen((o) => {
       try {
@@ -108,7 +124,7 @@ function NowPlayingPanel({ sessionToken, serverId, space }) {
     : 0
   const fraction = playing && playing.durationMs ? Math.min(1, position / playing.durationMs) : 0
 
-  async function act(body) {
+  async function act(body, { rethrow = false } = {}) {
     setError('')
     try {
       const out = await api.musicControl(sessionToken, space.type, space.id, body)
@@ -117,6 +133,7 @@ function NowPlayingPanel({ sessionToken, serverId, space }) {
       if (typeof out.volume === 'number') setVolume(out.volume)
     } catch (err) {
       setError(err.message)
+      if (rethrow) throw err
     }
   }
 
@@ -149,6 +166,7 @@ function NowPlayingPanel({ sessionToken, serverId, space }) {
 
   return (
     <div className={'now-playing' + (open ? ' open' : '')}>
+      <SongToast track={playing} sessionToken={sessionToken} serverId={serverId} enabled={toastOn} />
       <div className="np-header">
         <Avatar name="Jellybox" imageUrl={jellyboxImage} size={22} />
         <strong>Jellybox</strong>
@@ -210,7 +228,16 @@ function NowPlayingPanel({ sessionToken, serverId, space }) {
 
       {open && (
       <>
-      <Visualizer playing={!!playing && st.state === 'playing'} botAudioId={v.botAudioId} deafened={v.deafened} />
+      <label className="np-toast-toggle">
+        <input type="checkbox" checked={toastOn} onChange={(e) => setToast(e.target.checked)} /> Pop up when the song changes
+      </label>
+
+      <Visualizer
+        playing={!!playing && st.state === 'playing'}
+        botAudioId={v.botAudioId}
+        deafened={v.deafened}
+        search={{ canSearch: canControl, run: async (q) => (await api.searchMusic(sessionToken, serverId, q)).results, act: (b) => act(b, { rethrow: true }) }}
+      />
 
       {st.queue.length > 0 && (
         <ol className="np-queue">
