@@ -1,0 +1,99 @@
+/* Lantern: warm amber on deep brown (the successor of Parchment; its stored id is still "parchment").
+   Dark is the default, so :root carries it. Plain by design: no ornament, no decoration. Every name here is
+   part of the skin contract (styles/contract.js) and is checked for completeness and contrast by the tests. */
+
+/* shape and type, both modes */
+:root,
+html[data-skin='parchment'] {
+  --font-ui: 'Public Sans', system-ui, sans-serif;
+  --font-heading: 'Fraunces', Georgia, serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --heading-weight: 700;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+}
+
+/* dark */
+:root,
+html[data-skin='parchment'][data-mode='dark'] {
+  --bg-app: #17120e;
+  --bg-rail: #110d0a;
+  --bg-panel: #1e1812;
+  --bg-raised: #2a2118;
+  --bg-sunken: #130f0b;
+  --border: #3a2e22;
+  --border-strong: #75634c;
+  --divider: #2c231b;
+  --text: #f1e6d3;
+  --text-dim: #b8a78f;
+  --text-faint: #9a8a74;
+  --accent: #e8a33d;
+  --accent-hover: #f2b658;
+  --on-accent: #1a1209;
+  --accent-soft: #3a2a14;
+  --danger: #e5736a;
+  --on-danger: #1c0f0d;
+  --danger-soft: #3a1c18;
+  --success: #8fbf6a;
+  --warning: #f2c14e;
+  --info: #7fb0e0;
+  --overlay: rgba(10, 7, 4, 0.62);
+  --selection: rgba(232, 163, 61, 0.32);
+  --scrollbar: #4a3b2c;
+  --speaking: #8fbf6a;
+  --focus-ring: #f2b658;
+  --meter-low: #8fbf6a;
+  --meter-mid: #f2c14e;
+  --meter-high: #e5736a;
+  --redact-outline: color-mix(in srgb, var(--text) 32%, transparent);
+  --logo-ring1: #8f7a45;
+  --logo-ring2: #c9a24a;
+  --logo-ring3: #e0952b;
+  --logo-wax: #e8a33d;
+  --logo-flame: #ff7a2f;
+  --logo-flame-core: #ffd36b;
+  --logo-wick: #17120e;
+}
+
+/* light */
+html[data-skin='parchment'][data-mode='light'] {
+  --bg-app: #f6efe2;
+  --bg-rail: #ece2cf;
+  --bg-panel: #fbf6ea;
+  --bg-raised: #efe5d1;
+  --bg-sunken: #f1e9d8;
+  --border: #d6c7a8;
+  --border-strong: #8a7650;
+  --divider: #e2d6bc;
+  --text: #2a2015;
+  --text-dim: #5e4e38;
+  --text-faint: #6f5f48;
+  --accent: #e8a33d;
+  --accent-hover: #8a5200;
+  --on-accent: #1a1209;
+  --accent-soft: #f7e3b8;
+  --danger: #b3342a;
+  --on-danger: #ffffff;
+  --danger-soft: #fbe3df;
+  --success: #36701f;
+  --warning: #8a5a00;
+  --info: #2d5f93;
+  --overlay: rgba(42, 32, 21, 0.45);
+  --selection: rgba(232, 163, 61, 0.38);
+  --scrollbar: #cdbb98;
+  --speaking: #36701f;
+  --focus-ring: #8a5200;
+  --meter-low: #36701f;
+  --meter-mid: #8a5a00;
+  --meter-high: #b3342a;
+  --redact-outline: color-mix(in srgb, var(--text) 32%, transparent);
+  --logo-ring1: #a8914f;
+  --logo-ring2: #c89a30;
+  --logo-ring3: #d4831a;
+  --logo-wax: #d98a1c;
+  --logo-flame: #f0641e;
+  --logo-flame-core: #ffd36b;
+  --logo-wick: #3a2a14;
+}

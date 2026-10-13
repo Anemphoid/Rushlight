@@ -111,7 +111,7 @@ function MusicSection({ serverId, sessionToken }) {
                 <button type="button" className="btn-secondary" disabled={busy} onClick={() => setConfirmUnlink(false)}>
                   Cancel
                 </button>
-                <button type="button" className="btn-primary" style={{ background: 'var(--danger)' }} disabled={busy} onClick={unlink}>
+                <button type="button" className="btn-primary btn-danger" disabled={busy} onClick={unlink}>
                   Unlink it
                 </button>
               </div>

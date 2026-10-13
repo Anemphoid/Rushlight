@@ -15,7 +15,7 @@ function Avatar({ color, name, imageUrl, size = 28, className = '' }) {
   return (
     <div
       className={'avatar-circle' + (className ? ' ' + className : '')}
-      style={{ width: size, height: size, background: showImage ? undefined : color || 'var(--bg)' }}
+      style={{ width: size, height: size, background: showImage ? undefined : color || 'var(--bg-app)' }}
     >
       {showImage ? (
         <img
