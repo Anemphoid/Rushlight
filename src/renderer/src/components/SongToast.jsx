@@ -18,6 +18,7 @@ function useHost() {
 
 // A small notice in the bottom right that fades in when the song changes (cover, artist, title) and fades out after
 // about ten seconds. It does not show for the song already playing when someone arrives, only for changes.
+// track: undefined while loading, null when nothing is playing, else { id, title, artist, album }.
 function SongToast({ track, sessionToken, serverId, enabled }) {
   const [shown, setShown] = useState(null) // the track on show, or null
   const [visible, setVisible] = useState(false) // drives the fade
@@ -27,6 +28,7 @@ function SongToast({ track, sessionToken, serverId, enabled }) {
   const trackId = track ? track.id : null
 
   useEffect(() => {
+    if (track === undefined) return undefined // the first answer has not arrived yet
     if (seen.current === undefined) {
       seen.current = trackId // first look: remember it, say nothing
       return undefined
@@ -48,7 +50,7 @@ function SongToast({ track, sessionToken, serverId, enabled }) {
       clearTimeout(gone)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trackId, enabled])
+  }, [trackId, enabled, track === undefined])
 
   const shownId = shown ? shown.id : null
   useEffect(() => {
