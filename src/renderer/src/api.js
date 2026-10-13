@@ -279,6 +279,59 @@ export async function postMessage(token, type, id, { text, avatarColor }) {
   return withTime(message)
 }
 
+// Send a picture (a Blob already prepared by imagePrep.js) as its own message, with an optional caption.
+// The server checks and cleans it. Throws with the server's wording on failure.
+export async function postImage(token, type, id, blob, { text = '', avatarColor } = {}) {
+  let baseUrl
+  try {
+    baseUrl = await getBaseUrl()
+  } catch {
+    throw new Error("Couldn't read the server address from config.")
+  }
+  const path = type === 'channel' ? `/api/channels/${id}/images` : `/api/rooms/${id}/images`
+  const query = new URLSearchParams()
+  if (text) query.set('text', text)
+  if (avatarColor) query.set('avatarColor', avatarColor)
+  let res
+  try {
+    res = await fetch(`${baseUrl}${path}${query.size ? '?' + query : ''}`, {
+      method: 'POST',
+      headers: { 'Content-Type': blob.type, Authorization: `Bearer ${token}` },
+      body: blob
+    })
+  } catch (err) {
+    console.error('Rushlight picture upload failed:', err)
+    throw new Error(`Couldn't reach ${baseUrl} to send the picture.`)
+  }
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    const err = new Error(data.error || `The picture wasn't sent (${res.status})`)
+    err.status = res.status
+    if (token && res.status === 401 && (data.reason === 'session_ended' || data.reason === 'session_expired')) {
+      try {
+        if (sessionEndedHandler) sessionEndedHandler({ token, reason: data.reason, message: err.message })
+      } catch {
+        // the request still fails below
+      }
+    }
+    throw err
+  }
+  return withTime(data)
+}
+
+// A picture from the chat needs the sign-in token, so it is fetched and shown from a local address
+// (null if it can't be had). The caller revokes the address when done.
+export async function fetchChatImage(token, imageId) {
+  try {
+    const baseUrl = await getBaseUrl()
+    const res = await fetch(`${baseUrl}/api/images/${imageId}`, { headers: { Authorization: `Bearer ${token}` } })
+    if (!res.ok) return null
+    return URL.createObjectURL(await res.blob())
+  } catch {
+    return null
+  }
+}
+
 // --- Presence ---
 // Check in to a channel/room; returns everyone currently in this server's
 // spaces. Called every few seconds while a space is open.

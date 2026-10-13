@@ -586,6 +586,19 @@ function ChannelTreeScreen({
     }
   }
 
+  // A picture is its own message. Throws on failure so the composer can keep it and say why.
+  async function sendImageToOpenSpace(blob, { text, avatarColor }) {
+    if (!openSpace || !sessionToken) return
+    const space = openSpace
+    messageVersion.current++
+    try {
+      const saved = await api.postImage(sessionToken, space.type, spaceId(space), blob, { text, avatarColor })
+      setChannels((prev) => withAppendedMessage(prev, space, saved))
+    } finally {
+      messageVersion.current++
+    }
+  }
+
   async function deleteChannel(channelId) {
     const ok = await runMutation(() => api.deleteChannel(sessionToken, serverId, channelId))
     setConfirmDeleteChannel(null)
@@ -963,6 +976,8 @@ function ChannelTreeScreen({
                 : ch.rooms.find((r) => r.id === openSpace.roomId)?.messages || []
             })()}
             onSend={sendMessageToOpenSpace}
+            onSendImage={sendImageToOpenSpace}
+            sessionToken={sessionToken}
             localOnly={!sessionToken}
             retentionMonths={retentionMonths}
             persistent={(() => {

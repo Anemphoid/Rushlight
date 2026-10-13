@@ -688,3 +688,38 @@ test('music: browsing the library, stop and shuffle controls, the new state fiel
   }
 })
 
+
+test('pictures: a member sends one, the message carries it, the bytes come back, outsiders and bad files are refused', async () => {
+  const { admin, server } = await world()
+  const channel = await api.createChannel(admin.token, server.id, { name: 'chat', mode: 'both', persistent: true })
+  const member = await account()
+  const code = await api.createServerCode(admin.token, server.id, { singleUse: false, expiresInMinutes: null })
+  await api.joinServerWithCode(member.token, code.code)
+  const stranger = await account()
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
+  const blob = new Blob([png], { type: 'image/png' })
+
+  const sent = await api.postImage(member.token, 'channel', channel.id, blob, { text: 'a dot', avatarColor: '#aabbcc' })
+  assert.equal(sent.text, 'a dot')
+  assert.deepEqual({ mime: sent.image.mime, width: sent.image.width, height: sent.image.height }, { mime: 'image/png', width: 1, height: 1 })
+  assert.ok(sent.time, 'the message gets its display time like any other')
+
+  const list = await api.getMessages(admin.token, 'channel', channel.id)
+  assert.equal(list.length, 1)
+  assert.equal(list[0].image.id, sent.image.id)
+
+  const url = await api.fetchChatImage(admin.token, sent.image.id)
+  assert.match(url, /^blob:/)
+  const bytes = Buffer.from(await (await fetch(url)).arrayBuffer())
+  assert.ok(bytes.subarray(0, 8).equals(png.subarray(0, 8)), 'a real PNG comes back')
+  URL.revokeObjectURL(url)
+
+  assert.equal(await api.fetchChatImage(stranger.token, sent.image.id), null, 'someone outside the server gets nothing')
+  assert.equal(await api.fetchChatImage(admin.token, 999999), null)
+  const refused = await rejection(api.postImage(stranger.token, 'channel', channel.id, blob))
+  assert.equal(refused.status, 403)
+  const notPicture = await rejection(api.postImage(member.token, 'channel', channel.id, new Blob([Buffer.from('<html>not a picture</html>')], { type: 'image/png' })))
+  assert.equal(notPicture.status, 400)
+  assert.match(notPicture.message, /real image/)
+  assert.equal((await api.getMessages(admin.token, 'channel', channel.id)).length, 1)
+})

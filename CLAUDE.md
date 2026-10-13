@@ -115,6 +115,13 @@ a server change has to wait for a server release.
   `App` keeps it on `currentServer` and the tree's 5s check updates it. It is said plainly when creating a
   persistent room or channel (`CreateItemForm`) and in the chat header. Chat has day dividers (`dayLabel` in
   `time.js`: Today, Yesterday, then the date, in the viewer's own timezone); redacted messages sit under them too.
+- Pictures in chat (needs server v0.12.0 or later, migration 13): the composer has an `image` button, and a picture can be
+  pasted or dropped on the chat. `imagePrep.js` draws it through a canvas first (drops all metadata, bakes in a phone photo's
+  rotation, shrinks to 2560 px, PNG/WebP keep their type, the rest become JPEG, falls back to a smaller JPEG if over ~5 MB), then
+  `postImage` sends the raw bytes as its own message and the draft becomes the caption. `ChatImage` fetches the bytes with the token
+  (`fetchChatImage`, a blob URL revoked on unmount), sizes its box from the message's `image.width/height` so the chat does not jump,
+  and opens a lightbox on click (Esc closes; portalled into the full screen element if there is one). Guests have no picture button.
+  Checked in headless Chromium against a real server (rotation, EXIF, paste, drop, lightbox, polling); not in a real window.
 - `sounds.js` loads sounds by base name from `assets/sounds/` (missing = silent).
 
 ## Gotchas learned the hard way

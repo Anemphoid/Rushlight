@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, Fragment } from 'react'
 import Avatar from './Avatar'
+import ChatImage from './ChatImage'
+import { prepareImage, isPictureFile } from '../imagePrep'
 import { avatarUrl } from '../api'
 import { redactionBars } from '../redaction'
 import { dayKey, dayLabel } from '../time'
@@ -8,11 +10,17 @@ import jellyboxImage from '../assets/images/jellybox.png'
 // When a message was written. A guest's local-only message has no stored time, so it is today's.
 const when = (m) => m.createdAt || Date.now()
 
-function TextChatView({ roomName, screenName, avatarColor, messages, onSend, localOnly, persistent, retentionMonths }) {
+function TextChatView({ roomName, screenName, avatarColor, messages, onSend, onSendImage, sessionToken, localOnly, persistent, retentionMonths }) {
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState('')
   const listRef = useRef(null)
+  const fileInput = useRef(null)
+  // A picture chosen but not yet sent: { blob, previewUrl }. The draft becomes its caption.
+  const [pending, setPending] = useState(null)
+  const [preparing, setPreparing] = useState(false)
+  const [dragging, setDragging] = useState(false)
+  const canSendImages = !localOnly && !!onSendImage && !!sessionToken
   // True while the person is at (or near) the bottom. The list is replaced on every poll, so only
   // follow new messages when they were already reading the latest; scrolling up must stay put.
   const stickRef = useRef(true)
@@ -32,19 +40,67 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, loc
     }
   }, [messages, roomName])
 
+  useEffect(() => {
+    return () => {
+      if (pending) URL.revokeObjectURL(pending.previewUrl)
+    }
+  }, [pending])
+
+  useEffect(() => {
+    setPending(null) // a picture chosen for one room is not sent to another
+  }, [roomName])
+
+  async function choosePicture(file) {
+    if (!canSendImages || !file) return
+    setSendError('')
+    if (!isPictureFile(file)) {
+      setSendError("That isn't a picture.")
+      return
+    }
+    setPreparing(true)
+    try {
+      const { blob } = await prepareImage(file)
+      setPending({ blob, previewUrl: URL.createObjectURL(blob) })
+    } catch (err) {
+      setSendError(err.message)
+    } finally {
+      setPreparing(false)
+    }
+  }
+
+  function onPaste(e) {
+    const file = [...(e.clipboardData?.files || [])].find(isPictureFile)
+    if (file && canSendImages) {
+      e.preventDefault()
+      choosePicture(file)
+    }
+  }
+
+  function onDrop(e) {
+    e.preventDefault()
+    setDragging(false)
+    const file = [...(e.dataTransfer?.files || [])].find(isPictureFile)
+    if (file) choosePicture(file)
+  }
+
   async function sendMessage(e) {
     e.preventDefault()
-    if (!draft.trim() || sending) return
+    if ((!draft.trim() && !pending) || sending || preparing) return
     setSending(true)
     setSendError('')
     stickRef.current = true // their own message always scrolls into view
     try {
-      await onSend({
-        author: screenName || 'You',
-        avatarColor,
-        text: draft.trim(),
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      })
+      if (pending) {
+        await onSendImage(pending.blob, { text: draft.trim(), avatarColor })
+        setPending(null)
+      } else {
+        await onSend({
+          author: screenName || 'You',
+          avatarColor,
+          text: draft.trim(),
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        })
+      }
       setDraft('')
     } catch (err) {
       // Keep the draft so nothing typed is lost.
@@ -55,7 +111,19 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, loc
   }
 
   return (
-    <div className="text-chat">
+    <div
+      className={'text-chat' + (dragging ? ' drop-target' : '')}
+      onDragOver={(e) => {
+        if (canSendImages && [...(e.dataTransfer?.items || [])].some((i) => i.kind === 'file')) {
+          e.preventDefault()
+          setDragging(true)
+        }
+      }}
+      onDragLeave={(e) => {
+        if (e.currentTarget === e.target) setDragging(false)
+      }}
+      onDrop={onDrop}
+    >
       <div className="text-chat-header">
         <span className="mode-label">t</span>
         {roomName}
@@ -111,7 +179,8 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, loc
                   {m.time}
                 </span>
               </div>
-              <div className="text-chat-message-body">{m.text}</div>
+              {m.text && <div className="text-chat-message-body">{m.text}</div>}
+              {m.image && sessionToken && <ChatImage key={m.image.id} image={m.image} token={sessionToken} author={m.author} />}
             </div>
           </div>
           )}
@@ -125,11 +194,46 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, loc
         </div>
       )}
 
+      {(pending || preparing) && (
+        <div className="composer-picture">
+          {pending ? <img src={pending.previewUrl} alt="Picture ready to send" /> : <span className="settings-note">Getting the picture ready...</span>}
+          {pending && <span className="settings-note">Add a caption if you like, then Send.</span>}
+          {pending && (
+            <button type="button" className="link-btn" onClick={() => setPending(null)}>
+              remove
+            </button>
+          )}
+        </div>
+      )}
       <form className="text-chat-composer" onSubmit={sendMessage}>
+        {canSendImages && (
+          <>
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                const f = e.target.files && e.target.files[0]
+                e.target.value = ''
+                choosePicture(f)
+              }}
+            />
+            <button
+              type="button"
+              className="btn-secondary composer-picture-btn"
+              title="Send a picture (or paste or drop one here)"
+              onClick={() => fileInput.current && fileInput.current.click()}
+            >
+              image
+            </button>
+          </>
+        )}
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder={`Message ${roomName}`}
+          onPaste={onPaste}
+          placeholder={pending ? 'Add a caption' : `Message ${roomName}`}
         />
         <button type="submit" className="btn-primary" style={{ width: 'auto', padding: '0 18px' }}>
           Send

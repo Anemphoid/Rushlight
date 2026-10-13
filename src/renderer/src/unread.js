@@ -69,7 +69,7 @@ function notify(title, newOnes) {
   const last = newOnes[newOnes.length - 1]
   const body =
     newOnes.length === 1
-      ? `${last.author}: ${last.text}`
+      ? `${last.author}: ${last.text || (last.image ? 'sent a picture' : '')}`
       : `${newOnes.length} new messages, latest from ${last.author}`
   try {
     const n = new Notification(title, { body, silent: true })
