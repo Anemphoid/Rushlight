@@ -2152,6 +2152,29 @@ code,
   scrollbar-color: var(--scrollbar) transparent;
 }
 
+/* text inputs, selects and boxes that have no rule of their own still follow the skin (:where keeps this the
+   weakest rule, so any specific one wins), and checkboxes and sliders use the skin's accent, not the browser's blue */
+html {
+  accent-color: var(--accent-hover);
+}
+:where(input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='hidden']), textarea, select) {
+  background: var(--bg-sunken);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  padding: 6px 10px;
+}
+:where(input, textarea)::placeholder {
+  color: var(--text-faint);
+  opacity: 1;
+}
+
+/* links stacked under a form each get their own line, whatever the width of the font */
+.card > .link-btn {
+  display: block;
+}
+
 /* a destructive button: the same shape as a primary one, in the danger colour */
 .btn-danger {
   background: var(--danger);
