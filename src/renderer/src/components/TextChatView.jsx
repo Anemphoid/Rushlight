@@ -13,18 +13,31 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, loc
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState('')
   const listRef = useRef(null)
+  // True while the person is at (or near) the bottom. The list is replaced on every poll, so only
+  // follow new messages when they were already reading the latest; scrolling up must stay put.
+  const stickRef = useRef(true)
+
+  function onListScroll() {
+    const el = listRef.current
+    if (el) stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40
+  }
 
   useEffect(() => {
-    if (listRef.current) {
+    stickRef.current = true // a different room starts at the latest message
+  }, [roomName])
+
+  useEffect(() => {
+    if (listRef.current && stickRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight
     }
-  }, [messages])
+  }, [messages, roomName])
 
   async function sendMessage(e) {
     e.preventDefault()
     if (!draft.trim() || sending) return
     setSending(true)
     setSendError('')
+    stickRef.current = true // their own message always scrolls into view
     try {
       await onSend({
         author: screenName || 'You',
@@ -53,7 +66,7 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, loc
         )}
       </div>
 
-      <div className="text-chat-list" ref={listRef}>
+      <div className="text-chat-list" ref={listRef} onScroll={onListScroll}>
         {messages.length === 0 && (
           <p className="settings-note" style={{ textAlign: 'center', marginTop: 20 }}>
             {localOnly
