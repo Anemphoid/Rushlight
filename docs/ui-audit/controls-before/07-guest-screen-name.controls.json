@@ -1,0 +1,56 @@
+[
+ {
+  "tag": "button",
+  "name": "Minimize",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Maximize",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Close",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "input:text",
+  "name": "Screen name",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 320,
+  "h": 38
+ },
+ {
+  "tag": "button",
+  "name": "Continue",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 320,
+  "h": 38
+ },
+ {
+  "tag": "button",
+  "name": "Back",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 31,
+  "h": 14
+ }
+]

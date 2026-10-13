@@ -1,0 +1,92 @@
+[
+ {
+  "tag": "button",
+  "name": "Minimize",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Maximize",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Close",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Copy the key",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 480,
+  "h": 40
+ },
+ {
+  "tag": "input:checkbox",
+  "name": "I understand that if I lose both my password and this key, my account can't be r",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 13,
+  "h": 13
+ },
+ {
+  "tag": "input:text",
+  "name": "Word 8",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 155,
+  "h": 38
+ },
+ {
+  "tag": "input:text",
+  "name": "Word 10",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 155,
+  "h": 38
+ },
+ {
+  "tag": "input:text",
+  "name": "Word 11",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 155,
+  "h": 38
+ },
+ {
+  "tag": "button",
+  "name": "I saved it, use this key",
+  "disabled": true,
+  "shown": true,
+  "covered": false,
+  "w": 480,
+  "h": 38
+ },
+ {
+  "tag": "button",
+  "name": "Cancel, keep my old key",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 157,
+  "h": 14
+ }
+]

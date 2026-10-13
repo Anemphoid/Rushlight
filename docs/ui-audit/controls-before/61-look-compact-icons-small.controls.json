@@ -1,0 +1,686 @@
+[
+ {
+  "tag": "button",
+  "name": "Minimize",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Maximize",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Close",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Home",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 40,
+  "h": 40
+ },
+ {
+  "tag": "button",
+  "name": "C",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 40,
+  "h": 40
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 40,
+  "h": 40
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 18,
+  "h": 24
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 18,
+  "h": 24
+ },
+ {
+  "tag": "button",
+  "name": "×",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 18,
+  "h": 24
+ },
+ {
+  "tag": "button",
+  "name": "×",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 18,
+  "h": 24
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 18,
+  "h": 24
+ },
+ {
+  "tag": "button",
+  "name": "×",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 18,
+  "h": 24
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 18,
+  "h": 24
+ },
+ {
+  "tag": "button",
+  "name": "×",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 18,
+  "h": 24
+ },
+ {
+  "tag": "button",
+  "name": "×",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 18,
+  "h": 24
+ },
+ {
+  "tag": "button",
+  "name": "mute",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 42,
+  "h": 16
+ },
+ {
+  "tag": "button",
+  "name": "deaf",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 38,
+  "h": 16
+ },
+ {
+  "tag": "input:range",
+  "name": "100",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 51,
+  "h": 3
+ },
+ {
+  "tag": "input:range",
+  "name": "80",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 52,
+  "h": 3
+ },
+ {
+  "tag": "button",
+  "name": "owner",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 46,
+  "h": 24
+ },
+ {
+  "tag": "button",
+  "name": "⚙",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 24,
+  "h": 24
+ },
+ {
+  "tag": "button",
+  "name": "Try again",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 48,
+  "h": 11
+ },
+ {
+  "tag": "button",
+  "name": "image",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 68,
+  "h": 33
+ },
+ {
+  "tag": "input:text",
+  "name": "Message Gaming",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 392,
+  "h": 33
+ },
+ {
+  "tag": "button",
+  "name": "Send",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 67,
+  "h": 33
+ },
+ {
+  "tag": "button",
+  "name": "hide >",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 34,
+  "h": 11
+ },
+ {
+  "tag": "button",
+  "name": "prev",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 45,
+  "h": 19
+ },
+ {
+  "tag": "button",
+  "name": "pause",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 53,
+  "h": 19
+ },
+ {
+  "tag": "button",
+  "name": "skip",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 43,
+  "h": 19
+ },
+ {
+  "tag": "button",
+  "name": "stop",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 19
+ },
+ {
+  "tag": "button",
+  "name": "shuffle all",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 74,
+  "h": 19
+ },
+ {
+  "tag": "input:range",
+  "name": "vol 100",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 129,
+  "h": 16
+ },
+ {
+  "tag": "input:checkbox",
+  "name": "Pop up when the song changes",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 13,
+  "h": 13
+ },
+ {
+  "tag": "button",
+  "name": "Visualizer",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 74,
+  "h": 19
+ },
+ {
+  "tag": "input:text",
+  "name": "Search songs, albums, artists",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 481,
+  "h": 21
+ },
+ {
+  "tag": "button",
+  "name": "Search",
+  "disabled": true,
+  "shown": true,
+  "covered": false,
+  "w": 58,
+  "h": 21
+ },
+ {
+  "tag": "button",
+  "name": "Artists",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 178,
+  "h": 22
+ },
+ {
+  "tag": "button",
+  "name": "Albums",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 178,
+  "h": 22
+ },
+ {
+  "tag": "button",
+  "name": "Songs",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 178,
+  "h": 22
+ },
+ {
+  "tag": "button",
+  "name": "all",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "#",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "A",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "B",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "C",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "D",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "E",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "F",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "G",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "H",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "I",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "J",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "K",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "L",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "M",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "N",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "O",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "P",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "Q",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "R",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "S",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "T",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "U",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "V",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "W",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "X",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "Y",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "Z",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "Album Band",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 63,
+  "h": 11
+ },
+ {
+  "tag": "button",
+  "name": "Play",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 12
+ },
+ {
+  "tag": "button",
+  "name": "Add",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 21,
+  "h": 12
+ },
+ {
+  "tag": "button",
+  "name": "Nightingale",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 61,
+  "h": 11
+ },
+ {
+  "tag": "button",
+  "name": "Play",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 12
+ },
+ {
+  "tag": "button",
+  "name": "Add",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 21,
+  "h": 12
+ },
+ {
+  "tag": "button",
+  "name": "The Sunbeams",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 77,
+  "h": 11
+ },
+ {
+  "tag": "button",
+  "name": "Play",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 12
+ },
+ {
+  "tag": "button",
+  "name": "Add",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 21,
+  "h": 12
+ }
+]

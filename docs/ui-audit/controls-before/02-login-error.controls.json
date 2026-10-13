@@ -1,0 +1,101 @@
+[
+ {
+  "tag": "button",
+  "name": "Minimize",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Maximize",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Close",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "input:text",
+  "name": "Username",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 320,
+  "h": 38
+ },
+ {
+  "tag": "input:password",
+  "name": "Password",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 320,
+  "h": 38
+ },
+ {
+  "tag": "input:checkbox",
+  "name": "Remember me on this device",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 13,
+  "h": 13
+ },
+ {
+  "tag": "button",
+  "name": "Log In",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 320,
+  "h": 38
+ },
+ {
+  "tag": "button",
+  "name": "Forgot your password?",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 149,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "Don't have an account? Create one",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 227,
+  "h": 14
+ },
+ {
+  "tag": "input:text",
+  "name": "Anonymous join key",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 320,
+  "h": 38
+ },
+ {
+  "tag": "button",
+  "name": "Join",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 320,
+  "h": 40
+ }
+]

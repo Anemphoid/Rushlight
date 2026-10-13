@@ -164,8 +164,9 @@ a server change has to wait for a server release.
   join codes; guests join with a code and get a narrow voice-only token.
 - Ephemeral spaces wipe after 10s empty (server-side presence). Switching to
   persistent needs a majority vote of people who have written there.
-- Density drives root font-size (rem everywhere). Four palettes: Parchment and
-  Cool Slate, each dark/light, via CSS variables.
+- Density drives root font-size (rem everywhere). Two base skins, Lantern and Slate (stored ids `parchment` and
+  `cool-slate`), each dark/light. A skin is `styles/skins/<name>.css`, checked against `styles/contract.js` by
+  `test/skins.test.mjs` (completeness and contrast). Components use only the contract's variable names; see `docs/new-look.md`.
 - Beta requires: working between two people on separate networks (done once),
   migrations (done), admin moderation (kick/mute/ban), published server docs.
 - Social features (friends, DMs) are deferred; avatars only for now.

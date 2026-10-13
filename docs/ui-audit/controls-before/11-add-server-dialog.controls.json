@@ -1,0 +1,128 @@
+[
+ {
+  "tag": "button",
+  "name": "Minimize",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Maximize",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Close",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Home",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 40,
+  "h": 40
+ },
+ {
+  "tag": "button",
+  "name": "C",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 40,
+  "h": 40
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 40,
+  "h": 40
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 56,
+  "h": 56
+ },
+ {
+  "tag": "button",
+  "name": "Settings",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 83,
+  "h": 28
+ },
+ {
+  "tag": "button",
+  "name": "Log out",
+  "disabled": false,
+  "shown": true,
+  "covered": true,
+  "w": 77,
+  "h": 28
+ },
+ {
+  "tag": "input:text",
+  "name": "Create a new server",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 338,
+  "h": 38
+ },
+ {
+  "tag": "button",
+  "name": "Create server",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 338,
+  "h": 38
+ },
+ {
+  "tag": "input:text",
+  "name": "Join with a code",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 338,
+  "h": 38
+ },
+ {
+  "tag": "button",
+  "name": "Join server",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 338,
+  "h": 40
+ },
+ {
+  "tag": "button",
+  "name": "Cancel",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 43,
+  "h": 14
+ }
+]

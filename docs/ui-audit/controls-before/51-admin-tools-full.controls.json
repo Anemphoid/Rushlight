@@ -1,0 +1,515 @@
+[
+ {
+  "tag": "button",
+  "name": "Minimize",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Maximize",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Close",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Home",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "C",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "×",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "×",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "×",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "×",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "×",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "mute",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "deaf",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "input:range",
+  "name": "100",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "input:range",
+  "name": "80",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "owner",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "⚙",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "Back to home",
+  "disabled": false,
+  "shown": false,
+  "covered": false,
+  "w": 0,
+  "h": 0
+ },
+ {
+  "tag": "button",
+  "name": "Single use",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 207,
+  "h": 33
+ },
+ {
+  "tag": "button",
+  "name": "Reusable",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 207,
+  "h": 33
+ },
+ {
+  "tag": "button",
+  "name": "1 hour",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 101,
+  "h": 33
+ },
+ {
+  "tag": "button",
+  "name": "24 hours",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 101,
+  "h": 33
+ },
+ {
+  "tag": "button",
+  "name": "7 days",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 101,
+  "h": 33
+ },
+ {
+  "tag": "button",
+  "name": "No expiry",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 101,
+  "h": 33
+ },
+ {
+  "tag": "select",
+  "name": "What the code covers",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 40
+ },
+ {
+  "tag": "button",
+  "name": "Generate join code",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 38
+ },
+ {
+  "tag": "button",
+  "name": "Copy",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 32,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "Revoke",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 47,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "Mute",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 33,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "Timed access",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 87,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "Remove admin",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 96,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "Kick",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 27,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "Ban",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 25,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "Mute",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 33,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "Timed access",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 87,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "Make admin",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 78,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "Kick",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 27,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "Ban",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 25,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "Unban",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 42,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "Test",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 207,
+  "h": 30
+ },
+ {
+  "tag": "button",
+  "name": "Unlink",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 207,
+  "h": 30
+ },
+ {
+  "tag": "input:text",
+  "name": "Jellyfin address",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 38
+ },
+ {
+  "tag": "select",
+  "name": "Sign in with",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 40
+ },
+ {
+  "tag": "input:password",
+  "name": "API key",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 38
+ },
+ {
+  "tag": "button",
+  "name": "Link again",
+  "disabled": true,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 40
+ },
+ {
+  "tag": "select",
+  "name": "Keep persistent history for",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 40
+ },
+ {
+  "tag": "button",
+  "name": "Save",
+  "disabled": true,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 40
+ },
+ {
+  "tag": "select",
+  "name": "New owner",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 40
+ },
+ {
+  "tag": "input:password",
+  "name": "Your password",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 38
+ },
+ {
+  "tag": "button",
+  "name": "Hand over ownership",
+  "disabled": true,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 40
+ },
+ {
+  "tag": "input:password",
+  "name": "Your password",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 38
+ },
+ {
+  "tag": "button",
+  "name": "Delete this server",
+  "disabled": true,
+  "shown": true,
+  "covered": false,
+  "w": 420,
+  "h": 40
+ },
+ {
+  "tag": "button",
+  "name": "Back",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 440,
+  "h": 40
+ }
+]

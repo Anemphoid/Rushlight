@@ -1,0 +1,227 @@
+[
+ {
+  "tag": "button",
+  "name": "Minimize",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Maximize",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Close",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Home",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 40,
+  "h": 40
+ },
+ {
+  "tag": "button",
+  "name": "C",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 40,
+  "h": 40
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 40,
+  "h": 40
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 24
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 24
+ },
+ {
+  "tag": "button",
+  "name": "×",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 24
+ },
+ {
+  "tag": "button",
+  "name": "×",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 24
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 24
+ },
+ {
+  "tag": "button",
+  "name": "×",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 24
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 24
+ },
+ {
+  "tag": "button",
+  "name": "×",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 24
+ },
+ {
+  "tag": "button",
+  "name": "×",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 22,
+  "h": 24
+ },
+ {
+  "tag": "button",
+  "name": "mute",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 48,
+  "h": 19
+ },
+ {
+  "tag": "button",
+  "name": "deaf",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 19
+ },
+ {
+  "tag": "input:range",
+  "name": "100",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 3
+ },
+ {
+  "tag": "input:range",
+  "name": "80",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 45,
+  "h": 3
+ },
+ {
+  "tag": "button",
+  "name": "owner",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 53,
+  "h": 24
+ },
+ {
+  "tag": "button",
+  "name": "⚙",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 24,
+  "h": 24
+ },
+ {
+  "tag": "button",
+  "name": "Try again",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 60,
+  "h": 14
+ },
+ {
+  "tag": "button",
+  "name": "image",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 77,
+  "h": 36
+ },
+ {
+  "tag": "input:text",
+  "name": "Message Private chat",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 376,
+  "h": 36
+ },
+ {
+  "tag": "button",
+  "name": "Send",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 74,
+  "h": 36
+ }
+]

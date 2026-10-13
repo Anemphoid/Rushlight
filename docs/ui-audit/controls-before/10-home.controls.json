@@ -1,0 +1,83 @@
+[
+ {
+  "tag": "button",
+  "name": "Minimize",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Maximize",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Close",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Home",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 40,
+  "h": 40
+ },
+ {
+  "tag": "button",
+  "name": "C",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 40,
+  "h": 40
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 40,
+  "h": 40
+ },
+ {
+  "tag": "button",
+  "name": "+",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 56,
+  "h": 56
+ },
+ {
+  "tag": "button",
+  "name": "Settings",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 83,
+  "h": 28
+ },
+ {
+  "tag": "button",
+  "name": "Log out",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 77,
+  "h": 28
+ }
+]
