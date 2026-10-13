@@ -133,6 +133,8 @@ function ChannelTreeScreen({
   isAdmin,
   isOwner,
   onRoleChanged,
+  retentionMonths,
+  onRetentionChanged,
   openSpace,
   setOpenSpace
 }) {
@@ -182,7 +184,7 @@ function ChannelTreeScreen({
   const mutationVersion = useRef(0)
   const messageVersion = useRef(0)
   const live = useRef({})
-  live.current = { onLeave, onServerRenamed, onRoleChanged, isAdmin, isOwner, serverName, openSpace, channels, accountName, accountId, screenName }
+  live.current = { onLeave, onServerRenamed, onRoleChanged, onRetentionChanged, retentionMonths, isAdmin, isOwner, serverName, openSpace, channels, accountName, accountId, screenName }
   // Accounts and guests both check in to presence; only accounts have a session token.
   const authToken = sessionToken || guestToken
   // Who else was in the open space at the last check — the baseline the
@@ -239,6 +241,9 @@ function ChannelTreeScreen({
         setProposals(data.proposals || [])
         checkUnread(data)
         if (data.name !== live.current.serverName) live.current.onServerRenamed(data.name)
+        if (data.retentionMonths && data.retentionMonths !== live.current.retentionMonths && live.current.onRetentionChanged) {
+          live.current.onRetentionChanged(data.retentionMonths)
+        }
         // Made an admin or the owner (or demoted) since this person last looked.
         if (
           live.current.onRoleChanged &&
@@ -692,6 +697,7 @@ function ChannelTreeScreen({
           {creatingChannel && (
             <CreateItemForm
               kind="channel"
+              retentionMonths={retentionMonths}
               onCancel={() => setCreatingChannel(false)}
               onCreate={addChannel}
             />
@@ -804,6 +810,7 @@ function ChannelTreeScreen({
               {creatingRoomFor === ch.id && (
                 <CreateItemForm
                   kind="room"
+                  retentionMonths={retentionMonths}
                   onCancel={() => setCreatingRoomFor(null)}
                   onCreate={(data) => addRoom(ch.id, data)}
                 />
@@ -953,6 +960,7 @@ function ChannelTreeScreen({
             })()}
             onSend={sendMessageToOpenSpace}
             localOnly={!sessionToken}
+            retentionMonths={retentionMonths}
             persistent={(() => {
               const ch = channels.find((c) => c.id === openSpace.channelId)
               if (!ch) return false

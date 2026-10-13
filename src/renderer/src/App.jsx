@@ -152,7 +152,7 @@ function App() {
 
   async function enterServer(token, serverId) {
     const data = await api.getServer(token, serverId)
-    setCurrentServer({ id: data.id, name: data.name, isAdmin: data.isAdmin, isOwner: !!data.isOwner })
+    setCurrentServer({ id: data.id, name: data.name, isAdmin: data.isAdmin, isOwner: !!data.isOwner, retentionMonths: data.retentionMonths || null })
     setChannels(withEmptyMessages(data.channels))
     setPresence(data.presence || {})
     setOpenSpace(null)
@@ -316,6 +316,11 @@ function App() {
     if (!isAdmin && view === 'adminTools') closeOverlay()
   }
 
+  // The history window changed (the owner picked another one, seen on the tree's next check).
+  function handleRetentionChanged(months) {
+    setCurrentServer((s) => (s ? { ...s, retentionMonths: months } : s))
+  }
+
   // The owner deleted the server from Admin Tools: leave it and say so on the home screen.
   function handleServerDeleted(name) {
     handleGoHome(`${name} was deleted.`)
@@ -425,6 +430,8 @@ function App() {
         isAdmin={currentServer.isAdmin}
         isOwner={!!currentServer.isOwner}
         onRoleChanged={handleRoleChanged}
+        retentionMonths={currentServer.retentionMonths}
+        onRetentionChanged={handleRetentionChanged}
         openSpace={openSpace}
         setOpenSpace={setOpenSpace}
       />

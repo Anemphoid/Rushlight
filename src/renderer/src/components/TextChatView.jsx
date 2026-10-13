@@ -1,9 +1,13 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, Fragment } from 'react'
 import Avatar from './Avatar'
 import { avatarUrl } from '../api'
 import { redactionBars } from '../redaction'
+import { dayKey, dayLabel } from '../time'
 
-function TextChatView({ roomName, screenName, avatarColor, messages, onSend, localOnly, persistent }) {
+// When a message was written. A guest's local-only message has no stored time, so it is today's.
+const when = (m) => m.createdAt || Date.now()
+
+function TextChatView({ roomName, screenName, avatarColor, messages, onSend, localOnly, persistent, retentionMonths }) {
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState('')
@@ -43,7 +47,7 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, loc
         {roomName}
         {!localOnly && (
           <span className="chat-retention">
-            {persistent ? 'history is kept' : 'cleared when everyone leaves'}
+            {persistent ? (retentionMonths ? `history kept for ${retentionMonths} months` : 'history is kept') : 'cleared when everyone leaves'}
           </span>
         )}
       </div>
@@ -56,11 +60,17 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, loc
               : 'No messages yet.'}
           </p>
         )}
-        {messages.map((m, i) =>
-          m.redacted ? (
+        {messages.map((m, i) => (
+          <Fragment key={i}>
+            {i === 0 || dayKey(when(m)) !== dayKey(when(messages[i - 1])) ? (
+              <div className="day-divider" role="separator">
+                <span>{dayLabel(when(m))}</span>
+              </div>
+            ) : null}
+          {m.redacted ? (
             // The author deleted their account: the server kept nothing, so this is only a mark.
             // No avatar, no name, no profile, and no text for anyone to select or copy.
-            <div className="text-chat-message redacted-message" key={i}>
+            <div className="text-chat-message redacted-message">
               <div className="redacted-gutter" aria-hidden="true" />
               <div className="text-chat-message-content">
                 <div className="text-chat-message-meta">
@@ -77,7 +87,7 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, loc
               </div>
             </div>
           ) : (
-          <div className="text-chat-message" key={i}>
+          <div className="text-chat-message">
             <Avatar color={m.avatarColor} name={m.author} imageUrl={avatarUrl(m.authorId, m.avatarUpdatedAt)} size={36} />
             <div className="text-chat-message-content">
               <div className="text-chat-message-meta">
@@ -89,8 +99,9 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, loc
               <div className="text-chat-message-body">{m.text}</div>
             </div>
           </div>
-          )
-        )}
+          )}
+          </Fragment>
+        ))}
       </div>
 
       {sendError && (

@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { keptNotice } from '../retention'
 
-function CreateItemForm({ kind, onCancel, onCreate }) {
+function CreateItemForm({ kind, onCancel, onCreate, retentionMonths }) {
   const [name, setName] = useState('')
   const [mode, setMode] = useState('both')
   const [persistent, setPersistent] = useState(false)
@@ -43,6 +44,11 @@ function CreateItemForm({ kind, onCancel, onCreate }) {
           Persistent (keep history)
         </label>
       </div>
+      {persistent && retentionMonths && (
+        <p className="settings-note" style={{ marginTop: -4, marginBottom: 10 }}>
+          {keptNotice(retentionMonths)}
+        </p>
+      )}
       <div className="create-form-actions">
         <button type="button" className="btn-secondary" onClick={onCancel}>
           Cancel
