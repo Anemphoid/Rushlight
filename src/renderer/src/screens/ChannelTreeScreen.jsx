@@ -935,19 +935,21 @@ function ChannelTreeScreen({
         {openSpace ? (
           <div className="space-view">
             {openSpace.mode !== 'text' && (
-              <VoicePanel
-                compact={openSpace.mode === 'both'}
-                pttKey={pttKey}
-                pttHookOk={pttHookOk}
-                onRetry={onRetryVoice}
-              />
-            )}
-            {openSpace.mode !== 'text' && sessionToken && (
-              <NowPlayingPanel
-                sessionToken={sessionToken}
-                serverId={serverId}
-                space={{ type: openSpace.type, id: spaceId(openSpace) }}
-              />
+              <div className={'space-top' + (openSpace.mode === 'voice' ? ' voice-only' : '')}>
+                <VoicePanel
+                  compact={openSpace.mode === 'both'}
+                  pttKey={pttKey}
+                  pttHookOk={pttHookOk}
+                  onRetry={onRetryVoice}
+                />
+                {sessionToken && (
+                  <NowPlayingPanel
+                    sessionToken={sessionToken}
+                    serverId={serverId}
+                    space={{ type: openSpace.type, id: spaceId(openSpace) }}
+                  />
+                )}
+              </div>
             )}
             {openSpace.mode !== 'voice' && (
           <TextChatView

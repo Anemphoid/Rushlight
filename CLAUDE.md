@@ -88,7 +88,7 @@ a server change has to wait for a server release.
 - Jellybox (music bot, needs server v0.9.0): the owner links one Jellyfin library per server in Owner Tools
   (`MusicSection`: address plus an API key, or a username and password that is exchanged once; Test and
   Unlink). Everything goes through the Rushlight server, so the client never sees a Jellyfin address (except
-  the owner's own) or token. `NowPlayingPanel` sits under the voice panel in a voice-capable space: it polls
+  the owner's own) or token. `NowPlayingPanel` is a compact card in the top right of a voice-capable space, beside the voice panel (`.space-top`; collapsed to a title, thin progress bar and three buttons, "more" opens the queue, volume, visualizer and search, remembered in localStorage): it polls
   `getMusicState` every 3s, hidden when `available` is false, and moves the progress bar locally from the last
   position. Everyone sees it; the buttons, volume, seek-by-click and search box need `canControl` (admins and
   the owner). Slash commands are typed in chat and answered by the server as a `bot: true` message (shown with

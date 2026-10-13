@@ -26,6 +26,24 @@ function NowPlayingPanel({ sessionToken, serverId, space }) {
   const [searching, setSearching] = useState(false)
   const [volume, setVolume] = useState(100)
   const draggingVolume = useRef(false)
+  // collapsed by default so it takes little room; the choice is remembered on this computer
+  const [open, setOpen] = useState(() => {
+    try {
+      return localStorage.getItem('rushlight.jellyboxOpen') === '1'
+    } catch {
+      return false
+    }
+  })
+  function toggleOpen() {
+    setOpen((o) => {
+      try {
+        localStorage.setItem('rushlight.jellyboxOpen', o ? '0' : '1')
+      } catch {
+        // not remembered
+      }
+      return !o
+    })
+  }
   const alive = useRef(true)
   const v = useSyncExternalStore(voice.subscribe, voice.getSnapshot)
 
@@ -130,37 +148,43 @@ function NowPlayingPanel({ sessionToken, serverId, space }) {
   )
 
   return (
-    <div className="now-playing">
+    <div className={'now-playing' + (open ? ' open' : '')}>
       <div className="np-header">
-        <Avatar name="Jellybox" imageUrl={jellyboxImage} size={28} />
+        <Avatar name="Jellybox" imageUrl={jellyboxImage} size={22} />
         <strong>Jellybox</strong>
         <span className="member-badge">bot</span>
-        <span className="settings-note" style={{ margin: 0 }}>
-          {playing ? (st.state === 'paused' ? 'paused' : 'playing') : 'ready. Type /play in chat, or ask an admin'}
-        </span>
+        {playing && <span className="settings-note np-state">{st.state === 'paused' ? 'paused' : 'playing'}</span>}
+        <button type="button" className="link-btn np-toggle" aria-expanded={open} onClick={toggleOpen}>
+          {open ? 'less' : 'more'}
+        </button>
       </div>
 
-      {playing && (
-        <div className="np-body">
+      {playing ? (
+        <div className="np-now">
           <div className="np-cover">{cover ? <img src={cover} alt="" /> : <span aria-hidden="true">music</span>}</div>
           <div className="np-info">
-            <div className="np-title">{playing.title}</div>
+            <div className="np-title" title={playing.title}>{playing.title}</div>
             <div className="np-artist">{[playing.artist, playing.album].filter(Boolean).join(' - ')}</div>
             <div className={'np-bar' + (canControl ? ' seekable' : '')} onClick={seekFromClick} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(fraction * 100)}>
               <div className="np-bar-fill" style={{ width: fraction * 100 + '%' }} />
             </div>
-            <div className="np-times">
-              <span>{fmt(position)}</span>
-              <span>{fmt(playing.durationMs)}</span>
-            </div>
+            {open && (
+              <div className="np-times">
+                <span>{fmt(position)}</span>
+                <span>{fmt(playing.durationMs)}</span>
+              </div>
+            )}
           </div>
         </div>
+      ) : (
+        <div className="settings-note np-idle">Ready. Type /play in chat{canControl ? ' or open "more" to search' : ', or ask an admin'}.</div>
       )}
 
       <div className="np-controls">
         {btn('prev', 'Restart the song; press again within 3 seconds to go back one', () => act({ action: 'previous' }), !playing)}
         {btn(st.state === 'paused' ? 'play' : 'pause', 'Play or pause', () => act({ action: st.state === 'paused' ? 'resume' : 'pause' }), !playing)}
         {btn('skip', 'Skip this song', () => act({ action: 'skip' }), !playing)}
+        {open && (
         <label className="np-volume">
           <span className="settings-note" style={{ margin: 0 }}>vol {volume}</span>
           <input
@@ -180,9 +204,12 @@ function NowPlayingPanel({ sessionToken, serverId, space }) {
             onKeyUp={() => act({ action: 'volume', value: volume })}
           />
         </label>
-        {canControl && st.queue.length > 0 && btn('clear queue', 'Clear everything waiting', () => act({ action: 'clear' }))}
+        )}
+        {open && canControl && st.queue.length > 0 && btn('clear queue', 'Clear everything waiting', () => act({ action: 'clear' }))}
       </div>
 
+      {open && (
+      <>
       <Visualizer playing={!!playing && st.state === 'playing'} botAudioId={v.botAudioId} deafened={v.deafened} />
 
       {st.queue.length > 0 && (
@@ -242,6 +269,8 @@ function NowPlayingPanel({ sessionToken, serverId, space }) {
             </li>
           ))}
         </ul>
+      )}
+      </>
       )}
       {error && <div className="error-text">{error}</div>}
     </div>
