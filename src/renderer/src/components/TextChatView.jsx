@@ -3,6 +3,7 @@ import Avatar from './Avatar'
 import { avatarUrl } from '../api'
 import { redactionBars } from '../redaction'
 import { dayKey, dayLabel } from '../time'
+import jellyboxImage from '../assets/images/jellybox.png'
 
 // When a message was written. A guest's local-only message has no stored time, so it is today's.
 const when = (m) => m.createdAt || Date.now()
@@ -88,10 +89,11 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, loc
             </div>
           ) : (
           <div className="text-chat-message">
-            <Avatar color={m.avatarColor} name={m.author} imageUrl={avatarUrl(m.authorId, m.avatarUpdatedAt)} size={36} />
+            <Avatar color={m.avatarColor} name={m.author} imageUrl={m.bot ? jellyboxImage : avatarUrl(m.authorId, m.avatarUpdatedAt)} size={36} />
             <div className="text-chat-message-content">
               <div className="text-chat-message-meta">
                 <strong>{m.author}</strong>
+                {m.bot && <span className="member-badge">bot</span>}
                 <span className="settings-note" style={{ margin: 0 }}>
                   {m.time}
                 </span>

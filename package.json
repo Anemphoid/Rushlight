@@ -9,11 +9,13 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "dist": "electron-vite build && electron-builder --linux AppImage",
-    "test": "node --test --test-concurrency=1 test/time.test.mjs test/spaces.test.mjs test/access-ended.test.mjs test/redaction.test.mjs test/recovery-key.test.mjs test/audio-output.test.mjs test/retention.test.mjs test/api.test.mjs"
+    "test": "node --test --test-concurrency=1 test/time.test.mjs test/spaces.test.mjs test/access-ended.test.mjs test/redaction.test.mjs test/recovery-key.test.mjs test/audio-output.test.mjs test/visualizer.test.mjs test/retention.test.mjs test/api.test.mjs"
   },
   "dependencies": {
     "@livekit/components-react": "^2.9.24",
     "@livekit/components-styles": "^1.2.0",
+    "butterchurn": "^2.6.7",
+    "butterchurn-presets": "^2.4.7",
     "electron-updater": "^6.8.9",
     "livekit-client": "^2.22.2",
     "react": "^18.3.1",

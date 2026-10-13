@@ -3,6 +3,7 @@ import * as api from '../api'
 import Avatar from '../components/Avatar'
 import { avatarUrl } from '../api'
 import JoinCodesSection from '../components/JoinCodesSection'
+import MusicSection from '../components/MusicSection'
 import RetentionSection from '../components/RetentionSection'
 import { formatExpiry, formatAge } from '../time'
 import { spaceNameFor } from '../spaces'
@@ -491,6 +492,8 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onSer
 
         {isOwner && (
           <>
+            <MusicSection serverId={serverId} sessionToken={sessionToken} />
+
             <RetentionSection serverId={serverId} sessionToken={sessionToken} />
 
             <div className="settings-section">

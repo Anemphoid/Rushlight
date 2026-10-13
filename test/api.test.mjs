@@ -5,6 +5,7 @@ import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { startServer, installBridge, rejection } from './helpers.mjs'
 import { accessEndedNotice } from '../src/renderer/src/accessEnded.js'
+import { startFakeJellyfin, TOKEN, SONG_ID, MISSING_ID } from './fake-jellyfin.mjs'
 
 let srv
 let api
@@ -555,6 +556,80 @@ test('deleting an account needs the password, is refused for an owner with the s
   assert.equal((await rejection(api.getMe(leaver.token))).reason, 'session_expired')
 })
 
+test('music: the owner links Jellyfin, members only learn that it is linked, the panel state and controls follow the roles', async () => {
+  const jelly = await startFakeJellyfin()
+  try {
+    const { admin: owner, server } = await world()
+    const code = await api.createServerCode(owner.token, server.id, { singleUse: false, expiresInMinutes: null })
+    const member = await account()
+    await api.joinServerWithCode(member.token, code.code)
+    const room = await api.createChannel(owner.token, server.id, { name: 'jukebox', mode: 'both', persistent: true })
+
+    // nothing linked: hidden for everyone
+    assert.deepEqual(await api.getMusic(member.token, server.id), { linked: false })
+    assert.equal((await api.getMusicState(member.token, 'channel', room.id)).available, false)
+
+    // only the owner links; a wrong key is refused with a message and saves nothing
+    assert.equal((await rejection(api.linkMusic(member.token, server.id, { address: jelly.url, apiKey: TOKEN }))).status, 403)
+    const bad = await rejection(api.linkMusic(owner.token, server.id, { address: jelly.url, apiKey: 'nope' }))
+    assert.equal(bad.status, 400)
+    assert.ok(bad.message)
+    assert.equal((await rejection(api.linkMusic(owner.token, server.id, { address: 'http://169.254.169.254', apiKey: TOKEN }))).status, 400)
+    assert.deepEqual(await api.getMusic(owner.token, server.id), { linked: false })
+
+    const linked = await api.linkMusic(owner.token, server.id, { address: jelly.url, apiKey: TOKEN })
+    assert.equal(linked.linked, true)
+    assert.equal(linked.name, 'Fake Jelly')
+    assert.deepEqual(await api.getMusic(owner.token, server.id), { linked: true, address: jelly.url, kind: 'apikey' })
+    assert.deepEqual(await api.getMusic(member.token, server.id), { linked: true }) // no address for a member
+    assert.equal((await api.testMusic(owner.token, server.id)).ok, true)
+    assert.equal((await rejection(api.testMusic(member.token, server.id))).status, 403)
+
+    // the panel: everyone sees it, only the owner and admins control it
+    const asMember = await api.getMusicState(member.token, 'channel', room.id)
+    assert.equal(asMember.available, true)
+    assert.equal(asMember.canControl, false)
+    assert.deepEqual(asMember.queue, [])
+    assert.equal(asMember.nowPlaying, null)
+    assert.equal((await api.getMusicState(owner.token, 'channel', room.id)).canControl, true)
+    assert.equal((await rejection(api.musicControl(member.token, 'channel', room.id, { action: 'pause' }))).status, 403)
+    // an admin has to be in the room to press anything
+    assert.equal((await rejection(api.musicControl(owner.token, 'channel', room.id, { action: 'skip' }))).status, 409)
+
+    // search is for admins; results carry what the panel shows
+    assert.equal((await rejection(api.searchMusic(member.token, server.id, 'sun'))).status, 403)
+    const found = await api.searchMusic(owner.token, server.id, 'sun')
+    assert.deepEqual(found.results[0], {
+      kind: 'song', id: SONG_ID, title: 'Sunrise Song', artist: 'The Sunbeams', album: 'Sunny Album', albumId: '00000000000000000000000000000010'
+    })
+
+    // cover art arrives as a blob address; a missing cover is null
+    const cover = await api.fetchMusicCover(member.token, server.id, SONG_ID)
+    assert.match(cover, /^blob:/)
+    URL.revokeObjectURL(cover)
+    assert.equal(await api.fetchMusicCover(member.token, server.id, MISSING_ID), null)
+
+    // chat messages from the bot are flagged
+    await api.postMessage(member.token, 'channel', room.id, { text: '/help' })
+    let bot = null
+    for (let i = 0; i < 40 && !bot; i++) {
+      bot = (await api.getMessages(member.token, 'channel', room.id)).find((m) => m.bot)
+      if (!bot) await new Promise((r) => setTimeout(r, 100))
+    }
+    assert.ok(bot, 'Jellybox should answer /help')
+    assert.equal(bot.author, 'Jellybox')
+    assert.equal(bot.authorId, null)
+    assert.match(bot.text, /Hi, I'm Jellybox/)
+
+    // unlinking hides it again
+    assert.equal((await rejection(api.unlinkMusic(member.token, server.id))).status, 403)
+    await api.unlinkMusic(owner.token, server.id)
+    assert.deepEqual(await api.getMusic(owner.token, server.id), { linked: false })
+    assert.equal((await api.getMusicState(member.token, 'channel', room.id)).available, false)
+  } finally {
+    await jelly.stop()
+  }
+})
 test('history window: the owner sets it, everyone reads it, a dry run changes nothing, others are refused', async () => {
   const { admin: owner, server } = await world()
   const code = await api.createServerCode(owner.token, server.id, { singleUse: false, expiresInMinutes: null })

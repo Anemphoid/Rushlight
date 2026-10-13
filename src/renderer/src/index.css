@@ -1514,6 +1514,312 @@ button {
   outline: 1px solid var(--redact-outline);
 }
 
+/* Jellybox: a compact card in the top right of the space, next to the voice panel; "more" opens it up */
+.space-top {
+  display: flex;
+  flex-shrink: 0;
+  min-height: 0;
+  max-height: 45%;
+  border-bottom: 1px solid var(--line);
+}
+.space-top:has(.now-playing.open) {
+  max-height: 65%;
+}
+.space-top.voice-only {
+  flex: 1;
+  max-height: none;
+}
+.space-top .voice-panel {
+  flex: 1;
+  min-width: 0;
+  max-height: none;
+  border-bottom: none;
+}
+.now-playing {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 280px;
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border-left: 1px solid var(--line);
+  overflow-y: auto;
+}
+.now-playing.open {
+  width: 320px;
+}
+@media (max-width: 900px) {
+  .space-top {
+    flex-direction: column;
+  }
+  .now-playing,
+  .now-playing.open {
+    width: auto;
+    border-left: none;
+    border-top: 1px solid var(--line);
+    max-height: 220px;
+  }
+}
+.np-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.np-state {
+  margin: 0;
+}
+.np-toggle {
+  margin-left: auto;
+}
+.np-now {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.np-idle {
+  margin: 0;
+}
+.np-cover {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--dim);
+  font-size: 0.5625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.now-playing.open .np-cover {
+  width: 64px;
+  height: 64px;
+  font-size: 0.6875rem;
+}
+.np-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.np-info {
+  flex: 1;
+  min-width: 0;
+}
+.np-title {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.np-artist {
+  color: var(--dim);
+  font-size: 0.8125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.np-bar {
+  height: 6px;
+  margin-top: 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel);
+  overflow: hidden;
+}
+.np-bar.seekable {
+  cursor: pointer;
+}
+.np-bar-fill {
+  height: 100%;
+  background: var(--accent);
+}
+.np-times {
+  display: flex;
+  justify-content: space-between;
+  color: var(--dim);
+  font-size: 0.6875rem;
+  margin-top: 2px;
+}
+.np-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.np-btn {
+  width: auto;
+  padding: 3px 9px;
+  font-size: 0.75rem;
+}
+.np-volume {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.np-queue,
+.np-results {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.8125rem;
+}
+.np-results {
+  list-style: none;
+  padding-left: 0;
+}
+.np-queue li,
+.np-results li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 0;
+}
+.np-result-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.np-search {
+  display: flex;
+  gap: 8px;
+}
+.np-search input {
+  flex: 1;
+}
+
+/* Visualizer */
+.viz {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.viz-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.viz-small {
+  position: relative;
+  height: 90px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  cursor: pointer;
+  overflow: hidden;
+}
+.viz-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.viz-message {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--dim);
+  pointer-events: none;
+}
+.viz-large {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: #000;
+  color: #fff;
+}
+.viz-canvas-large {
+  position: absolute;
+  inset: 0;
+}
+.viz-message-large {
+  color: #ccc;
+  font-size: 1rem;
+}
+.viz-flash {
+  position: absolute;
+  top: 18px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 1.125rem;
+  text-shadow: 0 1px 4px #000;
+  pointer-events: none;
+}
+.viz-controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+}
+.viz-note {
+  font-size: 0.75rem;
+  color: #ccc;
+}
+.viz-list {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 56px;
+  width: min(360px, 90vw);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.82);
+}
+.viz-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+.viz-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 0.75rem;
+}
+.viz-list li.current .link-btn:first-child {
+  font-weight: 700;
+}
+.viz-fav-only {
+  font-size: 0.75rem;
+}
+.license-text {
+  white-space: pre-wrap;
+  font-size: 0.6875rem;
+  color: var(--dim);
+  margin: 0 0 10px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .viz-flash {
+    transition: none;
+  }
+}
+
+.np-queue li span,
+.np-results li > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.np-queue li .link-btn {
+  flex-shrink: 0;
 /* Day dividers in chat */
 .day-divider {
   display: flex;

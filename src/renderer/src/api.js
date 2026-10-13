@@ -303,3 +303,31 @@ export function leavePresenceOnExit(token) {
     // closing anyway
   }
 }
+
+// Jellybox, the music bot. The owner links one Jellyfin library per server. Everything goes through
+// the Rushlight server: the client never learns the Jellyfin address of anyone else's server or its token.
+export const getMusic = (token, serverId) => request(`/api/servers/${serverId}/music`, { token })
+export const linkMusic = (token, serverId, details) =>
+  request(`/api/servers/${serverId}/music`, { method: 'PUT', token, body: details })
+export const testMusic = (token, serverId) => request(`/api/servers/${serverId}/music/test`, { method: 'POST', token, body: {} })
+export const unlinkMusic = (token, serverId) => request(`/api/servers/${serverId}/music`, { method: 'DELETE', token })
+export const getMusicState = (token, type, spaceId) => request(`/api/music/${type}/${spaceId}/state`, { token })
+export const musicControl = (token, type, spaceId, body) =>
+  request(`/api/music/${type}/${spaceId}/control`, { method: 'POST', token, body })
+export const searchMusic = (token, serverId, q) =>
+  request(`/api/servers/${serverId}/music/search?q=${encodeURIComponent(q)}`, { token })
+
+// Cover art needs the session token, which an <img src> cannot send, so fetch it and hand back a blob
+// address (null if there is no cover). The caller revokes it when done.
+export async function fetchMusicCover(token, serverId, itemId) {
+  try {
+    const baseUrl = await getBaseUrl()
+    const res = await fetch(`${baseUrl}/api/servers/${serverId}/music/cover/${encodeURIComponent(itemId)}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (!res.ok) return null
+    return URL.createObjectURL(await res.blob())
+  } catch {
+    return null
+  }
+}

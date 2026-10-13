@@ -85,7 +85,27 @@ a server change has to wait for a server release.
   account arrive with `redacted: true` and nothing else; `TextChatView` draws a black REDACTED name
   box (text from CSS, so nothing to copy) over one to three black bars whose lengths come from the
   message id (`redaction.js`), outlined with `--redact-outline` so a skin can keep them visible.
-- History retention (needs server v0.9.0 or later with migration 12): persistent chat is kept 3, 6, 9 or 12 months
+- Jellybox (music bot, needs server v0.9.0): the owner links one Jellyfin library per server in Owner Tools
+  (`MusicSection`: address plus an API key, or a username and password that is exchanged once; Test and
+  Unlink). Everything goes through the Rushlight server, so the client never sees a Jellyfin address (except
+  the owner's own) or token. `NowPlayingPanel` is a compact card in the top right of a voice-capable space, beside the voice panel (`.space-top`; collapsed to a title, thin progress bar and three buttons, "more" opens the queue, volume, visualizer and search, remembered in localStorage): it polls
+  `getMusicState` every 3s, hidden when `available` is false, and moves the progress bar locally from the last
+  position. Everyone sees it; the buttons, volume, seek-by-click and search box need `canControl` (admins and
+  the owner). Slash commands are typed in chat and answered by the server as a `bot: true` message (shown with
+  a "bot" badge). Cover art needs the token, so `fetchMusicCover` returns a blob URL (revoked on change). A
+  voice-only space has no chat, so there only admins can start music, from the panel.
+- Visualizer (`src/renderer/src/visualizer/`, client only): a button in the Now Playing panel, off until clicked,
+  remembered per person (`prefs.js`). A Web Audio analyser reads Jellybox's incoming track
+  (`voice.getBotMediaTrack`, never connected to the speakers) and draws bars/wave/radial in the accent colour as
+  the small view; clicking it opens the large view, which is Butterchurn (Milkdrop) with ~395 bundled presets
+  (next/previous, shuffle with blend, list with search, favourites, name flash, full screen, Esc). Butterchurn
+  and the presets are lazy chunks (`milkdrop.js`), loaded only when the large view first opens. It draws only
+  while on + playing + window visible + not deafened, and tears everything down (loop, audio tap, GL context)
+  otherwise. `governor.js` lowers render resolution first and only then 30 fps; reduced motion means the calm
+  simple styles at 15 fps. Without WebGL 2 the large view says so and shows the simple styles. MIT notices are
+  in Settings (`Credits`). Rendering was checked in headless Chromium with a synthetic track; not with the
+  real LiveKit track or a real GPU.
+- History retention (needs server v0.10.0, migration 12): persistent chat is kept 3, 6, 9 or 12 months
   (default 12) per server and the owner picks in Owner Tools (`RetentionSection`: a dry run first says how many
   messages a shorter window would delete, and the owner has to confirm). `getServer` carries `retentionMonths`;
   `App` keeps it on `currentServer` and the tree's 5s check updates it. It is said plainly when creating a
@@ -99,6 +119,9 @@ a server change has to wait for a server release.
   schemes (`http: https: ws: wss:`), not `http://*`, which is silently
   ignored. `img-src` and `media-src` are needed for avatars and sounds.
   Test CSP-sensitive changes by running the app.
+- Butterchurn compiles Milkdrop presets with `new Function`, so the CSP has `'unsafe-eval'` in `script-src`.
+  That is a real loosening (an injected string could be evaluated); it is accepted because the renderer loads
+  only its own bundle and escapes everything it shows. Don't add other eval-using libraries without thinking.
 - Release AppImage filename must stay version-less (`Rushlight.AppImage`) or
   electron-updater breaks fixed-path launchers on update.
 - No `window.prompt()`/native dialogs in Electron; use inline forms/confirms.
