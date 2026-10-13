@@ -1513,3 +1513,250 @@ button {
   background: #000;
   outline: 1px solid var(--redact-outline);
 }
+
+/* Jellybox: the Now Playing panel for a voice room */
+.now-playing {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+  max-height: 55%;
+  overflow-y: auto;
+}
+.np-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.np-body {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.np-cover {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--dim);
+  font-size: 0.6875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.np-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.np-info {
+  flex: 1;
+  min-width: 0;
+}
+.np-title {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.np-artist {
+  color: var(--dim);
+  font-size: 0.8125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.np-bar {
+  height: 8px;
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel);
+  overflow: hidden;
+}
+.np-bar.seekable {
+  cursor: pointer;
+}
+.np-bar-fill {
+  height: 100%;
+  background: var(--accent);
+}
+.np-times {
+  display: flex;
+  justify-content: space-between;
+  color: var(--dim);
+  font-size: 0.6875rem;
+  margin-top: 2px;
+}
+.np-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.np-btn {
+  width: auto;
+  padding: 4px 12px;
+}
+.np-volume {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.np-queue,
+.np-results {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.8125rem;
+}
+.np-results {
+  list-style: none;
+  padding-left: 0;
+}
+.np-queue li,
+.np-results li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 0;
+}
+.np-result-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.np-search {
+  display: flex;
+  gap: 8px;
+}
+.np-search input {
+  flex: 1;
+}
+
+/* Visualizer */
+.viz {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.viz-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.viz-small {
+  position: relative;
+  height: 90px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  cursor: pointer;
+  overflow: hidden;
+}
+.viz-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.viz-message {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--dim);
+  pointer-events: none;
+}
+.viz-large {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: #000;
+  color: #fff;
+}
+.viz-canvas-large {
+  position: absolute;
+  inset: 0;
+}
+.viz-message-large {
+  color: #ccc;
+  font-size: 1rem;
+}
+.viz-flash {
+  position: absolute;
+  top: 18px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 1.125rem;
+  text-shadow: 0 1px 4px #000;
+  pointer-events: none;
+}
+.viz-controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+}
+.viz-note {
+  font-size: 0.75rem;
+  color: #ccc;
+}
+.viz-list {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 56px;
+  width: min(360px, 90vw);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.82);
+}
+.viz-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+.viz-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 0.75rem;
+}
+.viz-list li.current .link-btn:first-child {
+  font-weight: 700;
+}
+.viz-fav-only {
+  font-size: 0.75rem;
+}
+.license-text {
+  white-space: pre-wrap;
+  font-size: 0.6875rem;
+  color: var(--dim);
+  margin: 0 0 10px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .viz-flash {
+    transition: none;
+  }
+}
