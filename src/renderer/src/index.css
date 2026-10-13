@@ -1514,40 +1514,89 @@ button {
   outline: 1px solid var(--redact-outline);
 }
 
-/* Jellybox: the Now Playing panel for a voice room */
+/* Jellybox: a compact card in the top right of the space, next to the voice panel; "more" opens it up */
+.space-top {
+  display: flex;
+  flex-shrink: 0;
+  min-height: 0;
+  max-height: 45%;
+  border-bottom: 1px solid var(--line);
+}
+.space-top:has(.now-playing.open) {
+  max-height: 65%;
+}
+.space-top.voice-only {
+  flex: 1;
+  max-height: none;
+}
+.space-top .voice-panel {
+  flex: 1;
+  min-width: 0;
+  max-height: none;
+  border-bottom: none;
+}
 .now-playing {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  width: 280px;
   flex-shrink: 0;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--line);
-  max-height: 55%;
+  padding: 8px 12px;
+  border-left: 1px solid var(--line);
   overflow-y: auto;
+}
+.now-playing.open {
+  width: 320px;
+}
+@media (max-width: 900px) {
+  .space-top {
+    flex-direction: column;
+  }
+  .now-playing,
+  .now-playing.open {
+    width: auto;
+    border-left: none;
+    border-top: 1px solid var(--line);
+    max-height: 220px;
+  }
 }
 .np-header {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.np-body {
+.np-state {
+  margin: 0;
+}
+.np-toggle {
+  margin-left: auto;
+}
+.np-now {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
 }
+.np-idle {
+  margin: 0;
+}
 .np-cover {
-  width: 72px;
-  height: 72px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--panel);
   color: var(--dim);
-  font-size: 0.6875rem;
+  font-size: 0.5625rem;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+}
+.now-playing.open .np-cover {
+  width: 64px;
+  height: 64px;
+  font-size: 0.6875rem;
 }
 .np-cover img {
   width: 100%;
@@ -1572,8 +1621,8 @@ button {
   white-space: nowrap;
 }
 .np-bar {
-  height: 8px;
-  margin-top: 8px;
+  height: 6px;
+  margin-top: 6px;
   border: 1px solid var(--line);
   border-radius: 4px;
   background: var(--panel);
@@ -1601,7 +1650,8 @@ button {
 }
 .np-btn {
   width: auto;
-  padding: 4px 12px;
+  padding: 3px 9px;
+  font-size: 0.75rem;
 }
 .np-volume {
   display: flex;
@@ -1759,4 +1809,15 @@ button {
   .viz-flash {
     transition: none;
   }
+}
+
+.np-queue li span,
+.np-results li > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.np-queue li .link-btn {
+  flex-shrink: 0;
 }
