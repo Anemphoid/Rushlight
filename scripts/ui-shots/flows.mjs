@@ -27,6 +27,13 @@ export async function flows(s) {
   const mask = (p) =>
     p.evaluate(() => {
       document.querySelectorAll('.code-row-code').forEach((n, i) => (n.textContent = `amber-wolf-${String(1000 + i)}`))
+      // the same for any join code or test-server port that shows up in plain text
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+      for (let n; (n = walker.nextNode()); ) {
+        const t = n.nodeValue
+        const u = t.replace(/127\.0\.0\.1:\d+/g, '127.0.0.1:8096').replace(/\b[a-z]+-[a-z]+-\d{4}\b/g, 'amber-wolf-1000')
+        if (u !== t) n.nodeValue = u
+      }
       document.querySelectorAll('.key-word').forEach((n, i) => {
         const num = n.querySelector('.key-num')
         ;[...n.childNodes].forEach((c) => c !== num && c.remove())
@@ -178,6 +185,7 @@ export async function flows(s) {
     await open(p, 'Gaming')
     await world.call('POST', `/api/channels/${cast.dnd.id}/messages`, { text: 'New session notes are up.' }, cast.dad.token)
     await p.waitForSelector('.unread-dot', { timeout: 15000 })
+    await p.waitForTimeout(1500)
     await shot(p, '29-tree-unread-dot')
   })
   await p.context().close()
