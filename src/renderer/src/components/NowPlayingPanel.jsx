@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useSyncExternalStore } from 'react'
 import * as voice from '../voice'
 import Visualizer from '../visualizer/Visualizer'
+import SongToast from './SongToast'
+import BrowseSection from './BrowseSection'
 import * as api from '../api'
 import Avatar from './Avatar'
 import jellyboxImage from '../assets/images/jellybox.png'
@@ -12,10 +14,12 @@ function fmt(ms) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 
-// Jellybox's panel for a voice room. Everyone in the server sees what is playing and what is queued;
-// only admins and the owner can press the buttons or use the search box. Hidden when nothing is linked.
+// Jellybox's column down the right side of a voice room. Everyone in the server sees what is playing and what is
+// queued; only admins and the owner can press the buttons, search or browse the library. It is not there at all when
+// nothing is linked or Jellybox is not in the room (a voice-only room is the exception for admins, who have no chat
+// to type /play in, so they keep the thin tab and can start music from here). It folds to a thin line with a tab.
 // The progress bar runs from the last reported position, so it moves smoothly between the few-second polls.
-function NowPlayingPanel({ sessionToken, serverId, space }) {
+function NowPlayingPanel({ sessionToken, serverId, space, voiceOnly = false }) {
   const [st, setSt] = useState(null)
   const [fetchedAt, setFetchedAt] = useState(0)
   const [now, setNow] = useState(Date.now())
@@ -26,14 +30,29 @@ function NowPlayingPanel({ sessionToken, serverId, space }) {
   const [searching, setSearching] = useState(false)
   const [volume, setVolume] = useState(100)
   const draggingVolume = useRef(false)
-  // collapsed by default so it takes little room; the choice is remembered on this computer
+  // open down the right side by default; fold it to a thin line with its tab. Remembered on this computer.
   const [open, setOpen] = useState(() => {
     try {
-      return localStorage.getItem('rushlight.jellyboxOpen') === '1'
+      return localStorage.getItem('rushlight.jellyboxOpen') !== '0'
     } catch {
-      return false
+      return true
     }
   })
+  const [toastOn, setToastOn] = useState(() => {
+    try {
+      return localStorage.getItem('rushlight.songToast') !== '0'
+    } catch {
+      return true
+    }
+  })
+  function setToast(on) {
+    setToastOn(on)
+    try {
+      localStorage.setItem('rushlight.songToast', on ? '1' : '0')
+    } catch {
+      // not remembered
+    }
+  }
   function toggleOpen() {
     setOpen((o) => {
       try {
@@ -100,15 +119,19 @@ function NowPlayingPanel({ sessionToken, serverId, space }) {
     }
   }, [sessionToken, serverId, coverId])
 
-  if (!st || !st.available) return null
+  const canControl = !!(st && st.canControl)
+  // what the song pop-up watches: undefined until the first answer, null when Jellybox is not here or idle
+  const toastTrack = st ? (st.available && st.active ? st.nowPlaying || null : null) : undefined
+  const toast = <SongToast track={toastTrack} sessionToken={sessionToken} serverId={serverId} enabled={toastOn} />
 
-  const canControl = !!st.canControl
+  if (!st || !st.available || (!st.active && !(canControl && voiceOnly))) return toast
+
   const position = playing
     ? Math.min(playing.durationMs || Infinity, playing.positionMs + (st.state === 'playing' ? now - fetchedAt : 0))
     : 0
   const fraction = playing && playing.durationMs ? Math.min(1, position / playing.durationMs) : 0
 
-  async function act(body) {
+  async function act(body, { rethrow = false } = {}) {
     setError('')
     try {
       const out = await api.musicControl(sessionToken, space.type, space.id, body)
@@ -117,6 +140,7 @@ function NowPlayingPanel({ sessionToken, serverId, space }) {
       if (typeof out.volume === 'number') setVolume(out.volume)
     } catch (err) {
       setError(err.message)
+      if (rethrow) throw err
     }
   }
 
@@ -141,139 +165,169 @@ function NowPlayingPanel({ sessionToken, serverId, space }) {
     act({ action: 'seek', value: Math.round(frac * playing.durationMs) })
   }
 
-  const btn = (label, title, onClick, disabled = false) => (
-    <button type="button" className="btn-secondary np-btn" title={canControl ? title : 'Only admins and the owner can use this'} disabled={!canControl || disabled} onClick={onClick}>
+  const btn = (label, title, onClick, disabled = false, pressed) => (
+    <button type="button" className="btn-secondary np-btn" aria-pressed={pressed} title={canControl ? title : 'Only admins and the owner can use this'} disabled={!canControl || disabled} onClick={onClick}>
       {label}
     </button>
   )
 
-  return (
-    <div className={'now-playing' + (open ? ' open' : '')}>
-      <div className="np-header">
-        <Avatar name="Jellybox" imageUrl={jellyboxImage} size={22} />
-        <strong>Jellybox</strong>
-        <span className="member-badge">bot</span>
-        {playing && <span className="settings-note np-state">{st.state === 'paused' ? 'paused' : 'playing'}</span>}
-        <button type="button" className="link-btn np-toggle" aria-expanded={open} onClick={toggleOpen}>
-          {open ? 'less' : 'more'}
-        </button>
-      </div>
+  // folded: a thin line down the right edge with a tab to bring it back, and nothing else
+  if (!open) {
+    return (
+      <>
+        {toast}
+        <div className="np-fold">
+          <button type="button" className="np-tab" aria-label="Show Jellybox" title="Show Jellybox" onClick={toggleOpen}>
+            &lt;
+          </button>
+        </div>
+      </>
+    )
+  }
 
-      {playing ? (
-        <div className="np-now">
-          <div className="np-cover">{cover ? <img src={cover} alt="" /> : <span aria-hidden="true">music</span>}</div>
-          <div className="np-info">
-            <div className="np-title" title={playing.title}>{playing.title}</div>
-            <div className="np-artist">{[playing.artist, playing.album].filter(Boolean).join(' - ')}</div>
-            <div className={'np-bar' + (canControl ? ' seekable' : '')} onClick={seekFromClick} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(fraction * 100)}>
-              <div className="np-bar-fill" style={{ width: fraction * 100 + '%' }} />
-            </div>
-            {open && (
+  const idle = st.active ? (
+    <>Ready. Type /play in chat{canControl ? ', or pick something below' : ', or ask an admin'}.</>
+  ) : (
+    <>Jellybox is not in this room yet. Pick something below to bring it in.</>
+  )
+
+  return (
+    <>
+      {toast}
+      <aside className="now-playing side" aria-label="Jellybox">
+        <div className="np-header">
+          <Avatar name="Jellybox" imageUrl={jellyboxImage} size={24} />
+          <strong>Jellybox</strong>
+          <span className="member-badge">bot</span>
+          {playing && <span className="settings-note np-state">{st.state === 'paused' ? 'paused' : 'playing'}</span>}
+          <button type="button" className="link-btn np-toggle" aria-expanded="true" title="Fold this away" onClick={toggleOpen}>
+            hide &gt;
+          </button>
+        </div>
+
+        {playing ? (
+          <div className="np-now">
+            <div className="np-cover">{cover ? <img src={cover} alt="" /> : <span aria-hidden="true">music</span>}</div>
+            <div className="np-info">
+              <div className="np-title" title={playing.title}>{playing.title}</div>
+              <div className="np-artist">{[playing.artist, playing.album].filter(Boolean).join(' - ')}</div>
+              <div className={'np-bar' + (canControl ? ' seekable' : '')} onClick={seekFromClick} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(fraction * 100)}>
+                <div className="np-bar-fill" style={{ width: fraction * 100 + '%' }} />
+              </div>
               <div className="np-times">
                 <span>{fmt(position)}</span>
                 <span>{fmt(playing.durationMs)}</span>
               </div>
-            )}
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="settings-note np-idle">Ready. Type /play in chat{canControl ? ' or open "more" to search' : ', or ask an admin'}.</div>
-      )}
-
-      <div className="np-controls">
-        {btn('prev', 'Restart the song; press again within 3 seconds to go back one', () => act({ action: 'previous' }), !playing)}
-        {btn(st.state === 'paused' ? 'play' : 'pause', 'Play or pause', () => act({ action: st.state === 'paused' ? 'resume' : 'pause' }), !playing)}
-        {btn('skip', 'Skip this song', () => act({ action: 'skip' }), !playing)}
-        {open && (
-        <label className="np-volume">
-          <span className="settings-note" style={{ margin: 0 }}>vol {volume}</span>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={volume}
-            disabled={!canControl}
-            onChange={(e) => {
-              draggingVolume.current = true
-              setVolume(Number(e.target.value))
-            }}
-            onMouseUp={() => {
-              draggingVolume.current = false
-              act({ action: 'volume', value: volume })
-            }}
-            onKeyUp={() => act({ action: 'volume', value: volume })}
-          />
-        </label>
+        ) : (
+          <div className="settings-note np-idle">{idle}</div>
         )}
-        {open && canControl && st.queue.length > 0 && btn('clear queue', 'Clear everything waiting', () => act({ action: 'clear' }))}
-      </div>
 
-      {open && (
-      <>
-      <Visualizer playing={!!playing && st.state === 'playing'} botAudioId={v.botAudioId} deafened={v.deafened} />
+        <div className="np-controls">
+          {btn('prev', 'Restart the song; press again within 3 seconds to go back one', () => act({ action: 'previous' }), !playing)}
+          {btn(st.state === 'paused' ? 'play' : 'pause', 'Play or pause', () => act({ action: st.state === 'paused' ? 'resume' : 'pause' }), !playing)}
+          {btn('skip', 'Skip this song', () => act({ action: 'skip' }), !playing)}
+          {btn('stop', 'Stop the music and empty the queue (Jellybox stays in the room)', () => act({ action: 'stop' }), !playing && st.queue.length === 0 && !st.shuffleAll)}
+          {btn('shuffle all', 'Play random songs from the whole library until stopped', () => act({ action: 'shuffle', value: !st.shuffleAll }), false, !!st.shuffleAll)}
+        </div>
+        <div className="np-controls">
+          <label className="np-volume">
+            <span className="settings-note" style={{ margin: 0 }}>vol {volume}</span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={volume}
+              disabled={!canControl}
+              onChange={(e) => {
+                draggingVolume.current = true
+                setVolume(Number(e.target.value))
+              }}
+              onMouseUp={() => {
+                draggingVolume.current = false
+                act({ action: 'volume', value: volume })
+              }}
+              onKeyUp={() => act({ action: 'volume', value: volume })}
+            />
+          </label>
+          {canControl && st.queue.length > 0 && btn('clear queue', 'Clear everything waiting', () => act({ action: 'clear' }))}
+        </div>
 
-      {st.queue.length > 0 && (
-        <ol className="np-queue">
-          {st.queue.slice(0, 8).map((t, i) => (
-            <li key={i}>
-              <span>
-                {t.title}
-                {t.artist ? ` - ${t.artist}` : ''}
-                {t.addedBy ? ` (${t.addedBy})` : ''}
-              </span>
-              {canControl && (
-                <button type="button" className="link-btn" onClick={() => act({ action: 'remove', value: i + 1 })}>
-                  remove
-                </button>
-              )}
-            </li>
-          ))}
-          {st.queue.length > 8 && <li className="settings-note">and {st.queue.length - 8} more</li>}
-        </ol>
-      )}
-
-      {canControl && (
-        <form className="np-search" onSubmit={runSearch}>
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search songs, albums, artists" />
-          <button type="submit" className="btn-secondary np-btn" disabled={searching || !query.trim()}>
-            Search
-          </button>
-        </form>
-      )}
-      {results && (
-        <ul className="np-results">
-          {results.length === 0 && <li className="settings-note">Nothing found.</li>}
-          {results.map((r) => (
-            <li key={r.id}>
-              <span>
-                {r.title}
-                <span className="settings-note" style={{ margin: 0 }}>
-                  {' '}
-                  {r.kind}
-                  {r.artist ? ` by ${r.artist}` : ''}
+        {st.queue.length > 0 && (
+          <ol className="np-queue">
+            {st.queue.slice(0, 8).map((t, i) => (
+              <li key={i}>
+                <span>
+                  {t.title}
+                  {t.artist ? ` - ${t.artist}` : ''}
+                  {t.addedBy ? ` (${t.addedBy})` : ''}
                 </span>
-              </span>
-              <span className="np-result-actions">
-                <button type="button" className="link-btn" onClick={() => act({ action: 'play-now', itemId: r.id, kind: r.kind })}>
-                  Play now
-                </button>
-                <button type="button" className="link-btn" onClick={() => act({ action: 'queue', itemId: r.id, kind: r.kind })}>
-                  Add to queue
-                </button>
-                {(r.kind === 'album' || (r.kind === 'song' && r.albumId)) && (
-                  <button type="button" className="link-btn" onClick={() => act({ action: 'play-album', itemId: r.kind === 'album' ? r.id : r.albumId })}>
-                    Play album
+                {canControl && (
+                  <button type="button" className="link-btn" onClick={() => act({ action: 'remove', value: i + 1 })}>
+                    remove
                   </button>
                 )}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-      </>
-      )}
-      {error && <div className="error-text">{error}</div>}
-    </div>
+              </li>
+            ))}
+            {st.queue.length > 8 && <li className="settings-note">and {st.queue.length - 8} more</li>}
+          </ol>
+        )}
+
+        <label className="np-toast-toggle">
+          <input type="checkbox" checked={toastOn} onChange={(e) => setToast(e.target.checked)} /> Pop up when the song changes
+        </label>
+
+        <Visualizer
+          playing={!!playing && st.state === 'playing'}
+          botAudioId={v.botAudioId}
+          deafened={v.deafened}
+          search={{ canSearch: canControl, run: async (q) => (await api.searchMusic(sessionToken, serverId, q)).results, act: (b) => act(b, { rethrow: true }) }}
+        />
+
+        {canControl && (
+          <form className="np-search" onSubmit={runSearch}>
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search songs, albums, artists" />
+            <button type="submit" className="btn-secondary np-btn" disabled={searching || !query.trim()}>
+              Search
+            </button>
+          </form>
+        )}
+        {results && (
+          <ul className="np-results">
+            {results.length === 0 && <li className="settings-note">Nothing found.</li>}
+            {results.map((r) => (
+              <li key={r.id}>
+                <span>
+                  {r.title}
+                  <span className="settings-note" style={{ margin: 0 }}>
+                    {' '}
+                    {r.kind}
+                    {r.artist ? ` by ${r.artist}` : ''}
+                  </span>
+                </span>
+                <span className="np-result-actions">
+                  <button type="button" className="link-btn" onClick={() => act({ action: 'play-now', itemId: r.id, kind: r.kind })}>
+                    Play now
+                  </button>
+                  <button type="button" className="link-btn" onClick={() => act({ action: 'queue', itemId: r.id, kind: r.kind })}>
+                    Add to queue
+                  </button>
+                  {(r.kind === 'album' || (r.kind === 'song' && r.albumId)) && (
+                    <button type="button" className="link-btn" onClick={() => act({ action: 'play-album', itemId: r.kind === 'album' ? r.id : r.albumId })}>
+                      Play album
+                    </button>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {canControl && <BrowseSection sessionToken={sessionToken} serverId={serverId} act={act} />}
+        {error && <div className="error-text">{error}</div>}
+      </aside>
+    </>
   )
 }
 

@@ -85,20 +85,24 @@ a server change has to wait for a server release.
   account arrive with `redacted: true` and nothing else; `TextChatView` draws a black REDACTED name
   box (text from CSS, so nothing to copy) over one to three black bars whose lengths come from the
   message id (`redaction.js`), outlined with `--redact-outline` so a skin can keep them visible.
-- Jellybox (music bot, needs server v0.9.0): the owner links one Jellyfin library per server in Owner Tools
+- Jellybox (music bot, needs server v0.9.0; browsing, stop and shuffle need v0.11.0): the owner links one Jellyfin library per server in Owner Tools
   (`MusicSection`: address plus an API key, or a username and password that is exchanged once; Test and
   Unlink). Everything goes through the Rushlight server, so the client never sees a Jellyfin address (except
-  the owner's own) or token. `NowPlayingPanel` is a compact card in the top right of a voice-capable space, beside the voice panel (`.space-top`; collapsed to a title, thin progress bar and three buttons, "more" opens the queue, volume, visualizer and search, remembered in localStorage): it polls
+  the owner's own) or token. `NowPlayingPanel` is a column down the right side of a voice-capable space (`.space-view` is a row: `.space-main` holds the voice panel and chat, so the chat keeps the whole centre). It folds to a thin line with a tab (`.np-fold`, remembered in localStorage), and is not rendered at all when Jellybox is not in the room (`active` false), except for admins in a voice-only room, who have no chat to type /play in. it polls
   `getMusicState` every 3s, hidden when `available` is false, and moves the progress bar locally from the last
-  position. Everyone sees it; the buttons, volume, seek-by-click and search box need `canControl` (admins and
-  the owner). Slash commands are typed in chat and answered by the server as a `bot: true` message (shown with
+  position. Everyone sees it; the buttons (prev, pause, skip, stop, shuffle all), volume, seek-by-click, search box and
+  library browsing (`BrowseSection`: artists, albums or songs A to Z by letter, 50 at a time, open an artist or album)
+  need `canControl` (admins and the owner). `SongToast` pops up bottom right when the song changes (not for the
+  song already playing on arrival) and is drawn inside the full screen element while one is up. Slash commands are typed in chat and answered by the server as a `bot: true` message (shown with
   a "bot" badge). Cover art needs the token, so `fetchMusicCover` returns a blob URL (revoked on change). A
   voice-only space has no chat, so there only admins can start music, from the panel.
 - Visualizer (`src/renderer/src/visualizer/`, client only): a button in the Now Playing panel, off until clicked,
   remembered per person (`prefs.js`). A Web Audio analyser reads Jellybox's incoming track
-  (`voice.getBotMediaTrack`, never connected to the speakers) and draws bars/wave/radial in the accent colour as
-  the small view; clicking it opens the large view, which is Butterchurn (Milkdrop) with ~395 bundled presets
-  (next/previous, shuffle with blend, list with search, favourites, name flash, full screen, Esc). Butterchurn
+  (`voice.getBotMediaTrack`, never connected to the speakers) and draws bars or a wave in the accent colour, or the real Milkdrop (Butterchurn) in miniature, as the small
+  window in the panel (so the chat stays usable); clicking it opens the large view, which is Butterchurn (Milkdrop) with ~395 bundled presets
+  (next/previous, shuffle with blend, list with search, favourites, name flash, full screen, Esc). In full screen the
+  buttons fade after 3 s without the mouse moving and return on movement (they stay while typing or while a list or
+  search results are open); admins also get a small song search bar at the bottom right there. Butterchurn
   and the presets are lazy chunks (`milkdrop.js`), loaded only when the large view first opens. It draws only
   while on + playing + window visible + not deafened, and tears everything down (loop, audio tap, GL context)
   otherwise. `governor.js` lowers render resolution first and only then 30 fps; reduced motion means the calm

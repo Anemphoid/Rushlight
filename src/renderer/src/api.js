@@ -331,3 +331,11 @@ export async function fetchMusicCover(token, serverId, itemId) {
     return null
   }
 }
+
+// Browsing the library without searching (admins): an alphabetical page of artists, albums or songs, optionally by
+// first letter ('#' is digits and symbols), and what is inside one artist or album.
+export const browseMusic = (token, serverId, { kind, letter = '', start = 0 }) =>
+  request(`/api/servers/${serverId}/music/browse?kind=${kind}${letter ? `&letter=${encodeURIComponent(letter)}` : ''}&start=${start}`, { token })
+export const musicChildren = (token, serverId, kind, itemId) =>
+  request(`/api/servers/${serverId}/music/browse/${kind}/${itemId}`, { token })
+

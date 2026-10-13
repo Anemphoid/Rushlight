@@ -1,4 +1,4 @@
-// The small built-in styles: spectrum bars, waveform and radial. Plain canvas, drawn in the skin's
+// The small built-in styles: spectrum bars and waveform. Plain canvas, drawn in the skin's
 // accent colour. They are the small view, and the fallback when WebGL 2 is missing.
 export function accentColour(el = document.documentElement) {
   const v = getComputedStyle(el).getPropertyValue('--accent').trim()
@@ -21,24 +21,6 @@ export function drawSimple(ctx, style, w, h, freq, time, colour) {
       else ctx.lineTo(x, y)
     }
     ctx.stroke()
-    return
-  }
-  if (style === 'radial') {
-    const cx = w / 2
-    const cy = h / 2
-    const base = Math.min(w, h) * 0.22
-    const reach = Math.min(w, h) * 0.26
-    const bars = 64
-    for (let i = 0; i < bars; i++) {
-      const v = freq[Math.floor((i / bars) * freq.length * 0.7)] / 255
-      const a = (i / bars) * Math.PI * 2 - Math.PI / 2
-      const r0 = base
-      const r1 = base + Math.max(1, v * reach)
-      ctx.beginPath()
-      ctx.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0)
-      ctx.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1)
-      ctx.stroke()
-    }
     return
   }
   // bars: log-ish spacing so the bass gets room

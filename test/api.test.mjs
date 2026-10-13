@@ -5,7 +5,7 @@ import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { startServer, installBridge, rejection } from './helpers.mjs'
 import { accessEndedNotice } from '../src/renderer/src/accessEnded.js'
-import { startFakeJellyfin, TOKEN, SONG_ID, MISSING_ID } from './fake-jellyfin.mjs'
+import { startFakeJellyfin, TOKEN, SONG_ID, MISSING_ID, ARTIST_ID } from './fake-jellyfin.mjs'
 
 let srv
 let api
@@ -650,5 +650,41 @@ test('history window: the owner sets it, everyone reads it, a dry run changes no
   assert.equal(done.retentionMonths, 6)
   assert.equal(done.willDeleteAtNextCleanup, 0)
   assert.equal((await api.getServer(member.token, server.id)).retentionMonths, 6)
+})
+
+test('music: browsing the library, stop and shuffle controls, the new state fields', async () => {
+  const jelly = await startFakeJellyfin()
+  try {
+    const { admin: owner, server } = await world()
+    const code = await api.createServerCode(owner.token, server.id, { singleUse: false, expiresInMinutes: null })
+    const member = await account()
+    await api.joinServerWithCode(member.token, code.code)
+    const room = await api.createChannel(owner.token, server.id, { name: 'jukebox', mode: 'both', persistent: true })
+    await api.linkMusic(owner.token, server.id, { address: jelly.url, apiKey: TOKEN })
+
+    // alphabetical browsing is for admins and the owner
+    const artists = await api.browseMusic(owner.token, server.id, { kind: 'artists' })
+    assert.deepEqual(artists.items.map((i) => [i.kind, i.title]), [['artist', 'Album Band'], ['artist', 'Nightingale']])
+    assert.equal(artists.total, 2)
+    const byLetter = await api.browseMusic(owner.token, server.id, { kind: 'artists', letter: 'N' })
+    assert.deepEqual(byLetter.items.map((i) => i.title), ['Nightingale'])
+    assert.deepEqual((await api.browseMusic(owner.token, server.id, { kind: 'albums' })).items.map((i) => i.title), ['Four Tracks'])
+    const inside = await api.musicChildren(owner.token, server.id, 'artist', ARTIST_ID)
+    assert.deepEqual(inside.items.map((i) => [i.kind, i.title]), [['album', 'Four Tracks']])
+    assert.equal((await rejection(api.browseMusic(member.token, server.id, { kind: 'artists' }))).status, 403)
+    assert.equal((await rejection(api.musicChildren(member.token, server.id, 'artist', ARTIST_ID))).status, 403)
+    assert.equal((await rejection(api.browseMusic(owner.token, server.id, { kind: 'genres' }))).status, 400)
+
+    // the panel state now says whether shuffle is on; stop and shuffle are for admins, and need the bot or the room
+    const st = await api.getMusicState(member.token, 'channel', room.id)
+    assert.equal(st.shuffleAll, false)
+    assert.equal(st.active, false) // the bot is not in the room, so the panel is hidden
+    assert.equal((await rejection(api.musicControl(member.token, 'channel', room.id, { action: 'stop' }))).status, 403)
+    assert.equal((await rejection(api.musicControl(owner.token, 'channel', room.id, { action: 'shuffle', value: true }))).status, 409) // not in the room
+    await api.sendPresence(owner.token, 'channel', room.id)
+    assert.equal((await rejection(api.musicControl(owner.token, 'channel', room.id, { action: 'stop' }))).status, 409) // nothing is playing
+  } finally {
+    await jelly.stop()
+  }
 })
 

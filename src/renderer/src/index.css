@@ -1514,51 +1514,77 @@ button {
   outline: 1px solid var(--redact-outline);
 }
 
-/* Jellybox: a compact card in the top right of the space, next to the voice panel; "more" opens it up */
-.space-top {
-  display: flex;
-  flex-shrink: 0;
-  min-height: 0;
-  max-height: 45%;
-  border-bottom: 1px solid var(--line);
+/* Jellybox: a column down the right side of the space; it folds to a thin line with a tab */
+.space-view {
+  flex-direction: row;
 }
-.space-top:has(.now-playing.open) {
-  max-height: 65%;
-}
-.space-top.voice-only {
-  flex: 1;
-  max-height: none;
-}
-.space-top .voice-panel {
+.space-main {
   flex: 1;
   min-width: 0;
-  max-height: none;
-  border-bottom: none;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.space-main .text-chat {
+  height: auto;
+  flex: 1;
+  min-height: 0;
 }
 .now-playing {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  width: 280px;
+  gap: 8px;
+  width: 340px;
   flex-shrink: 0;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-left: 1px solid var(--line);
   overflow-y: auto;
 }
-.now-playing.open {
-  width: 320px;
-}
 @media (max-width: 900px) {
-  .space-top {
+  .space-view {
     flex-direction: column;
   }
-  .now-playing,
-  .now-playing.open {
+  .now-playing {
     width: auto;
     border-left: none;
     border-top: 1px solid var(--line);
-    max-height: 220px;
+    max-height: 45%;
   }
+  .np-fold {
+    width: auto;
+    height: 14px;
+    border-left: none;
+    border-top: 1px solid var(--line);
+  }
+}
+.np-fold {
+  position: relative;
+  width: 8px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--line);
+}
+.np-tab {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 56px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel);
+  color: var(--dim);
+  border: 1px solid var(--line);
+  border-right: none;
+  border-radius: 6px 0 0 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.np-tab:hover {
+  color: var(--text);
+  background: var(--bg);
 }
 .np-header {
   display: flex;
@@ -1580,23 +1606,18 @@ button {
   margin: 0;
 }
 .np-cover {
-  width: 44px;
-  height: 44px;
+  width: 64px;
+  height: 64px;
   flex-shrink: 0;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--panel);
   color: var(--dim);
-  font-size: 0.5625rem;
+  font-size: 0.6875rem;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-}
-.now-playing.open .np-cover {
-  width: 64px;
-  height: 64px;
-  font-size: 0.6875rem;
 }
 .np-cover img {
   width: 100%;
@@ -1702,7 +1723,7 @@ button {
 }
 .viz-small {
   position: relative;
-  height: 90px;
+  height: 150px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--panel);
@@ -1820,6 +1841,8 @@ button {
 }
 .np-queue li .link-btn {
   flex-shrink: 0;
+}
+
 /* Day dividers in chat */
 .day-divider {
   display: flex;
@@ -1837,4 +1860,219 @@ button {
   content: '';
   flex: 1;
   border-top: 1px solid var(--line);
+}
+
+/* Visualizer round 2: small Milkdrop window, buttons that fade in full screen, search, song pop-up */
+.viz-small-name {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 4px;
+  font-size: 0.625rem;
+  color: #fff;
+  text-shadow: 0 1px 3px #000;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.viz-controls {
+  transition: opacity 0.5s ease;
+}
+.viz-controls.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.viz-large.viz-idle {
+  cursor: none;
+}
+.viz-search {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.viz-search input {
+  width: 190px;
+}
+.viz-results {
+  position: absolute;
+  right: 16px;
+  bottom: 60px;
+  width: min(420px, 90vw);
+  max-height: 50%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+}
+.viz-results ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.viz-results li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 0;
+  font-size: 0.8125rem;
+}
+.np-toast-toggle {
+  font-size: 0.75rem;
+  color: var(--dim);
+}
+.song-toast {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 1100;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  max-width: 340px;
+  padding: 10px 14px 10px 10px;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  pointer-events: none;
+}
+.song-toast.over-fullscreen {
+  bottom: 72px; /* above the buttons and search bar along the bottom edge */
+}
+.song-toast.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.song-toast-art {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--dim);
+  font-size: 0.5625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.song-toast-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.song-toast-text {
+  min-width: 0;
+}
+.song-toast-label {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--label);
+}
+.song-toast-title {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.song-toast-artist {
+  font-size: 0.8125rem;
+  color: var(--dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .song-toast,
+  .viz-controls {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* Browsing the library */
+.np-browse {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.np-browse-title {
+  font-weight: 700;
+  font-size: 0.8125rem;
+}
+.np-browse-tabs {
+  display: flex;
+  gap: 6px;
+}
+.np-letters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+.np-letter {
+  width: auto;
+  min-width: 22px;
+  padding: 1px 4px;
+  font-size: 0.6875rem;
+  background: transparent;
+  color: var(--dim);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.np-letter:hover {
+  color: var(--text);
+  border-color: var(--line);
+}
+.np-letter.active {
+  color: var(--on-accent);
+  background: var(--accent);
+}
+.np-browse-here {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.np-browse-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  font-size: 0.8125rem;
+}
+.np-browse-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 0;
+}
+.np-browse-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* the shared link button has a top margin made for forms; inside these lists it must sit on the line */
+.np-queue .link-btn,
+.np-results .link-btn,
+.np-browse .link-btn,
+.viz-results .link-btn,
+.viz-list .link-btn,
+.np-header .link-btn {
+  margin-top: 0;
 }

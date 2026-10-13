@@ -100,8 +100,8 @@ const fakeStorage = (initial) => {
 test('the visualizer is off by default and the choices are remembered', () => {
   const s = fakeStorage()
   assert.deepEqual(loadPrefs(s), { enabled: false, style: 'bars', shuffle: false, favourites: [] })
-  savePrefs({ enabled: true, style: 'radial', shuffle: true, favourites: ['a', 'b'] }, s)
-  assert.deepEqual(loadPrefs(s), { enabled: true, style: 'radial', shuffle: true, favourites: ['a', 'b'] })
+  savePrefs({ enabled: true, style: 'milkdrop', shuffle: true, favourites: ['a', 'b'] }, s)
+  assert.deepEqual(loadPrefs(s), { enabled: true, style: 'milkdrop', shuffle: true, favourites: ['a', 'b'] })
 })
 
 test('damaged or odd saved choices fall back safely', () => {
@@ -112,5 +112,7 @@ test('damaged or odd saved choices fall back safely', () => {
   const blocked = { getItem: () => { throw new Error('no') }, setItem: () => { throw new Error('no') } }
   assert.equal(loadPrefs(blocked).enabled, false)
   assert.doesNotThrow(() => savePrefs({ enabled: true, style: 'bars', shuffle: false, favourites: [] }, blocked))
-  assert.deepEqual(STYLES, ['bars', 'wave', 'radial'])
+  assert.deepEqual(STYLES, ['bars', 'wave', 'milkdrop'])
+  // the radial style is gone: someone who had chosen it gets the bars
+  assert.equal(loadPrefs(fakeStorage(JSON.stringify({ enabled: true, style: 'radial' }))).style, 'bars')
 })

@@ -1,7 +1,8 @@
 // The visualizer choices are per person and remembered on this computer.
 const KEY = 'rushlight.visualizer'
 const DEFAULTS = { enabled: false, style: 'bars', shuffle: false, favourites: [] }
-export const STYLES = ['bars', 'wave', 'radial']
+// 'milkdrop' is the real Butterchurn visualizer, as a small window; the other two are the light built-in ones.
+export const STYLES = ['bars', 'wave', 'milkdrop']
 
 export function loadPrefs(storage = globalThis.localStorage) {
   try {

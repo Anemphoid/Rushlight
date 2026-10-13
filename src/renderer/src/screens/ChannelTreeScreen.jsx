@@ -941,23 +941,15 @@ function ChannelTreeScreen({
       <div className="tree-main">
         {openSpace ? (
           <div className="space-view">
-            {openSpace.mode !== 'text' && (
-              <div className={'space-top' + (openSpace.mode === 'voice' ? ' voice-only' : '')}>
+            <div className="space-main">
+              {openSpace.mode !== 'text' && (
                 <VoicePanel
                   compact={openSpace.mode === 'both'}
                   pttKey={pttKey}
                   pttHookOk={pttHookOk}
                   onRetry={onRetryVoice}
                 />
-                {sessionToken && (
-                  <NowPlayingPanel
-                    sessionToken={sessionToken}
-                    serverId={serverId}
-                    space={{ type: openSpace.type, id: spaceId(openSpace) }}
-                  />
-                )}
-              </div>
-            )}
+              )}
             {openSpace.mode !== 'voice' && (
           <TextChatView
             roomName={openSpace.name}
@@ -981,6 +973,15 @@ function ChannelTreeScreen({
                 : !!(ch.rooms.find((r) => r.id === openSpace.roomId) || {}).persistent
             })()}
           />
+            )}
+            </div>
+            {openSpace.mode !== 'text' && sessionToken && (
+              <NowPlayingPanel
+                sessionToken={sessionToken}
+                serverId={serverId}
+                space={{ type: openSpace.type, id: spaceId(openSpace) }}
+                voiceOnly={openSpace.mode === 'voice'}
+              />
             )}
           </div>
         ) : (
