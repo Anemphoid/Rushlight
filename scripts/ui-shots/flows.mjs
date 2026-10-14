@@ -293,7 +293,18 @@ export async function flows(s) {
     await j.keyboard.press('Escape')
     await j.waitForTimeout(800)
     if (await j.locator('.viz-large').count()) throw new Error('Esc did not close the big view from full screen')
-    await j.click('button[aria-label="Hide Jellybox"]')
+    if (process.env.UI_SHOTS_MOTION) {
+      const w = () => j.evaluate(() => Math.round(document.querySelector('.now-playing')?.getBoundingClientRect().width ?? -1))
+      const full = await w()
+      await j.click('button[aria-label="Hide Jellybox"]')
+      await j.waitForTimeout(120)
+      const mid = await w()
+      await j.waitForTimeout(500)
+      console.log(`  Jellybox column width: ${full} -> ${mid} (120 ms) -> ${await w()} (gone)`)
+      if (!(mid > 0 && mid < full)) throw new Error('the Jellybox column does not slide shut')
+    } else {
+      await j.click('button[aria-label="Hide Jellybox"]')
+    }
     await j.waitForTimeout(500)
     await shot(j, '34-jellybox-folded')
     await j.context().close()
@@ -408,6 +419,63 @@ export async function flows(s) {
     await tall(q, 2300, () => shot(q, '54-admin-tools-with-guest'))
     await q.context().close()
   })
+
+  // ---------- motion (only with UI_SHOTS_MOTION=1: animations are otherwise switched off so pictures match) ----------
+  if (process.env.UI_SHOTS_MOTION) {
+    await step('motion', async () => {
+      const q = await newPage({ session: owner })
+      await q.waitForSelector('.home-screen')
+      // home -> Settings: the page being left stays under the new one while it fades in
+      await q.click('button:has-text("Settings")')
+      await q.waitForTimeout(120)
+      const mid = await q.evaluate(() => ({
+        layers: document.querySelectorAll('.app-content > .vt > .vt-layer').length,
+        opacity: Math.round(parseFloat(getComputedStyle(document.querySelector('.app-content > .vt > .vt-in')).opacity) * 100) / 100
+      }))
+      await q.waitForTimeout(500)
+      const after = await q.evaluate(() => document.querySelectorAll('.app-content > .vt > .vt-layer').length)
+      console.log(`  screen change: ${mid.layers} layers at 120 ms (incoming opacity ${mid.opacity}), ${after} after`)
+      if (mid.layers !== 2 || !(mid.opacity > 0 && mid.opacity < 1) || after !== 1) throw new Error('screen change does not crossfade')
+      // Settings -> back
+      await q.click('.rl-back')
+      await q.waitForTimeout(120)
+      const back = await q.evaluate(() => document.querySelectorAll('.app-content > .vt > .vt-layer').length)
+      console.log(`  back: ${back} layers at 120 ms`)
+      // a mode change fades
+      await q.click('button:has-text("Settings")')
+      await q.waitForSelector('.rl-skin-card')
+      await q.click('.rl-seg button:has-text("Light")')
+      await q.waitForTimeout(80)
+      const fading = await q.evaluate(() => document.documentElement.classList.contains('look-fade'))
+      console.log(`  look change: fade class on = ${fading}`)
+      if (!fading) throw new Error('a mode change does not fade')
+      await q.context().close()
+    })
+    await step('motion, overlay over a server', async () => {
+      const q = await newPage({ session: owner })
+      await q.waitForSelector('.home-screen')
+      await openServer(q)
+      await q.click('.gear-btn[title="Settings"]')
+      await q.waitForTimeout(120)
+      const during = await q.evaluate(() => ({
+        overlay: document.querySelector('.overlay-layer')?.className,
+        treeShown: getComputedStyle(document.querySelector('.tree-screen').closest('.rail-layout').parentElement).display !== 'none'
+      }))
+      await q.waitForTimeout(500)
+      const covered = await q.evaluate(() => getComputedStyle(document.querySelector('.tree-screen').closest('.rail-layout').parentElement).display === 'none')
+      await q.click('.rl-back')
+      await q.waitForTimeout(120)
+      const closing = await q.evaluate(() => ({
+        overlay: document.querySelector('.overlay-layer')?.className,
+        treeShown: getComputedStyle(document.querySelector('.tree-screen').closest('.rail-layout').parentElement).display !== 'none'
+      }))
+      await q.waitForTimeout(500)
+      const gone = await q.evaluate(() => !document.querySelector('.overlay-layer'))
+      console.log(`  overlay: opening ${JSON.stringify(during)}, covered after ${covered}; closing ${JSON.stringify(closing)}, removed ${gone}`)
+      if (!during.treeShown || !covered || !closing.treeShown || !/is-out/.test(closing.overlay || '') || !gone) throw new Error('the overlay does not slide in and out over the server')
+      await q.context().close()
+    })
+  }
 
   // ---------- skins, modes, densities, icon sizes ----------
   for (const [skin, mode] of [['parchment', 'dark'], ['parchment', 'light'], ['cool-slate', 'dark'], ['cool-slate', 'light']]) {

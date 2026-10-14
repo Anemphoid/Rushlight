@@ -186,7 +186,42 @@ ipcMain.handle('window-restore-normal-size', (event) => {
 // moving between two rooms that both have Jellybox does not flicker the window.
 let widenedBy = 0
 let giveBackTimer = null
-ipcMain.handle('window-widen', (event, extra) => {
+let tween = null // { timer, to } while the window is gliding to a new width
+// Move the window to new bounds over `ms`, easing in and out like the panels in the page, so the window grows or
+// shrinks in step with the column that needs the room. A new move takes over from wherever the last one is.
+function glideTo(win, to, ms) {
+  if (tween) {
+    clearInterval(tween.timer)
+    tween = null
+  }
+  const from = win.getBounds()
+  if (!ms || (from.width === to.width && from.x === to.x)) {
+    win.setBounds(to)
+    return
+  }
+  const started = Date.now()
+  const timer = setInterval(() => {
+    if (win.isDestroyed()) {
+      clearInterval(timer)
+      tween = null
+      return
+    }
+    const t = Math.min(1, (Date.now() - started) / ms)
+    const e = t * t * (3 - 2 * t)
+    win.setBounds({
+      x: Math.round(from.x + (to.x - from.x) * e),
+      y: to.y,
+      width: Math.round(from.width + (to.width - from.width) * e),
+      height: to.height
+    })
+    if (t >= 1) {
+      clearInterval(timer)
+      tween = null
+    }
+  }, 16)
+  tween = { timer, to }
+}
+ipcMain.handle('window-widen', (event, extra, animate = true, immediate = false) => {
   const win = BrowserWindow.fromWebContents(event.sender)
   if (!win || win.isDestroyed()) return
   clearTimeout(giveBackTimer)
@@ -197,16 +232,18 @@ ipcMain.handle('window-widen', (event, extra) => {
       widenedBy = want
       return
     }
-    const b = win.getBounds()
+    const b = tween ? tween.to : win.getBounds()
     const area = screen.getDisplayMatching(b).workArea
     const delta = want - widenedBy
     const width = Math.min(Math.max(b.width + delta, NORMAL_MIN_WIDTH), area.width)
     let x = b.x
     if (x + width > area.x + area.width) x = Math.max(area.x, area.x + area.width - width)
-    win.setBounds({ x, y: b.y, width, height: b.height })
+    glideTo(win, { x, y: b.y, width, height: b.height }, animate ? 300 : 0)
     widenedBy = want
   }
-  if (want < widenedBy) giveBackTimer = setTimeout(apply, 400)
+  // giving the room back waits a moment, so moving between two rooms that both have Jellybox does not flicker the window
+  if (want < widenedBy && (!animate || immediate)) apply()
+  else if (want < widenedBy) giveBackTimer = setTimeout(apply, 100)
   else apply()
 })
 app.whenReady().then(() => {

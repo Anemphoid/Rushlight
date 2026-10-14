@@ -10,6 +10,7 @@ import './styles/viz-view.css'
 import './styles/auth.css'
 import './styles/home.css'
 import './styles/pieces.css'
+import './styles/motion.css'
 import App from './App'
 
 // The style gallery exists in development builds only: `import.meta.env.DEV` is a build-time constant, so a

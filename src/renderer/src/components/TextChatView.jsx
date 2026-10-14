@@ -111,6 +111,12 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, onS
     }
   }
 
+  // Messages already in the room when it opens appear as they are; ones that arrive after it is open ease in.
+  const opened = useRef({ room: null, count: 0 })
+  if (opened.current.room !== roomName) opened.current = { room: roomName, count: messages.length === 0 ? -1 : messages.length }
+  else if (opened.current.count === -1 && messages.length > 0) opened.current.count = messages.length
+  const isNew = (i) => opened.current.count >= 0 && i >= opened.current.count
+
   return (
     <div
       className={'text-chat' + (dragging ? ' drop-target' : '')}
@@ -153,7 +159,7 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, onS
           {m.redacted ? (
             // The author deleted their account: the server kept nothing, so this is only a mark.
             // No avatar, no name, no profile, and no text for anyone to select or copy.
-            <div className="text-chat-message redacted-message">
+            <div className={'text-chat-message redacted-message' + (isNew(i) ? ' msg-new' : '')}>
               <div className="redacted-gutter" aria-hidden="true" />
               <div className="text-chat-message-content">
                 <div className="text-chat-message-meta">
@@ -170,7 +176,7 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, onS
               </div>
             </div>
           ) : (
-          <div className="text-chat-message">
+          <div className={'text-chat-message' + (isNew(i) ? ' msg-new' : '')}>
             <Avatar color={m.avatarColor} name={m.author} imageUrl={m.bot ? jellyboxImage : avatarUrl(m.authorId, m.avatarUpdatedAt)} size={36} />
             <div className="text-chat-message-content">
               <div className="text-chat-message-meta">

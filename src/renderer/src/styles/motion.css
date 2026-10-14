@@ -1,0 +1,217 @@
+/* Motion, everywhere: smooth and relaxing, nothing snaps, flashes, shakes or bounces (roadmap, decided Oct 13). The
+   durations and easings are tokens in index.css (--dur-*, --ease-*). Under reduced motion all of it is removed
+   (the last rule in this file), whatever else a rule says. */
+
+/* ---- moving between screens: a crossfade with a small slide; the screen being left stays underneath ---- */
+.app-content {
+  position: relative;
+}
+.vt {
+  position: relative;
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+.vt-layer {
+  grid-area: 1 / 1;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  position: relative;
+}
+.vt-in {
+  animation: vt-in var(--dur-screen) var(--ease-out);
+}
+.vt-out {
+  pointer-events: none;
+  z-index: 0;
+}
+.vt-in {
+  z-index: 1;
+  background: var(--bg-app);
+}
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* a full page over the server (Settings, Profile, Admin Tools): in and out are the same movement reversed */
+.overlay-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  background: var(--bg-app);
+}
+.overlay-layer.is-in {
+  animation: vt-in var(--dur-screen) var(--ease-out);
+}
+.overlay-layer.is-out {
+  pointer-events: none;
+  animation: vt-out var(--dur-screen) var(--ease-in-out) forwards;
+}
+.overlay-inner {
+  height: 100%;
+}
+@keyframes vt-out {
+  to {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+/* a page's own sections change with a short rise */
+.rl-page-content > * {
+  animation: rl-rise var(--dur-screen) var(--ease-out) backwards;
+}
+
+/* ---- dialogs close the way they opened ---- */
+.rl-backdrop.closing {
+  animation: rl-fade-out 200ms var(--ease-in-out) forwards;
+}
+.rl-backdrop.closing .rl-dialog {
+  animation: rl-pop-out 200ms var(--ease-in-out) forwards;
+}
+@keyframes rl-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes rl-pop-out {
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+
+/* ---- the Jellybox column opens and closes by width, in step with the window (see main/index.js) ---- */
+.now-playing {
+  animation: np-open var(--dur-panel) var(--ease-in-out);
+}
+.now-playing.closing {
+  animation: np-close var(--dur-panel) var(--ease-in-out) forwards;
+}
+.now-playing > .np-header,
+.now-playing > .np-body {
+  width: 291px;
+  flex: none;
+}
+.now-playing > .np-body {
+  flex: 1 1 0;
+}
+.now-playing > .np-sheet {
+  right: auto;
+  width: 291px;
+}
+@keyframes np-open {
+  from {
+    width: 0;
+    opacity: 0;
+  }
+}
+@keyframes np-close {
+  to {
+    width: 0;
+    opacity: 0;
+  }
+}
+@media (max-width: 900px) {
+  .now-playing {
+    animation: vt-in var(--dur-panel) var(--ease-out);
+  }
+  .now-playing.closing {
+    animation: vt-out var(--dur-panel) var(--ease-in-out) forwards;
+  }
+  .now-playing > .np-header,
+  .now-playing > .np-body,
+  .now-playing > .np-sheet {
+    width: auto;
+  }
+}
+
+/* ---- lists that change: the new row fades and eases in, and the rows after it glide ---- */
+.text-chat-message.msg-new {
+  animation: rl-rise var(--dur-screen) var(--ease-out) backwards;
+}
+.room-presence {
+  animation: row-in var(--dur-panel) var(--ease-in-out) backwards;
+  overflow: hidden;
+}
+@keyframes row-in {
+  from {
+    max-height: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 40px;
+  }
+}
+.np-queue li,
+.np-results li,
+.member-row,
+.code-row {
+  animation: rl-rise var(--dur-screen) var(--ease-out) backwards;
+}
+.home-server {
+  animation: rl-rise var(--dur-screen) var(--ease-out) backwards;
+}
+.home-server:nth-child(2) {
+  animation-delay: 40ms;
+}
+.home-server:nth-child(3) {
+  animation-delay: 80ms;
+}
+.home-server:nth-child(n + 4) {
+  animation-delay: 120ms;
+}
+
+/* ---- hover, focus and press: 120 to 180 ms ---- */
+:where(button, a, input, select, textarea, summary, [role='button'], [role='tab']) {
+  transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease, color var(--dur-fast) ease,
+    box-shadow var(--dur-fast) ease, opacity var(--dur-fast) ease;
+}
+.rail-btn,
+.channel-row,
+.room-row,
+.rl-nav-item,
+.rl-skin-card,
+.home-server {
+  transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease, color var(--dur-fast) ease,
+    border-radius var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+button:active:not(:disabled) {
+  transform: scale(0.985);
+}
+.rail-btn:active:not(:disabled),
+.np-round:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+/* ---- a change of skin or mode crossfades over about 300 ms (App turns this class on for that moment) ---- */
+html.look-fade,
+html.look-fade *,
+html.look-fade *::before,
+html.look-fade *::after {
+  transition: background-color var(--dur-colour) ease, border-color var(--dur-colour) ease, color var(--dur-colour) ease,
+    fill var(--dur-colour) ease, stroke var(--dur-colour) ease, box-shadow var(--dur-colour) ease !important;
+}
+
+/* ---- the gentle repeating ones: the speaking ring ---- */
+.room-presence.speaking .avatar-circle {
+  transition: box-shadow var(--dur-panel) ease;
+}
+
+/* ---- reduced motion: movement is removed, and every change is an instant swap ---- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}

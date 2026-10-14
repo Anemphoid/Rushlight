@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import Icon from './Icon'
+import { useClosing } from './ViewTransition'
 
 // Add a server: make a new one, or join one with a code. Esc, Cancel and the close button leave it.
-function ServerDialog({ onCreate, onJoin, onClose }) {
+function ServerDialog({ onCreate, onJoin, onClose: leave }) {
+  const [closing, onClose] = useClosing(leave)
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
@@ -47,7 +49,7 @@ function ServerDialog({ onCreate, onJoin, onClose }) {
   }
 
   return (
-    <div className="poll-backdrop rl-backdrop">
+    <div className={'poll-backdrop rl-backdrop' + (closing ? ' closing' : '')}>
       <div className="rl-dialog" role="dialog" aria-modal="true" aria-labelledby="server-dialog-title">
         <div className="rl-dialog-head">
           <h2 id="server-dialog-title">Add a server</h2>

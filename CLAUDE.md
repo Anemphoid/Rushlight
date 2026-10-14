@@ -143,6 +143,14 @@ a server change has to wait for a server release.
 - Admin Tools / Owner Tools is its own page on `PageShell` (not part of Settings: it is per server and role-gated), titled with
   the server name, with sections Members, Guests, Join codes, Banned and, for the owner only, Music, History and Ownership (hand over,
   delete). An owner-only section closes by itself if a handover ends ownership. The ban confirmation is a real dialog.
+- Motion (`styles/motion.css`, `components/ViewTransition.jsx`, tokens `--dur-*`/`--ease-*` in `index.css`): a change of screen is a
+  crossfade with a 10 px slide, the screen being left stays underneath (no blank frame; `ViewTransition`, keyed by screen, and
+  `OverlayLayer` for Settings/Profile/Admin Tools over a server, which keeps the tree mounted and hides it only once covered);
+  dialogs close with their opening movement reversed (`useClosing`); the Jellybox column opens and closes by width while the main
+  process glides the window to match (`glideTo` in `main/index.js`, untested in a real window); a skin or mode change fades via a
+  `look-fade` class on `<html>`; new chat messages, voice-room rows, queue rows and cards ease in. Reduced motion removes all of
+  it (last rule in `motion.css`, guarded by `test/motion.test.mjs`). The screenshot tool turns animation off; `UI_SHOTS_MOTION=1`
+  leaves it on and checks the crossfade, the overlay and the Jellybox slide part-way through.
 - `sounds.js` loads sounds by base name from `assets/sounds/` (missing = silent).
 
 ## Gotchas learned the hard way
