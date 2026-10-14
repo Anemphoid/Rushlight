@@ -2,6 +2,19 @@
 // they follow the skin. Decorative by default (the word next to them says what they are); give `label` for an icon
 // that stands alone. Paths come from the approved mockups.
 const PATHS = {
+  prev: <path fill="currentColor" stroke="none" d="M6 5h2v14H6zM20 5v14L9 12z" />,
+  next: <path fill="currentColor" stroke="none" d="M16 5h2v14h-2zM4 5v14l11-7z" />,
+  play: <path fill="currentColor" stroke="none" d="M7 4v16l13-8z" />,
+  pause: <path fill="currentColor" stroke="none" d="M6 5h4v14H6zM14 5h4v14h-4z" />,
+  stop: <rect fill="currentColor" stroke="none" x="5" y="5" width="14" height="14" rx="2" />,
+  shuffle: <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5" />,
+  bars: <path d="M5 18V12M9 18V6M13 18V9M17 18V14M21 18V10" />,
+  search: (
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <path d="M20 20l-4-4" />
+    </>
+  ),
   voice: (
     <>
       <path d="M4 9v6h4l5 4V5L8 9H4z" />

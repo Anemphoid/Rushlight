@@ -93,3 +93,11 @@ because the app has nothing behind them: the "Voice connected" card with a leave
 above the chat stays) and the Admin tools button in the chat header (it stays in the footer). Buttons that were a bare `+`, `x` or gear
 now have icons and are named by their tooltip text (Add channel, Add room, Delete channel, Delete room, Settings), so the control
 comparison shows them as renamed, 290 of them, and nothing else changed.
+
+## Jellybox column (rebuilt)
+
+Header with a fold chevron; the player (cover sized to the window height, progress bar with a knob, round icon buttons with the
+old words kept as their names, volume, the Visualizer switch); tabs Up next, Search and Library below it, where only the tab body
+scrolls, so the queue and library are one click away instead of a scroll away. With the visualizer on, the cover becomes a small row
+and the visualizer window sits under the switch (`viz-on` on the panel; `Visualizer` reports its state through `onEnabledChange`).
+Parity: across the three Jellybox pictures only "hide >" changed, to "Hide Jellybox".
