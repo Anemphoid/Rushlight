@@ -371,14 +371,19 @@ export async function flows(s) {
     await q.click('.admin-tools-btn')
     await q.waitForTimeout(1200)
     await shot(q, '50-admin-tools-top')
-    await tall(q, 2300, () => shot(q, '51-admin-tools-full'))
-    await q.click('button:has-text("Ban") >> nth=0')
+    await q.click('.member-row-actions button:text-is("Ban") >> nth=0')
     await q.waitForTimeout(400)
     await shot(q, '52-admin-ban-confirm')
-    await q.click('.poll-backdrop button:has-text("Cancel")')
+    await q.click('.rl-dialog button:has-text("Cancel")')
     await q.click('button:has-text("Timed access") >> nth=0')
     await q.waitForTimeout(400)
     await shot(q, '53-admin-timed-access')
+    // the other sections, one picture each
+    for (const [name, file] of [['Join codes', '51-admin-codes'], ['Banned', '51-admin-banned'], ['Music', '51-admin-music'], ['History', '51-admin-history'], ['Ownership', '51-admin-ownership']]) {
+      await q.click(`.rl-nav-item:has-text("${name}")`)
+      await q.waitForTimeout(500)
+      await tall(q, 1100, () => shot(q, file))
+    }
     await q.context().close()
   })
   await step('admin tools with a guest', async () => {
@@ -388,6 +393,7 @@ export async function flows(s) {
     await openServer(q)
     await q.click('.admin-tools-btn')
     await q.waitForTimeout(800)
+    await q.click('.rl-nav-item:has-text("Guests")')
     await world.call('POST', '/api/presence', { type: 'channel', id: cast.lounge.id }, g.guestToken)
     await q.waitForSelector('text=Visitor', { timeout: 15000 })
     await tall(q, 2300, () => shot(q, '54-admin-tools-with-guest'))

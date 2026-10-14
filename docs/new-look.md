@@ -132,3 +132,10 @@ window). The mockups have no design for Reset password, the recovery-key screens
 Home lists the person's servers as cards with their full names (wrapping, never cut off; the rail keeps only a letter), an unread
 count where the app knows one, and a dashed Create or join card. With no servers it keeps the big plus. The add-a-server dialog is
 restyled (create a server, or join with a code) and closes with Esc, the close button or Cancel. `styles/home.css`.
+
+## Admin Tools and Owner Tools
+
+A page of its own on `PageShell`, titled "Admin tools · <server>" (or "Owner tools"), reached from the footer button as before. It stays
+separate from Settings because it is per server and only for admins and the owner. Sections: Members (mute, timed access, make or remove
+admin, kick, ban), Guests (remove), Join codes, Banned (unban), and for the owner Music, History and Ownership (hand over, delete). Logic
+and messages are unchanged; only the layout moved. The ban confirmation is a dialog (Esc cancels).

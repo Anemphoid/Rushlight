@@ -7,6 +7,7 @@ import MusicSection from '../components/MusicSection'
 import RetentionSection from '../components/RetentionSection'
 import { formatExpiry, formatAge } from '../time'
 import { spaceNameFor } from '../spaces'
+import PageShell from '../components/PageShell'
 
 const TIMED_ACCESS_OPTIONS = [
   { label: '1 hour', minutes: 60 },
@@ -16,6 +17,7 @@ const TIMED_ACCESS_OPTIONS = [
 ]
 
 function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onServerDeleted, onBack }) {
+  const [section, setSection] = useState('members')
   const [members, setMembers] = useState(null) // null = still loading
   const [membersError, setMembersError] = useState('')
   const [busyId, setBusyId] = useState(null) // one row's action in flight at a time
@@ -49,6 +51,13 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onSer
   const [confirmRemoveGuest, setConfirmRemoveGuest] = useState(null) // a row from guests, or null
   const [removingGuest, setRemovingGuest] = useState(false)
   const [removeGuestError, setRemoveGuestError] = useState('')
+
+  useEffect(() => {
+    if (!confirmBan) return undefined
+    const onKey = (e) => e.key === 'Escape' && setConfirmBan(null)
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [confirmBan])
 
   const loadGuests = useCallback(async () => {
     try {
@@ -210,16 +219,36 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onSer
   const others = (members || []).filter((m) => m.accountId !== accountId)
   const transferTarget = members && members.find((m) => String(m.accountId) === transferTo)
 
+  const sections = [
+    { id: 'members', label: 'Members', icon: 'account' },
+    { id: 'guests', label: 'Guests', icon: 'account' },
+    { id: 'codes', label: 'Join codes', icon: 'keys' },
+    { id: 'banned', label: 'Banned', icon: 'close' },
+    ...(isOwner
+      ? [
+          { id: 'music', label: 'Music', icon: 'music' },
+          { id: 'history', label: 'History', icon: 'info' },
+          { id: 'ownership', label: 'Ownership', icon: 'shield' }
+        ]
+      : [])
+  ]
+  // an owner-only section stays open only while the person is still the owner (a handover can end that)
+  const shown = sections.some((x) => x.id === section) ? section : 'members'
+
   return (
-    <div className="screen">
-      <div className="card" style={{ maxWidth: 440 }}>
-        <h1>{isOwner ? 'Owner Tools' : 'Admin Tools'}</h1>
-        <p className="sub">{serverName}</p>
-
-        <JoinCodesSection serverId={serverId} serverName={serverName} sessionToken={sessionToken} />
-
-        <div className="settings-section">
-          <h2>members</h2>
+    <PageShell
+      title={(isOwner ? 'Owner tools' : 'Admin tools') + ' · ' + serverName}
+      onBack={onBack}
+      sections={sections}
+      activeSection={shown}
+      onSelectSection={setSection}
+      escDisabled={!!confirmBan}
+    >
+      {shown === 'members' && (
+        <>
+          <h2 className="rl-section-title">Members</h2>
+          <p className="rl-section-sub">Everyone with an account on {serverName}.</p>
+          <div className="settings-section">
           {membersError && <p className="error-text">{membersError}</p>}
           {members === null && !membersError && <p className="settings-note">Loading…</p>}
           {members && members.length === 0 && <p className="settings-note">No one else here yet.</p>}
@@ -355,67 +384,15 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onSer
             </div>
           )}
 
-          <h2 style={{ marginTop: 18 }}>banned</h2>
-          {bansError && <p className="error-text">{bansError}</p>}
-          {bans === null && !bansError && <p className="settings-note">Loading…</p>}
-          {bans && bans.length === 0 && <p className="settings-note">No one is banned.</p>}
-          {bans && bans.length > 0 && (
-            <div className="member-list">
-              {bans.map((b) => (
-                <div key={b.accountId}>
-                  <div className="member-row">
-                    <Avatar name={b.username} imageUrl={avatarUrl(b.accountId, null)} size={28} />
-                    <div className="member-row-main">
-                      <div className="member-row-name">
-                        {b.username}
-                        <span className="member-badge muted">banned</span>
-                      </div>
-                      <div className="member-row-expiry">
-                        {formatAge(b.bannedAt)}
-                        {b.reason ? ` · ${b.reason}` : ''}
-                      </div>
-                    </div>
-                    <div className="member-row-actions">
-                      <button
-                        type="button"
-                        className="link-btn"
-                        onClick={() => {
-                          setUnbanError('')
-                          setConfirmUnban((cur) => (cur && cur.accountId === b.accountId ? null : b))
-                        }}
-                      >
-                        Unban
-                      </button>
-                    </div>
-                  </div>
-                  {confirmUnban && confirmUnban.accountId === b.accountId && (
-                    <div className="create-form">
-                      <p style={{ fontSize: 12, margin: '0 0 10px', color: 'var(--text)' }}>
-                        Unban <strong>{b.username}</strong>? They can come back to this server with a join
-                        code. They don't rejoin on their own.
-                      </p>
-                      {unbanError && <div className="error-text">{unbanError}</div>}
-                      <div className="create-form-actions">
-                        <button
-                          type="button"
-                          className="btn-secondary"
-                          disabled={unbanning}
-                          onClick={() => setConfirmUnban(null)}
-                        >
-                          Cancel
-                        </button>
-                        <button type="button" className="btn-primary" disabled={unbanning} onClick={() => unban(b)}>
-                          {unbanning ? 'Unbanning…' : 'Unban'}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+          </div>
+        </>
+      )}
 
-          <h2 style={{ marginTop: 18 }}>guests here now</h2>
+      {shown === 'guests' && (
+        <>
+          <h2 className="rl-section-title">Guests here now</h2>
+          <p className="rl-section-sub">People who came in with a join code and no account.</p>
+          <div className="settings-section">
           {guestsError && <p className="error-text">{guestsError}</p>}
           {guests === null && !guestsError && <p className="settings-note">Loading…</p>}
           {guests && guests.length === 0 && <p className="settings-note">No guests here right now.</p>}
@@ -487,16 +464,108 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onSer
             Guests have no account, so they can't be kicked or banned. Remove one here, or revoke the code
             they came in with (under active codes above) to remove everyone who used it.
           </p>
+          </div>
+        </>
+      )}
+
+      {shown === 'codes' && (
+        <>
+          <h2 className="rl-section-title">Join codes</h2>
+          <p className="rl-section-sub">Invite people to {serverName}.</p>
+          <JoinCodesSection serverId={serverId} serverName={serverName} sessionToken={sessionToken} />
+        </>
+      )}
+
+      {shown === 'banned' && (
+        <>
+          <h2 className="rl-section-title">Banned</h2>
+          <p className="rl-section-sub">People blocked from rejoining until someone unbans them.</p>
+          <div className="settings-section">
+          {bansError && <p className="error-text">{bansError}</p>}
+          {bans === null && !bansError && <p className="settings-note">Loading…</p>}
+          {bans && bans.length === 0 && <p className="settings-note">No one is banned.</p>}
+          {bans && bans.length > 0 && (
+            <div className="member-list">
+              {bans.map((b) => (
+                <div key={b.accountId}>
+                  <div className="member-row">
+                    <Avatar name={b.username} imageUrl={avatarUrl(b.accountId, null)} size={28} />
+                    <div className="member-row-main">
+                      <div className="member-row-name">
+                        {b.username}
+                        <span className="member-badge muted">banned</span>
+                      </div>
+                      <div className="member-row-expiry">
+                        {formatAge(b.bannedAt)}
+                        {b.reason ? ` · ${b.reason}` : ''}
+                      </div>
+                    </div>
+                    <div className="member-row-actions">
+                      <button
+                        type="button"
+                        className="link-btn"
+                        onClick={() => {
+                          setUnbanError('')
+                          setConfirmUnban((cur) => (cur && cur.accountId === b.accountId ? null : b))
+                        }}
+                      >
+                        Unban
+                      </button>
+                    </div>
+                  </div>
+                  {confirmUnban && confirmUnban.accountId === b.accountId && (
+                    <div className="create-form">
+                      <p style={{ fontSize: 12, margin: '0 0 10px', color: 'var(--text)' }}>
+                        Unban <strong>{b.username}</strong>? They can come back to this server with a join
+                        code. They don't rejoin on their own.
+                      </p>
+                      {unbanError && <div className="error-text">{unbanError}</div>}
+                      <div className="create-form-actions">
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          disabled={unbanning}
+                          onClick={() => setConfirmUnban(null)}
+                        >
+                          Cancel
+                        </button>
+                        <button type="button" className="btn-primary" disabled={unbanning} onClick={() => unban(b)}>
+                          {unbanning ? 'Unbanning…' : 'Unban'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          </div>
+        </>
+      )}
+
+      {isOwner && shown === 'music' && (
+        <div className="rl-embed">
+          <h2 className="rl-section-title">Music</h2>
+          <p className="rl-section-sub">Link a Jellyfin library for Jellybox.</p>
+          <MusicSection serverId={serverId} sessionToken={sessionToken} />
         </div>
+      )}
 
-        {isOwner && (
-          <>
-            <MusicSection serverId={serverId} sessionToken={sessionToken} />
+      {isOwner && shown === 'history' && (
+        <div className="rl-embed">
+          <h2 className="rl-section-title">History</h2>
+          <p className="rl-section-sub">How long persistent chat is kept.</p>
+          <RetentionSection serverId={serverId} sessionToken={sessionToken} />
+        </div>
+      )}
 
-            <RetentionSection serverId={serverId} sessionToken={sessionToken} />
-
+      {isOwner && shown === 'ownership' && (
+        <>
+          <h2 className="rl-section-title">Ownership</h2>
+          <p className="rl-section-sub">Hand {serverName} on, or delete it. Both ask for your password.</p>
             <div className="settings-section">
-              <h2>hand over ownership</h2>
+              <h3 className="rl-subhead">Hand over ownership</h3>
               <p className="settings-note">
                 You can give this server to any member. Only the owner can delete it or hand it on, and
                 the change is immediate: you stay an admin, and you cannot take it back yourself.
@@ -576,7 +645,7 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onSer
             </div>
 
             <div className="settings-section">
-              <h2>delete this server</h2>
+              <h3 className="rl-subhead danger">Delete this server</h3>
               <p className="settings-note">
                 Deletes {serverName} for everyone: every channel, room and message, every code, and everyone's
                 membership. This can't be undone. To keep the server and leave it, hand over ownership above
@@ -630,24 +699,26 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onSer
               )}
               {!confirmDelete && deleteError && <div className="error-text">{deleteError}</div>}
             </div>
-          </>
-        )}
+        </>
+      )}
 
         {confirmBan && (
-          <div className="poll-backdrop">
-            <div className="poll-card">
-              <h2>Ban {confirmBan.username}?</h2>
+          <div className="poll-backdrop rl-backdrop">
+            <div className="rl-dialog" role="dialog" aria-modal="true" aria-labelledby="ban-title">
+              <div className="rl-dialog-head">
+                <h2 id="ban-title">Ban {confirmBan.username}?</h2>
+              </div>
               <p className="settings-note">
                 Removes them now and blocks them from rejoining with any code, until
                 someone unbans them.
               </p>
-              <div className="create-form-actions">
-                <button type="button" className="btn-secondary" onClick={() => setConfirmBan(null)}>
+              <div className="rl-dialog-foot">
+                <button type="button" className="rl-dialog-cancel" onClick={() => setConfirmBan(null)}>
                   Cancel
                 </button>
                 <button
                   type="button"
-                  className="btn-primary"
+                  className="rl-dialog-primary"
                   onClick={() => {
                     const target = confirmBan
                     setConfirmBan(null)
@@ -660,12 +731,7 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onSer
             </div>
           </div>
         )}
-
-        <button type="button" className="btn-secondary" onClick={onBack}>
-          Back
-        </button>
-      </div>
-    </div>
+    </PageShell>
   )
 }
 

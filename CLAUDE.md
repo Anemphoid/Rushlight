@@ -140,6 +140,9 @@ a server change has to wait for a server release.
 - Home (no server open) lists your servers as cards with their full names (the rail only has a letter each), each with an unread
   count for the open server, plus a Create or join card; it is where the app's social side is meant to grow. The add-a-server
   dialog (`ServerDialog`) is a real `role="dialog"`: Esc, the close button and Cancel leave it.
+- Admin Tools / Owner Tools is its own page on `PageShell` (not part of Settings: it is per server and role-gated), titled with
+  the server name, with sections Members, Guests, Join codes, Banned and, for the owner only, Music, History and Ownership (hand over,
+  delete). An owner-only section closes by itself if a handover ends ownership. The ban confirmation is a real dialog.
 - `sounds.js` loads sounds by base name from `assets/sounds/` (missing = silent).
 
 ## Gotchas learned the hard way

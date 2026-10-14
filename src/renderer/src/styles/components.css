@@ -241,3 +241,75 @@
 .rl-page-content .settings-preview {
   max-width: none;
 }
+
+/* ---- Admin and Owner Tools (the page layout, with the server's rows) ---- */
+.rl-embed > .settings-section > h2:first-child {
+  display: none; /* the section already has its title */
+}
+.rl-page-content .settings-section h2 {
+  margin: 20px 0 10px;
+  font-size: 0.6875rem;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.rl-page-content .settings-section:first-child h2:first-child {
+  margin-top: 0;
+}
+.rl-subhead.danger {
+  color: var(--danger);
+}
+.rl-page-content .member-list {
+  max-height: none;
+  gap: 8px;
+}
+.rl-page-content .member-row {
+  padding: 12px 14px;
+  background: var(--bg-panel);
+  border-color: var(--border);
+  border-radius: var(--radius-lg);
+}
+.rl-page-content .member-row-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.rl-page-content .member-row-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.rl-page-content .create-form {
+  margin: 8px 0 4px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-sunken);
+}
+.rl-page-content .create-form-actions button {
+  height: 40px;
+  padding: 0 16px;
+}
+.rl-page-content .field input,
+.rl-page-content .field select {
+  height: 42px;
+  box-sizing: border-box;
+}
+.rl-page-content .btn-secondary,
+.rl-page-content .btn-primary {
+  width: auto;
+  height: 40px;
+  padding: 0 18px;
+}
+.rl-page-content .create-form-actions {
+  gap: 10px;
+}
+.rl-page-content .create-form-actions .btn-secondary,
+.rl-page-content .create-form-actions .btn-primary {
+  flex: 1;
+}
+.rl-dialog-foot {
+  gap: 10px;
+}
+.rl-page-content .settings-note {
+  margin: 6px 0 12px;
+}
