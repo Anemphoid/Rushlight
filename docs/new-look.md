@@ -81,3 +81,15 @@ The layout names a skin sets are `--page-header-h`, `--page-title-size`, `--nav-
 `styles/components.css`. Settings has Appearance, Audio, Push to talk, Music, Notifications, Account (signed-in only) and
 About. The song pop-up choice lives in `songPrefs.js`, shared with the Jellybox column. Control parity was checked against
 `docs/ui-audit/controls-before` over all Settings pictures together (only the skin buttons changed, to cards).
+
+## Server screen
+
+`styles/server-view.css` (after `index.css`, so it wins) restyles the rail (68 px tiles, a bar on the open server), the channel
+panel (channels as small-caps headings you can still click, rooms with a voice or text icon, `V/T` badge only on rooms that are both,
+bordered badges for persistent and bot, speaking ring in `--speaking`), the footer (person with their mic mode and key, mute / deaf /
+admin as one row, mic and out sliders), the chat (52 px header with a history pill, 36 px avatars, a rounded composer with a picture
+button and a send arrow whose words stay for screen readers) and the Jellybox column (292 px, big cover). Not copied from the mockups
+because the app has nothing behind them: the "Voice connected" card with a leave button (there is no leave-voice action; the voice line
+above the chat stays) and the Admin tools button in the chat header (it stays in the footer). Buttons that were a bare `+`, `x` or gear
+now have icons and are named by their tooltip text (Add channel, Add room, Delete channel, Delete room, Settings), so the control
+comparison shows them as renamed, 290 of them, and nothing else changed.

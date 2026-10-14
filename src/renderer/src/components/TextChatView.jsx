@@ -1,3 +1,4 @@
+import Icon from './Icon'
 import { useState, useRef, useEffect, Fragment } from 'react'
 import Avatar from './Avatar'
 import ChatImage from './ChatImage'
@@ -125,8 +126,8 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, onS
       onDrop={onDrop}
     >
       <div className="text-chat-header">
-        <span className="mode-label">t</span>
-        {roomName}
+        <Icon name="text" size={18} />
+        <span className="text-chat-title">{roomName}</span>
         {!localOnly && (
           <span className="chat-retention">
             {persistent ? (retentionMonths ? `history kept for ${retentionMonths} months` : 'history is kept') : 'cleared when everyone leaves'}
@@ -225,7 +226,8 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, onS
               title="Send a picture (or paste or drop one here)"
               onClick={() => fileInput.current && fileInput.current.click()}
             >
-              image
+              <Icon name="image" size={20} strokeWidth={1.7} />
+              <span className="composer-btn-text">image</span>
             </button>
           </>
         )}
@@ -235,8 +237,9 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, onS
           onPaste={onPaste}
           placeholder={pending ? 'Add a caption' : `Message ${roomName}`}
         />
-        <button type="submit" className="btn-primary" style={{ width: 'auto', padding: '0 18px' }}>
-          Send
+        <button type="submit" className="btn-primary composer-send">
+          <span className="composer-btn-text">Send</span>
+          <Icon name="send" size={18} strokeWidth={2} />
         </button>
       </form>
     </div>

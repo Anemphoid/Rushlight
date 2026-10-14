@@ -1,6 +1,8 @@
 import { useState, useSyncExternalStore } from 'react'
 import * as voice from '../voice'
 import Avatar from './Avatar'
+import Icon from './Icon'
+import { formatKeyLabel } from '../keys'
 
 function UserFooter({
   displayName,
@@ -10,7 +12,8 @@ function UserFooter({
   isOwner,
   onOpenSettings,
   onOpenProfile,
-  onOpenAdminTools
+  onOpenAdminTools,
+  pttKey
 }) {
   const v = useSyncExternalStore(voice.subscribe, voice.getSnapshot)
   const [micVolume, setMicVolume] = useState(() => Math.round(voice.getInputGain() * 100))
@@ -24,27 +27,54 @@ function UserFooter({
         onClick={onOpenProfile}
         title="Your profile"
       >
-        <Avatar color={avatarColor} name={displayName} imageUrl={imageUrl} size={28} className="user-avatar" />
-        <span className="user-footer-name">{displayName}</span>
-        <span className="foot-toggles" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            className={'foot-toggle' + (v.muted || v.deafened ? ' on' : '')}
-            title={v.deafened ? 'Deafened (mic is off)' : v.muted ? 'Unmute your mic' : 'Mute your mic'}
-            disabled={v.deafened}
-            onClick={voice.toggleMute}
-          >
-            mute
-          </button>
-          <button
-            type="button"
-            className={'foot-toggle' + (v.deafened ? ' on' : '')}
-            title={v.deafened ? 'Undeafen' : 'Deafen: silence everyone and turn your mic off'}
-            onClick={voice.toggleDeafen}
-          >
-            deaf
-          </button>
+        <Avatar color={avatarColor} name={displayName} imageUrl={imageUrl} size={36} className="user-avatar" />
+        <span className="user-footer-id">
+          <span className="user-footer-name">{displayName}</span>
+          <span className="user-footer-sub">
+            {v.micMode === 'open' ? 'Open mic' : 'Push to talk' + (pttKey ? ' · ' + formatKeyLabel(pttKey) : '')}
+          </span>
         </span>
+        <button
+          type="button"
+          className="gear-btn"
+          title="Settings"
+          onClick={(e) => {
+            e.stopPropagation()
+            onOpenSettings()
+          }}
+        >
+          <Icon name="settings" size={18} strokeWidth={1.7} />
+        </button>
+      </div>
+
+      <div className="foot-toggles">
+        <button
+          type="button"
+          className={'foot-toggle' + (v.muted || v.deafened ? ' on' : '')}
+          title={v.deafened ? 'Deafened (mic is off)' : v.muted ? 'Unmute your mic' : 'Mute your mic'}
+          disabled={v.deafened}
+          onClick={voice.toggleMute}
+        >
+          mute
+        </button>
+        <button
+          type="button"
+          className={'foot-toggle' + (v.deafened ? ' on' : '')}
+          title={v.deafened ? 'Undeafen' : 'Deafen: silence everyone and turn your mic off'}
+          onClick={voice.toggleDeafen}
+        >
+          deaf
+        </button>
+        {isAdmin && (
+          <button
+            type="button"
+            className="foot-toggle admin-tools-btn"
+            title={isOwner ? 'Owner Tools' : 'Admin Tools'}
+            onClick={onOpenAdminTools}
+          >
+            {isOwner ? 'owner' : 'admin'}
+          </button>
+        )}
       </div>
 
       <div className="user-footer-controls">
@@ -80,24 +110,6 @@ function UserFooter({
             }}
           />
         </div>
-        {isAdmin && (
-          <button
-            type="button"
-            className="gear-btn admin-tools-btn"
-            title={isOwner ? 'Owner Tools' : 'Admin Tools'}
-            onClick={onOpenAdminTools}
-          >
-            {isOwner ? 'owner' : 'admin'}
-          </button>
-        )}
-        <button
-          type="button"
-          className="gear-btn"
-          title="Settings"
-          onClick={onOpenSettings}
-        >
-          ⚙
-        </button>
       </div>
     </div>
   )

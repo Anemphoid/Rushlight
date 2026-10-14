@@ -9,6 +9,7 @@ import NowPlayingPanel from '../components/NowPlayingPanel'
 import jellyboxImage from '../assets/images/jellybox.png'
 import UserVolumeMenu from '../components/UserVolumeMenu'
 import Avatar from '../components/Avatar'
+import Icon from '../components/Icon'
 import * as api from '../api'
 import { avatarUrl } from '../api'
 import { playSound } from '../sounds'
@@ -705,7 +706,7 @@ function ChannelTreeScreen({
                 title="Add channel"
                 onClick={() => setCreatingChannel((v) => !v)}
               >
-                +
+                <Icon name="plus" size={14} strokeWidth={2.2} />
               </button>
             )}
           </div>
@@ -761,7 +762,7 @@ function ChannelTreeScreen({
                         setCreatingRoomFor((v) => (v === ch.id ? null : ch.id))
                       }}
                     >
-                      +
+                      <Icon name="plus" size={14} strokeWidth={2.2} />
                     </button>
                     <button
                       type="button"
@@ -772,7 +773,7 @@ function ChannelTreeScreen({
                         setConfirmDeleteChannel((v) => (v === ch.id ? null : ch.id))
                       }}
                     >
-                      ×
+                      <Icon name="close" size={14} strokeWidth={2.2} />
                     </button>
                   </span>
                 )}
@@ -862,8 +863,9 @@ function ChannelTreeScreen({
                     onContextMenu={(e) => openRoomMenu(e, ch.id, room.id)}
                   >
                     <span className={unreadIn('room:' + room.id) ? 'has-unread' : ''}>
-                      <span className="mode-label">{MODE_LABEL[room.mode]}</span>
-                      {room.name}
+                      <Icon name={room.mode === 'text' ? 'text' : 'voice'} size={16} className="room-icon" />
+                      <span className="row-name">{room.name}</span>
+                      {room.mode === 'both' && <span className="mode-label">{MODE_LABEL[room.mode]}</span>}
                       {room.persistent && <span className="persistent-tag">persistent</span>}
                       {unreadIn('room:' + room.id) > 0 && (
                         <span className="unread-dot" title={`${unreadIn('room:' + room.id)} new`} />
@@ -883,7 +885,7 @@ function ChannelTreeScreen({
                           )
                         }}
                       >
-                        ×
+                        <Icon name="close" size={14} strokeWidth={2.2} />
                       </button>
                     )}
                   </div>
@@ -941,6 +943,7 @@ function ChannelTreeScreen({
           onOpenSettings={onOpenSettings}
           onOpenProfile={onOpenProfile}
           onOpenAdminTools={onOpenAdminTools}
+          pttKey={pttKey}
         />
       </div>
 
