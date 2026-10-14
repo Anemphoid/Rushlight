@@ -159,3 +159,9 @@ stays mounted for presence and voice, and is hidden only once covered). Dialogs 
 by width over `--dur-panel` while the window glides to the matching width (main process), and no longer disappears and reappears when
 you move between two voice rooms. A skin or mode change crossfades colours over `--dur-colour`. New chat messages, people joining a
 voice room, queue rows and server cards ease in. Hover, focus and press take `--dur-fast`. Reduced motion removes all of it.
+
+## App icon
+
+`build/icon.png` (what the AppImage uses) and `resources/icon.png` (the window and taskbar icon) are drawn by `node scripts/make-icon.mjs`
+from the Rushlight mark in Lantern's dark colours on a dark round tile, so they follow the palette. There is no tray icon in the app
+yet (a tray icon with close-to-tray is on the backlog); when there is one it should use the same file.
