@@ -543,7 +543,8 @@ function App() {
       return (
         <HomeScreen
           screenName={screenName}
-          hasServers={servers.length > 0}
+          servers={servers}
+          onSelectServer={handleSelectServer}
           error={serversError}
           notice={homeNotice}
           onDismissNotice={() => setHomeNotice('')}

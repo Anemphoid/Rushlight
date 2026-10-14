@@ -133,9 +133,21 @@ export async function flows(s) {
     await p.waitForSelector('.home-screen')
     await p.waitForTimeout(500)
     await shot(p, '10-home')
-    await p.click('.big-plus')
+    await p.click('.home-server-add')
     await p.waitForSelector('text=Add a server')
     await shot(p, '11-add-server-dialog')
+    await p.context().close()
+  })
+  await step('home, long server names', async () => {
+    const t = await world.call('POST', '/api/register', { username: 'Wanderer', password: world.password })
+    await world.call('POST', '/api/me/recovery-key/ack', {}, t.token)
+    for (const name of ['The Ironwood Company of Wandering Lanterns and Lost Maps', 'Quiet Corner', 'Friday Night Raiders']) {
+      await world.call('POST', '/api/servers', { name }, t.token)
+    }
+    const p = await newPage({ session: t.token })
+    await p.waitForSelector('.home-server')
+    await p.waitForTimeout(500)
+    await shot(p, '10-home-long-names')
     await p.context().close()
   })
   await step('home, no servers', async () => {

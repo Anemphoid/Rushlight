@@ -137,6 +137,9 @@ a server change has to wait for a server release.
   `AuthLayout`, whose layout comes from the skin (`authLayout` in `skins.js`): Lantern is split (brand panel + form, join under
   the login), Slate is a card with tabs (Log in, Join with a code, Create account) and a read-only server line. The window is sized
   and shown once, at the normal size, and stays resizable (`windowSetLoginSize(w, h, true)`); untested in a real window.
+- Home (no server open) lists your servers as cards with their full names (the rail only has a letter each), each with an unread
+  count for the open server, plus a Create or join card; it is where the app's social side is meant to grow. The add-a-server
+  dialog (`ServerDialog`) is a real `role="dialog"`: Esc, the close button and Cancel leave it.
 - `sounds.js` loads sounds by base name from `assets/sounds/` (missing = silent).
 
 ## Gotchas learned the hard way
