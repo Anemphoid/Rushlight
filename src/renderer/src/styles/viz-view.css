@@ -1,5 +1,5 @@
 /* The big visualizer view. Windowed it fills everything right of the server rail (so the rail, with its unread
-   bubbles, stays visible); "Full window" covers the whole window. Esc closes either. */
+   bubbles, stays visible); Full screen is the browser's own full screen. Esc closes either. */
 
 .rail-content {
   position: relative;

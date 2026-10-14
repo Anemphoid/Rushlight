@@ -136,7 +136,8 @@ function LargeView({ prefs, update, live, status, botAudioId, reducedMotion, web
   const [search2, setSearch] = useState('')
   const [favOnly, setFavOnly] = useState(false)
   const [, bump] = useState(0)
-  const [fullscreen, setFullscreen] = useState(false) // 'Full window': covers the rail and title bar too
+  const [fullscreen, setFullscreen] = useState(!!document.fullscreenElement) // real full screen, from the Full screen button
+  const leavingByButton = useRef(false)
   const [awake, setAwake] = useState(true) // the buttons are showing
   const flashTimer = useRef(null)
   const idleTimer = useRef(null)
@@ -189,7 +190,38 @@ function LargeView({ prefs, update, live, status, botAudioId, reducedMotion, web
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose, fullscreen, wake, results])
 
-  const toggleFullscreen = () => setFullscreen((f) => !f)
+  // Full screen is the browser's own: the view goes over the whole screen, the title bar and the rail with it. The
+  // browser takes Esc itself to leave it, which would drop to the windowed view; Esc is meant to close the view
+  // from either, so a leave that did not come from the button closes it.
+  useEffect(() => {
+    const onChange = () => {
+      const fs = document.fullscreenElement === rootRef.current
+      setFullscreen(fs)
+      if (!fs) {
+        if (leavingByButton.current) leavingByButton.current = false
+        else if (wasFull.current) onClose()
+      }
+      wasFull.current = fs
+    }
+    document.addEventListener('fullscreenchange', onChange)
+    return () => document.removeEventListener('fullscreenchange', onChange)
+  }, [onClose])
+  const wasFull = useRef(false)
+  // leave full screen when the big view goes away
+  useEffect(
+    () => () => {
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
+    },
+    []
+  )
+  function toggleFullscreen() {
+    if (document.fullscreenElement) {
+      leavingByButton.current = true
+      document.exitFullscreen().catch(() => {
+        leavingByButton.current = false
+      })
+    } else rootRef.current?.requestFullscreen?.().catch(() => {})
+  }
 
   async function runSearch(e) {
     e.preventDefault()
@@ -222,7 +254,7 @@ function LargeView({ prefs, update, live, status, botAudioId, reducedMotion, web
   const nextSimple = () => update({ style: simpleStyle === 'bars' ? 'wave' : 'bars' })
 
   // windowed, the big view fills everything right of the server rail (so the rail and its unread bubbles stay in
-  // view); 'Full window' covers the whole window
+  // view); Full screen covers the whole screen
   const host = document.querySelector('.rail-content')
   const fade = controlsShowing ? '' : ' hidden'
   const hoverProps = {
@@ -285,8 +317,8 @@ function LargeView({ prefs, update, live, status, botAudioId, reducedMotion, web
             <button type="button" className="viz-btn" onClick={nextSimple}>style: {simpleStyle}</button>
           </>
         )}
-        <button type="button" className="viz-btn" aria-label={fullscreen ? 'exit full window' : 'full window'} onClick={toggleFullscreen}>
-          {fullscreen ? 'Exit full window' : 'Full window'}
+        <button type="button" className="viz-btn" aria-label={fullscreen ? 'exit full screen' : 'full screen'} onClick={toggleFullscreen}>
+          {fullscreen ? 'Exit full screen' : 'Full screen'}
         </button>
         <button type="button" className="viz-btn viz-sq" aria-label="close (Esc)" title="Close (Esc)" onClick={onClose}>
           <Icon name="close" size={18} strokeWidth={2} />
