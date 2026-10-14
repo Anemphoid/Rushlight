@@ -44,7 +44,7 @@ export const COLOUR_TOKENS = [
 ]
 
 // Shape and type a skin sets once, for both modes.
-export const SKIN_TOKENS = ['--font-ui', '--font-heading', '--font-mono', '--heading-weight', '--radius-sm', '--radius-md', '--radius-lg', '--radius-pill']
+export const SKIN_TOKENS = ['--font-ui', '--font-heading', '--font-mono', '--heading-weight', '--radius-sm', '--radius-md', '--radius-lg', '--radius-pill', '--page-header-h', '--page-title-size', '--nav-w', '--nav-gutter', '--nav-item-radius', '--nav-bar-w']
 
 // Text needs 4.5 to 1, controls and icons 3 to 1. "border-strong" is the edge of a text field: the one place a
 // border is the only thing that says "type here", so it has to be visible. Other borders and dividers are

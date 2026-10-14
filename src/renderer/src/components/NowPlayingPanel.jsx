@@ -4,6 +4,7 @@ import Visualizer from '../visualizer/Visualizer'
 import SongToast from './SongToast'
 import BrowseSection from './BrowseSection'
 import * as api from '../api'
+import * as songPrefs from '../songPrefs'
 import Avatar from './Avatar'
 import jellyboxImage from '../assets/images/jellybox.png'
 
@@ -58,21 +59,8 @@ function NowPlayingPanel({ sessionToken, serverId, space, voiceOnly = false }) {
       return true
     }
   })
-  const [toastOn, setToastOn] = useState(() => {
-    try {
-      return localStorage.getItem('rushlight.songToast') !== '0'
-    } catch {
-      return true
-    }
-  })
-  function setToast(on) {
-    setToastOn(on)
-    try {
-      localStorage.setItem('rushlight.songToast', on ? '1' : '0')
-    } catch {
-      // not remembered
-    }
-  }
+  const toastOn = useSyncExternalStore(songPrefs.subscribe, songPrefs.songToastEnabled)
+  const setToast = songPrefs.setSongToastEnabled
   function toggleOpen() {
     setOpen((o) => {
       try {

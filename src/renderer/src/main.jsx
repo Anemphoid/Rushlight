@@ -4,6 +4,7 @@ import './styles/fonts.css'
 import './styles/skins/lantern.css'
 import './styles/skins/slate.css'
 import './index.css'
+import './styles/components.css'
 import App from './App'
 
 // The style gallery exists in development builds only: `import.meta.env.DEV` is a build-time constant, so a

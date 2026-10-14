@@ -1,0 +1,243 @@
+/* Shared pieces of the new look: the full-screen page layout, the segmented choice, skin cards and settings rows.
+   Everything here reads the skin tokens (colours, radii, fonts and the page/nav layout names in contract.js), so a
+   skin changes the look by setting tokens, not by editing this file. */
+
+.rl-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  background: var(--bg-app);
+  color: var(--text);
+  text-align: left;
+}
+.rl-page-header {
+  flex: 0 0 var(--page-header-h);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 24px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--divider);
+}
+.rl-page-header h1 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: var(--heading-weight);
+  font-size: var(--page-title-size);
+  color: var(--text);
+}
+.rl-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  flex: 0 0 auto;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.rl-back:hover {
+  background: var(--bg-raised);
+}
+.rl-page-hint {
+  margin-left: auto;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+.rl-page-hint kbd {
+  font-family: var(--font-mono);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  color: var(--text);
+}
+.rl-page-main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+.rl-page-nav {
+  flex: 0 0 var(--nav-w);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px var(--nav-gutter);
+  background: var(--bg-rail);
+  border-right: 1px solid var(--divider);
+  overflow-y: auto;
+}
+.rl-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: var(--text-dim);
+  border-radius: var(--nav-item-radius);
+  padding: 10px 16px;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.rl-nav-item:hover {
+  background: var(--bg-raised);
+  color: var(--text);
+}
+.rl-nav-item[aria-current='page'] {
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  font-weight: 600;
+  box-shadow: inset var(--nav-bar-w) 0 0 var(--accent-hover);
+}
+.rl-page-body {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+}
+.rl-page-content {
+  max-width: 720px;
+  padding: 32px 48px;
+}
+
+.rl-section-title {
+  margin: 0 0 4px;
+  font-family: var(--font-heading);
+  font-weight: var(--heading-weight);
+  font-size: 1.25rem;
+  color: var(--text);
+}
+.rl-section-sub {
+  margin: 0 0 24px;
+  color: var(--text-dim);
+  font-size: 0.875rem;
+}
+.rl-subhead {
+  margin: 24px 0 10px;
+  font-size: 0.9375rem;
+  color: var(--text);
+}
+.rl-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px 0;
+  border-top: 1px solid var(--divider);
+}
+.rl-row-text h3 {
+  margin: 0 0 2px;
+  font-size: 0.9375rem;
+  color: var(--text);
+}
+.rl-row-text p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-dim);
+  max-width: 380px;
+}
+.rl-row-control {
+  flex: 0 0 auto;
+}
+
+.rl-seg {
+  display: inline-flex;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 2px;
+  gap: 2px;
+}
+.rl-seg button {
+  background: transparent;
+  border: 0;
+  color: var(--text-dim);
+  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rl-seg button:hover {
+  color: var(--text);
+}
+.rl-seg button.on {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+}
+
+.rl-skin-cards {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.rl-skin-card {
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 10px;
+  cursor: pointer;
+  color: var(--text);
+}
+.rl-skin-card.on {
+  border-color: var(--accent-hover);
+  box-shadow: 0 0 0 1px var(--accent-hover);
+}
+.rl-skin-swatch {
+  position: relative;
+  display: block;
+  height: 70px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.rl-skin-swatch > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 38%;
+}
+.rl-skin-swatch > i {
+  position: absolute;
+  left: 46%;
+  top: 14px;
+  width: 36%;
+  height: 10px;
+  border-radius: var(--radius-pill);
+}
+.rl-skin-swatch > b {
+  position: absolute;
+  left: 46%;
+  top: 34px;
+  width: 24%;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  opacity: 0.7;
+}
+.rl-skin-name {
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+.rl-skin-blurb {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+/* inside the page, the old settings blocks use the whole content width */
+.rl-page-content .settings-section {
+  max-width: none;
+}
+.rl-page-content .settings-preview {
+  max-width: none;
+}

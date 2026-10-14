@@ -13,6 +13,12 @@ html[data-skin='parchment'] {
   --radius-md: 10px;
   --radius-lg: 14px;
   --radius-pill: 999px;
+  --page-header-h: 60px;
+  --page-title-size: 1.5rem;
+  --nav-w: 248px;
+  --nav-gutter: 12px;
+  --nav-item-radius: var(--radius-md);
+  --nav-bar-w: 0px;
 }
 
 /* dark */

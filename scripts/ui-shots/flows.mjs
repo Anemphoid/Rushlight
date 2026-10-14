@@ -235,15 +235,17 @@ export async function flows(s) {
     const q = await newPage({ session: owner })
     await q.waitForSelector('.home-screen')
     await q.click('button:has-text("Settings")')
-    await q.waitForSelector('text=Client display and control settings')
+    await q.waitForSelector('.rl-page-header')
     await shot(q, '40-settings-top')
-    await q.evaluate(() => document.querySelector('.screen').scrollTo(0, 420))
-    await q.waitForTimeout(300)
-    await shot(q, '41-settings-scrolled-back-bar')
-    await q.evaluate(() => document.querySelector('.screen').scrollTo(0, 0))
-    await tall(q, 2300, () => shot(q, '42-settings-full'))
-    // the forms at the bottom, answered with an error
-    await q.evaluate(() => document.querySelector('.screen').scrollTo(0, 99999))
+    // every section in turn
+    const nav = (name) => q.click(`.rl-nav-item:has-text("${name}")`)
+    for (const [name, file] of [['Audio', '41-settings-audio'], ['Push to talk', '42-settings-ptt'], ['Music', '43-settings-music'], ['Notifications', '46-settings-notifications'], ['About', '47-settings-about']]) {
+      await nav(name)
+      await q.waitForTimeout(300)
+      await shot(q, file)
+    }
+    // the account forms, answered with an error
+    await nav('Account')
     const press = (label) =>
       q.evaluate((label) => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === label).click(), label)
     await press('Change password')
@@ -257,7 +259,8 @@ export async function flows(s) {
     const q = await newPage({ session: owner })
     await q.waitForSelector('.home-screen')
     await q.click('button:has-text("Settings")')
-    await q.waitForSelector('text=Client display and control settings')
+    await q.waitForSelector('.rl-page-header')
+    await q.click('.rl-nav-item:has-text("Account")')
     const pw = q.locator('input[type=password]')
     await pw.nth(3).fill(world.password)
     await q.click('button:has-text("Make a new recovery key")')
