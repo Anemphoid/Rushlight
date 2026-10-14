@@ -2105,6 +2105,9 @@ button {
 /* ---- the new look: what is not a skin colour, and rules every screen shares ---- */
 :root {
   --title-bar-height: 36px;
+  /* the unread bubble on a server icon: the same red in every skin; white text on it is above 4.5 to 1 (a test checks) */
+  --bubble: #c62828;
+  --on-bubble: #ffffff;
   /* motion: starting values from the design plan, tuned by eye; a skin may change them */
   --dur-fast: 150ms;
   --dur-colour: 300ms;
