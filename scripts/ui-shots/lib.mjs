@@ -10,12 +10,12 @@ import { startWorld, seed, NOW } from './world.mjs'
 const here = dirname(fileURLToPath(import.meta.url))
 export const root = resolve(here, '..', '..')
 
-function findPlaywright() {
+export function findPlaywright() {
   const tries = [process.env.PLAYWRIGHT_DIR, join(root, 'node_modules', 'playwright'), '/opt/node22/lib/node_modules/playwright'].filter(Boolean)
   for (const t of tries) if (existsSync(t)) return createRequire(import.meta.url)(t)
   throw new Error('Playwright not found: set PLAYWRIGHT_DIR')
 }
-function findChromium() {
+export function findChromium() {
   if (process.env.PLAYWRIGHT_CHROMIUM) return process.env.PLAYWRIGHT_CHROMIUM
   const base = '/opt/pw-browsers'
   const d = readdirSync(base).filter((n) => /^chromium-\d+$/.test(n)).sort().pop()
