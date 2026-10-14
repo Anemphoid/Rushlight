@@ -110,10 +110,10 @@ through the switch (256 -> 193 at 120 ms -> 64). The rest of the app gets its mo
 
 ## Big visualizer view and the unread bubble
 
-The big view is windowed by default: portalled into `.rail-content`, so it covers everything right of the server rail. "Full window"
-covers the whole window, including the rail and title bar (it no longer uses the browser's full screen), and Esc closes either. Top
-right: previous, next, Shuffle, favourite, Presets, Full window, close. Bottom: the track, prev/pause/skip for admins, the song
-search for admins, "Esc to close". In full window the buttons fade after 3 s as before. The red bubble on a server icon (`--bubble`,
+The big view is windowed by default: portalled into `.rail-content`, so it covers everything right of the server rail. "Full screen"
+is the browser's real full screen (the rail and title bar go with it), and Esc closes the view from either. Top
+right: previous, next, Shuffle, favourite, Presets, Full screen, close. Bottom: the track, prev/pause/skip for admins, the song
+search for admins, "Esc to close". In full screen the buttons fade after 3 s as before. The red bubble on a server icon (`--bubble`,
 the same in every skin, white text above 4.5 to 1) counts unread messages the app has already checked, which is the open server;
 other servers show none until the server reports unread totals (a server change, see the backlog).
 
