@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import * as api from '../api'
+import AuthLayout from '../components/AuthLayout'
 
 function ScreenNamePrompt({ joinKey, onBack, onConfirm }) {
   const [screenName, setScreenName] = useState('')
@@ -29,34 +30,30 @@ function ScreenNamePrompt({ joinKey, onBack, onConfirm }) {
   }
 
   return (
-    <div className="screen">
-      <div className="card">
-        <h1>Almost there</h1>
-        <p className="sub">
-          Joining with key <strong style={{ color: 'var(--text)' }}>{joinKey}</strong> —
-          pick a name for this server.
-        </p>
-
-        <form onSubmit={handleSubmit}>
-          <div className="field">
-            <label>Screen name</label>
-            <input
-              value={screenName}
-              onChange={(e) => setScreenName(e.target.value)}
-              autoFocus
-            />
-          </div>
-          <button type="submit" className="btn-primary" disabled={joining}>
-            {joining ? 'Joining…' : 'Continue'}
-          </button>
-          {error && <div className="error-text">{error}</div>}
-        </form>
-
-        <button type="button" className="link-btn" onClick={onBack}>
+    <AuthLayout
+      heading="Almost there"
+      sub={
+        <>
+          Joining with key <strong style={{ color: 'var(--text)' }}>{joinKey}</strong> — pick a name for this server.
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="auth-form">
+        <div className="auth-field">
+          <label htmlFor="auth-screen-name">Screen name</label>
+          <input id="auth-screen-name" value={screenName} onChange={(e) => setScreenName(e.target.value)} autoFocus />
+        </div>
+        <button type="submit" className="auth-primary" disabled={joining}>
+          {joining ? 'Joining…' : 'Continue'}
+        </button>
+        {error && <div className="auth-error">{error}</div>}
+      </form>
+      <p className="auth-alt">
+        <button type="button" className="auth-link strong" onClick={() => onBack()}>
           Back
         </button>
-      </div>
-    </div>
+      </p>
+    </AuthLayout>
   )
 }
 

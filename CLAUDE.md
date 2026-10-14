@@ -133,6 +133,10 @@ a server change has to wait for a server release.
 - Full-screen pages use `PageShell` (header, left section list, Esc goes back); Settings is the first, with sections
   Appearance/Audio/Push to talk/Music/Notifications/Account/About. Layout differences between skins are tokens in the contract
   (`--page-header-h`, `--nav-w`...). See `docs/new-look.md`. The song pop-up setting is `songPrefs.js`.
+- Sign-in screens (log in, join with a code, create account, recover, save a recovery key, screen name) all sit in
+  `AuthLayout`, whose layout comes from the skin (`authLayout` in `skins.js`): Lantern is split (brand panel + form, join under
+  the login), Slate is a card with tabs (Log in, Join with a code, Create account) and a read-only server line. The window is sized
+  and shown once, at the normal size, and stays resizable (`windowSetLoginSize(w, h, true)`); untested in a real window.
 - `sounds.js` loads sounds by base name from `assets/sounds/` (missing = silent).
 
 ## Gotchas learned the hard way

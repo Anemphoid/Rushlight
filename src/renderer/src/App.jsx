@@ -54,6 +54,7 @@ function App() {
   const [servers, setServers] = useState([])
   const [serversError, setServersError] = useState('')
   const [currentServer, setCurrentServer] = useState(null) // { id, name, isAdmin, isOwner }
+  const [loginTab, setLoginTab] = useState('login') // which way in the sign-in screen opens on
   const [loginNotice, setLoginNotice] = useState('') // why you were sent to sign-in, if you were
   const [channels, setChannels] = useState([])
   const [presence, setPresence] = useState({}) // 'room:3' / 'channel:1' -> who is in it
@@ -380,6 +381,13 @@ function App() {
     setOwnAvatarUpdatedAt(newAvatarUpdatedAt)
   }
 
+  // From the account and recovery screens back to sign-in; `tab` ('login' or 'join') says which one to land on.
+  // Not resetToLogin: that also forgets who you are, and is handed an event when used as a click handler.
+  function backToLogin(tab) {
+    setLoginTab(tab === 'join' ? 'join' : 'login')
+    setView('login')
+  }
+
   function resetToLogin() {
     if (openSpace) playSound('self-leave', 0.5)
     localStorage.removeItem('rushlight-session')
@@ -453,11 +461,11 @@ function App() {
     }
 
     if (view === 'createAccount') {
-      return <CreateAccountScreen onBack={resetToLogin} onAccountCreated={handleAccountReady} />
+      return <CreateAccountScreen onBack={backToLogin} onAccountCreated={handleAccountReady} />
     }
 
     if (view === 'recover') {
-      return <RecoverScreen onBack={resetToLogin} onRecovered={handleAccountReady} />
+      return <RecoverScreen onBack={backToLogin} onRecovered={handleAccountReady} />
     }
 
     if (view === 'recoveryKey' && sessionToken) {
@@ -553,12 +561,9 @@ function App() {
 
     return (
       <LoginScreen
-        onGoToCreateAccount={() => {
-          window.api?.windowRestoreNormalSize()
-          setView('createAccount')
-        }}
+        initialTab={loginTab}
+        onGoToCreateAccount={() => setView('createAccount')}
         onJoinAnonymous={(joinKey) => {
-          window.api?.windowRestoreNormalSize()
           setPendingJoinKey(joinKey)
           setView('screenNamePrompt')
         }}
@@ -567,10 +572,7 @@ function App() {
           handleAccountReady(result)
         }}
         notice={loginNotice}
-        onForgotPassword={() => {
-          window.api?.windowRestoreNormalSize()
-          setView('recover')
-        }}
+        onForgotPassword={() => setView('recover')}
       />
     )
   }

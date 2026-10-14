@@ -116,3 +116,13 @@ right: previous, next, Shuffle, favourite, Presets, Full window, close. Bottom: 
 search for admins, "Esc to close". In full window the buttons fade after 3 s as before. The red bubble on a server icon (`--bubble`,
 the same in every skin, white text above 4.5 to 1) counts unread messages the app has already checked, which is the open server;
 other servers show none until the server reports unread totals (a server change, see the backlog).
+
+## Sign-in screens
+
+`components/AuthLayout.jsx` frames log in, join with a code, create account, reset password, the recovery-key screens and the screen
+name step. The skin picks the layout (`authLayout` in `skins.js`, read from `data-skin` on the page): `split` (Lantern) is a brand
+panel with the form beside it, and join sits under the login; `card` (Slate) is one card on a faint grid with the three ways in as
+tabs and the server address as a read-only line (there is no way to change the server in the app, so no Change link). Styles are in
+`styles/auth.css`. Going back from Create account can land on either tab (`backToLogin` in `App`). The window no longer shrinks to a
+small fixed card for sign-in: it is shown once at the normal size and stays resizable (a small main-process change, untested in a real
+window). The mockups have no design for Reset password, the recovery-key screens and the screen name step; they use the same frame.
