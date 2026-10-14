@@ -146,3 +146,7 @@ No tabs and no stacked scroll bars. The column is header, player, and one Up nex
 square as big as fits, centred), or shrinks to a row when the visualizer is on so the window can use the space. Search, the library
 and the full queue are one sheet that replaces the player while open; it closes with Esc or Back, after a song is played from it, or
 stays open with a note when songs are added to the queue. The song pop-up checkbox is only in Settings > Music now.
+
+## The small pieces
+
+`styles/pieces.css`: the vote (persistence) and avatar-picture dialogs now use the same dialog as add-a-server (`rl-dialog`, with Esc and a close button on the picture dialog), menus (right-click menu, per-person volume, timed-access menu) are rounder with taller items, the update banner and the song pop-up match the dialogs' surface and shadow, the picture viewer has a close button, the title bar follows the mockup (20 px logo, quiet name, 46 px buttons, red on close), and the forms that open inside the channel list and their Create/Cancel buttons are in the new shape.
