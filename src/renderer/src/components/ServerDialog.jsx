@@ -1,10 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import Icon from './Icon'
 
+// Add a server: make a new one, or join one with a code. Esc, Cancel and the close button leave it.
 function ServerDialog({ onCreate, onJoin, onClose }) {
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape' && !busy) onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose, busy])
 
   async function run(fn) {
     setError('')
@@ -37,46 +47,44 @@ function ServerDialog({ onCreate, onJoin, onClose }) {
   }
 
   return (
-    <div className="poll-backdrop">
-      <div className="poll-card">
-        <h2>Add a server</h2>
-
-        <form onSubmit={handleCreate}>
-          <div className="field">
-            <label>Create a new server</label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Server name"
-              autoFocus
-            />
-          </div>
-          <button type="submit" className="btn-primary" disabled={busy}>
-            Create server
+    <div className="poll-backdrop rl-backdrop">
+      <div className="rl-dialog" role="dialog" aria-modal="true" aria-labelledby="server-dialog-title">
+        <div className="rl-dialog-head">
+          <h2 id="server-dialog-title">Add a server</h2>
+          <button type="button" className="rl-dialog-x" aria-label="Close" title="Close (Esc)" onClick={onClose}>
+            <Icon name="close" size={18} strokeWidth={2} />
           </button>
+        </div>
+
+        <form onSubmit={handleCreate} className="rl-dialog-section">
+          <label htmlFor="server-name-input">Create a new server</label>
+          <div className="rl-dialog-row">
+            <input id="server-name-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Server name" autoFocus />
+            <button type="submit" className="rl-dialog-primary" disabled={busy}>
+              Create server
+            </button>
+          </div>
         </form>
 
-        <div className="dialog-divider">or</div>
+        <div className="rl-dialog-or">or join with a code</div>
 
-        <form onSubmit={handleJoin}>
-          <div className="field">
-            <label>Join with a code</label>
-            <input
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="e.g. amber-falcon-42"
-            />
+        <form onSubmit={handleJoin} className="rl-dialog-section">
+          <label htmlFor="server-code-input">Join code</label>
+          <div className="rl-dialog-row">
+            <input id="server-code-input" className="mono" value={code} onChange={(e) => setCode(e.target.value)} placeholder="word-word-1234" autoComplete="off" spellCheck={false} />
+            <button type="submit" className="rl-dialog-secondary" disabled={busy}>
+              Join server
+            </button>
           </div>
-          <button type="submit" className="btn-secondary" disabled={busy}>
-            Join server
-          </button>
         </form>
 
-        {error && <div className="error-text">{error}</div>}
+        {error && <div className="rl-dialog-error">{error}</div>}
 
-        <button type="button" className="link-btn" onClick={onClose}>
-          Cancel
-        </button>
+        <div className="rl-dialog-foot">
+          <button type="button" className="rl-dialog-cancel" onClick={onClose}>
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
   )

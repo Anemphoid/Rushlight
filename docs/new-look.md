@@ -126,3 +126,9 @@ tabs and the server address as a read-only line (there is no way to change the s
 `styles/auth.css`. Going back from Create account can land on either tab (`backToLogin` in `App`). The window no longer shrinks to a
 small fixed card for sign-in: it is shown once at the normal size and stays resizable (a small main-process change, untested in a real
 window). The mockups have no design for Reset password, the recovery-key screens and the screen name step; they use the same frame.
+
+## Home and the add-a-server dialog
+
+Home lists the person's servers as cards with their full names (wrapping, never cut off; the rail keeps only a letter), an unread
+count where the app knows one, and a dashed Create or join card. With no servers it keeps the big plus. The add-a-server dialog is
+restyled (create a server, or join with a code) and closes with Esc, the close button or Cancel. `styles/home.css`.
