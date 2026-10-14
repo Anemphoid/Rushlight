@@ -119,3 +119,13 @@ test('the old skin names and the hard-coded logo colours are gone from the app',
   assert.deepEqual(offenders, [])
   assert.doesNotMatch(read('components/RushlightLogo.jsx'), /#[0-9a-fA-F]{3,6}/, 'the logo is coloured by tokens only')
 })
+
+test('the preview colours on the Settings skin cards are the skin\'s real dark colours', () => {
+  for (const s of SKINS) {
+    const dark = skins[s.id].dark
+    assert.equal(s.preview.bg.toLowerCase(), dark['--bg-app'].toLowerCase(), `${s.id} bg`)
+    assert.equal(s.preview.panel.toLowerCase(), dark['--bg-panel'].toLowerCase(), `${s.id} panel`)
+    assert.equal(s.preview.accent.toLowerCase(), dark['--accent'].toLowerCase(), `${s.id} accent`)
+    assert.equal(s.preview.text.toLowerCase(), dark['--text'].toLowerCase(), `${s.id} text`)
+  }
+})

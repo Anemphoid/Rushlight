@@ -130,6 +130,9 @@ a server change has to wait for a server release.
   (`fetchChatImage`, a blob URL revoked on unmount), sizes its box from the message's `image.width/height` so the chat does not jump,
   and opens a lightbox on click (Esc closes; portalled into the full screen element if there is one). Guests have no picture button.
   Checked in headless Chromium against a real server (rotation, EXIF, paste, drop, lightbox, polling); not in a real window.
+- Full-screen pages use `PageShell` (header, left section list, Esc goes back); Settings is the first, with sections
+  Appearance/Audio/Push to talk/Music/Notifications/Account/About. Layout differences between skins are tokens in the contract
+  (`--page-header-h`, `--nav-w`...). See `docs/new-look.md`. The song pop-up setting is `songPrefs.js`.
 - `sounds.js` loads sounds by base name from `assets/sounds/` (missing = silent).
 
 ## Gotchas learned the hard way

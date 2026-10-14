@@ -71,3 +71,13 @@ Copy `styles/skins/slate.css`, change the values for both modes, add one line to
 The page layout (Back at top left, Esc, left list of sections), the shared components, the tree, voice panel, chat
 and Jellybox layouts as drawn in the mockups, the icon set, motion, and the unread bubble. Pictures:
 `docs/ui-audit/new-look/` (a selection of the 47).
+
+## Page layout (Settings first)
+
+Full-screen pages use `components/PageShell.jsx`: header (Back, title, "Esc to go back"), a section list on the left, the chosen
+section on the right, the body scrolling under the header. Esc goes back unless a field or dialog has the keyboard.
+The layout names a skin sets are `--page-header-h`, `--page-title-size`, `--nav-w`, `--nav-gutter`, `--nav-item-radius`,
+`--nav-bar-w` (Lantern: rounded soft items; Slate: full-width items with an inset bar). Shared styles are in
+`styles/components.css`. Settings has Appearance, Audio, Push to talk, Music, Notifications, Account (signed-in only) and
+About. The song pop-up choice lives in `songPrefs.js`, shared with the Jellybox column. Control parity was checked against
+`docs/ui-audit/controls-before` over all Settings pictures together (only the skin buttons changed, to cards).
