@@ -1,0 +1,245 @@
+/* The small pieces, in the new look: dialogs beyond the first (vote, picture), menus, the update banner, the song
+   pop-up, the picture viewer, the title bar and the forms that open inside the channel list. */
+
+/* ---- dialogs (see home.css for the base) ---- */
+.rl-dialog.narrow {
+  max-width: 380px;
+}
+.rl-dialog .settings-note {
+  margin: 0 0 12px;
+  font-size: 0.875rem;
+  font-style: normal;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+.rl-dialog-primary.wide {
+  width: 100%;
+}
+.rl-dialog-foot.spread {
+  justify-content: stretch;
+}
+.rl-dialog-foot.spread > button {
+  flex: 1;
+}
+.rl-dialog input[type='range'] {
+  width: 100%;
+  margin: 4px 0 14px;
+  accent-color: var(--accent-hover);
+}
+.avatar-crop-frame {
+  border-color: var(--border-strong);
+}
+
+/* ---- menus ---- */
+.context-menu {
+  min-width: 180px;
+  padding: 6px;
+  border-radius: var(--radius-lg);
+  border-color: var(--border);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  animation: rl-pop var(--dur-fast) var(--ease-out);
+}
+.context-menu-item {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  transition: background var(--dur-fast);
+}
+.context-menu-item:hover {
+  background: var(--bg-raised);
+}
+.user-volume-menu {
+  padding: 12px 14px;
+  min-width: 220px;
+}
+.user-volume-title {
+  margin-bottom: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.user-volume-value {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+.member-expiry-menu {
+  padding: 6px;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+.member-expiry-menu button {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+}
+.member-expiry-menu button:hover {
+  background: var(--bg-raised);
+}
+
+/* ---- update banner ---- */
+.update-banner {
+  right: 20px;
+  bottom: 20px;
+  gap: 12px;
+  padding: 12px 14px 12px 16px;
+  border-radius: var(--radius-lg);
+  border-color: var(--border);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  font-size: 0.875rem;
+  animation: rl-pop var(--dur-panel) var(--ease-out);
+}
+.update-banner button {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  border-color: var(--border-strong);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.update-banner .update-banner-primary {
+  border-color: var(--accent);
+}
+
+/* ---- song pop-up ---- */
+.song-toast {
+  padding: 10px 16px 10px 10px;
+  border-radius: var(--radius-lg);
+  border-color: var(--border);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+.song-toast-art {
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--bg-raised);
+}
+.song-toast-label {
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+}
+.song-toast-title {
+  font-weight: 600;
+}
+
+/* ---- picture viewer ---- */
+.chat-image-lightbox {
+  background: rgba(0, 0, 0, 0.88);
+  animation: rl-fade var(--dur-panel) var(--ease-out);
+}
+.chat-image-lightbox img {
+  border-radius: var(--radius-md);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+.chat-image-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  cursor: pointer;
+}
+.chat-image-close:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+.chat-image-frame {
+  border-radius: var(--radius-lg);
+  border-color: var(--border);
+}
+
+/* ---- title bar ---- */
+.title-bar-left {
+  gap: 8px;
+  padding-left: 14px;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+.title-bar-left svg {
+  width: 20px;
+  height: 20px;
+}
+.win-btn {
+  width: 46px;
+  transition: background var(--dur-fast);
+}
+.win-btn:hover {
+  background: var(--bg-raised);
+}
+.win-btn.close:hover {
+  background: var(--danger);
+}
+
+/* ---- forms that open inside the channel list, and the inline confirmations ---- */
+.tree-sidebar .create-form {
+  margin: 6px 0 12px;
+  padding: 12px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-sunken);
+  border-color: var(--border);
+  animation: rl-rise var(--dur-screen) var(--ease-out);
+}
+.tree-sidebar .create-form input[type='text'] {
+  height: 40px;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+  padding: 0 12px;
+  font-size: 0.875rem;
+  border-color: var(--border-strong);
+  border-radius: var(--radius-md);
+}
+.tree-sidebar .create-form input[type='text']:focus {
+  outline: none;
+  border-color: var(--accent-hover);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.mode-row {
+  gap: 6px;
+}
+.mode-chip {
+  height: 32px;
+  padding: 0;
+  border-color: var(--border-strong);
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: background var(--dur-fast), color var(--dur-fast);
+}
+.create-form-actions button {
+  height: 38px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+}
+.create-form-actions .btn-secondary {
+  border-color: var(--border-strong);
+}
+.home-notice {
+  border-radius: var(--radius-lg);
+}
+@keyframes rl-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .context-menu,
+  .update-banner,
+  .chat-image-lightbox,
+  .tree-sidebar .create-form {
+    animation: none;
+  }
+}
+.mode-chip {
+  white-space: nowrap;
+  font-size: 0.6875rem;
+}

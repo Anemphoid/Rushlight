@@ -8,20 +8,22 @@ function PersistenceVote({ mode, proposal, onVote, onWithdraw, onHide, onClose }
 
   if (mode === 'ballot') {
     return (
-      <div className="poll-backdrop">
-        <div className="poll-card">
-          <h2>Keep history in "{proposal.name}"?</h2>
+      <div className="poll-backdrop rl-backdrop">
+        <div className="rl-dialog" role="dialog" aria-modal="true" aria-label="Keep history vote">
+          <div className="rl-dialog-head">
+            <h2>Keep history in "{proposal.name}"?</h2>
+          </div>
           <p className="settings-note">
             {proposal.proposer} wants this {kind} to keep its history. You have a message in it, so
             you get a vote. If it passes, what's been said here is saved permanently. If not, it
             clears itself as usual.
           </p>
           <p className="settings-note">{counts}</p>
-          <div className="create-form-actions">
-            <button type="button" className="btn-secondary" onClick={() => onVote('decline')}>
+          <div className="rl-dialog-foot">
+            <button type="button" className="rl-dialog-secondary" onClick={() => onVote('decline')}>
               Decline
             </button>
-            <button type="button" className="btn-primary" onClick={() => onVote('agree')}>
+            <button type="button" className="rl-dialog-primary" onClick={() => onVote('agree')}>
               Agree
             </button>
           </div>
@@ -32,20 +34,22 @@ function PersistenceVote({ mode, proposal, onVote, onWithdraw, onHide, onClose }
 
   if (mode === 'progress') {
     return (
-      <div className="poll-backdrop">
-        <div className="poll-card">
-          <h2>Vote on "{proposal.name}"</h2>
+      <div className="poll-backdrop rl-backdrop">
+        <div className="rl-dialog" role="dialog" aria-modal="true" aria-label="Vote in progress">
+          <div className="rl-dialog-head">
+            <h2>Vote on "{proposal.name}"</h2>
+          </div>
           <p className="settings-note">
             Everyone with a message in this {kind} has been asked. It passes once more than half
             agree, and fails as soon as that can't happen. Unanswered votes expire after a few
             minutes.
           </p>
           <p className="settings-note">{counts}</p>
-          <div className="create-form-actions">
-            <button type="button" className="btn-secondary" onClick={onWithdraw}>
+          <div className="rl-dialog-foot">
+            <button type="button" className="rl-dialog-secondary" onClick={onWithdraw}>
               Cancel vote
             </button>
-            <button type="button" className="btn-primary" onClick={onHide}>
+            <button type="button" className="rl-dialog-primary" onClick={onHide}>
               Hide
             </button>
           </div>
@@ -62,12 +66,14 @@ function PersistenceVote({ mode, proposal, onVote, onWithdraw, onHide, onClose }
   }[proposal.status]
 
   return (
-    <div className="poll-backdrop">
-      <div className="poll-card">
-        <h2>{proposal.status === 'passed' ? 'Vote passed' : 'Vote closed'}</h2>
+    <div className="poll-backdrop rl-backdrop">
+      <div className="rl-dialog" role="dialog" aria-modal="true" aria-label="Vote result">
+        <div className="rl-dialog-head">
+          <h2>{proposal.status === 'passed' ? 'Vote passed' : 'Vote closed'}</h2>
+        </div>
         <p className="settings-note">{outcome}</p>
-        <div className="create-form-actions">
-          <button type="button" className="btn-primary" onClick={onClose}>
+        <div className="rl-dialog-foot">
+          <button type="button" className="rl-dialog-primary" onClick={onClose}>
             OK
           </button>
         </div>

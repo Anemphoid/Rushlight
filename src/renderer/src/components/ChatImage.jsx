@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import Icon from './Icon'
 import * as api from '../api'
 
 // As wide as the picture itself, but no wider than 360 and no taller than 320 at its own shape, so a tall
@@ -66,6 +67,9 @@ function ChatImage({ image, token, author }) {
         createPortal(
           <div className="chat-image-lightbox" role="dialog" aria-label={label} onClick={() => setBig(false)}>
             <img src={url} alt={label} />
+            <button type="button" className="chat-image-close" aria-label="Close picture" title="Close (Esc)" onClick={() => setBig(false)}>
+              <Icon name="close" size={20} strokeWidth={2} />
+            </button>
           </div>,
           document.fullscreenElement || document.body
         )}

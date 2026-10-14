@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import Icon from './Icon'
 import { cropToBlob, blobToBase64 } from '../avatarCrop'
 
 const FRAME_SIZE = 220 // on-screen preview size in CSS pixels
@@ -9,6 +10,12 @@ const MAX_ZOOM = 4
 // view into one square JPEG. onDone receives { base64, mime }; onCancel
 // backs out with nothing changed.
 function AvatarCropper({ onDone, onCancel }) {
+  useEffect(() => {
+    const onKey = (e) => e.key === 'Escape' && onCancel()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onCancel])
+
   const [objectUrl, setObjectUrl] = useState(null)
   const [image, setImage] = useState(null) // the loaded HTMLImageElement, once ready
   const [zoom, setZoom] = useState(1)
@@ -110,9 +117,14 @@ function AvatarCropper({ onDone, onCancel }) {
   }
 
   return (
-    <div className="poll-backdrop">
-      <div className="poll-card" style={{ maxWidth: 340 }}>
-        <h2>Choose a picture</h2>
+    <div className="poll-backdrop rl-backdrop">
+      <div className="rl-dialog narrow" role="dialog" aria-modal="true" aria-labelledby="crop-title">
+        <div className="rl-dialog-head">
+          <h2 id="crop-title">Choose a picture</h2>
+          <button type="button" className="rl-dialog-x" aria-label="Close" title="Close (Esc)" onClick={onCancel}>
+            <Icon name="close" size={18} strokeWidth={2} />
+          </button>
+        </div>
 
         {!image ? (
           <>
@@ -120,7 +132,7 @@ function AvatarCropper({ onDone, onCancel }) {
               JPEG, PNG, or WebP. You'll be able to drag and zoom to frame it before
               anyone sees it.
             </p>
-            <button type="button" className="btn-primary" onClick={() => fileInputRef.current.click()}>
+            <button type="button" className="rl-dialog-primary wide" onClick={() => fileInputRef.current.click()}>
               Pick an image
             </button>
           </>
@@ -162,10 +174,10 @@ function AvatarCropper({ onDone, onCancel }) {
               onChange={(e) => handleZoomChange(e.target.value)}
               style={{ width: '100%' }}
             />
-            <div className="create-form-actions">
+            <div className="rl-dialog-foot spread">
               <button
                 type="button"
-                className="btn-secondary"
+                className="rl-dialog-secondary"
                 onClick={() => {
                   URL.revokeObjectURL(objectUrl)
                   setImage(null)
@@ -174,7 +186,7 @@ function AvatarCropper({ onDone, onCancel }) {
               >
                 Choose a different image
               </button>
-              <button type="button" className="btn-primary" disabled={busy} onClick={handleConfirm}>
+              <button type="button" className="rl-dialog-primary" disabled={busy} onClick={handleConfirm}>
                 {busy ? 'Saving…' : 'Use this photo'}
               </button>
             </div>
@@ -191,9 +203,11 @@ function AvatarCropper({ onDone, onCancel }) {
           style={{ display: 'none' }}
         />
 
-        <button type="button" className="link-btn" onClick={onCancel}>
-          Cancel
-        </button>
+        <div className="rl-dialog-foot">
+          <button type="button" className="rl-dialog-cancel" onClick={onCancel}>
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
   )
