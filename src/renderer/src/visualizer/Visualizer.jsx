@@ -34,7 +34,7 @@ function useWindowVisible() {
 // visualizer (Butterchurn) in miniature. Clicking the window opens the large view. It draws only while it is on,
 // Jellybox is playing, the window is visible and the person can hear it (not deafened).
 // search: { canSearch, run(query) -> results, act(body) } lets an admin look up a song from the full screen view.
-function Visualizer({ playing, botAudioId, deafened, search, player, onEnabledChange }) {
+function Visualizer({ playing, botAudioId, deafened, search, player, onEnabledChange, windowHost }) {
   const [prefs, setPrefs] = useState(() => loadPrefs())
   const [large, setLarge] = useState(false)
   const [smallVisible, setSmallVisible] = useState(true)
@@ -79,42 +79,42 @@ function Visualizer({ playing, botAudioId, deafened, search, player, onEnabledCh
   }
   const nextStyle = () => update({ style: styleChoices[(styleChoices.indexOf(style) + 1) % styleChoices.length] })
 
-  return (
-    <div className="viz">
-      <div className="viz-bar">
-        <button type="button" className="viz-toggle" aria-pressed={prefs.enabled} onClick={() => update({ enabled: !prefs.enabled })}>
-          <Icon name="bars" size={16} strokeWidth={2} />
-          <span className="viz-toggle-label">{prefs.enabled ? 'Visualizer: on' : 'Visualizer'}</span>
-          <span className="viz-switch" aria-hidden="true" />
+  const smallWindow = prefs.enabled && (
+    <div className="viz-small" ref={smallRef} onClick={() => setLarge(true)} title="Click for the big view" role="button" tabIndex={0} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setLarge(true)}>
+      <VisualizerCanvas
+        mode={style === 'milkdrop' ? 'milkdrop' : 'simple'}
+        style={style === 'milkdrop' ? 'bars' : style}
+        active={live && smallVisible && !large}
+        botAudioId={botAudioId}
+        reducedMotion={reducedMotion}
+        controlRef={smallControl}
+        onPreset={setSmallPreset}
+        shuffle={prefs.shuffle}
+      />
+      {status && <div className="viz-message">{status}</div>}
+      {style === 'milkdrop' && smallPreset && !status && <div className="viz-small-name">{smallPreset}</div>}
+      <div className="viz-small-tools" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="viz-chip" onClick={nextStyle} title="Bars, waveform, or the real Milkdrop visualizer">
+          style: {style === 'milkdrop' ? 'milkdrop' : style}
         </button>
-        {prefs.enabled && (
-          <button type="button" className="btn-secondary np-btn" onClick={nextStyle} title="Bars, waveform, or the real Milkdrop visualizer">
-            style: {style === 'milkdrop' ? 'milkdrop' : style}
-          </button>
-        )}
-        {prefs.enabled && style === 'milkdrop' && (
-          <button type="button" className="btn-secondary np-btn" onClick={() => smallControl.current?.next()}>
+        {style === 'milkdrop' && (
+          <button type="button" className="viz-chip" onClick={() => smallControl.current?.next()}>
             next
           </button>
         )}
-        {prefs.enabled && reducedMotion && <span className="settings-note" style={{ margin: 0 }}>Reduced motion is on in your system, so this is calmer.</span>}
       </div>
-      {prefs.enabled && (
-        <div className="viz-small" ref={smallRef} onClick={() => setLarge(true)} title="Click for the big view" role="button" tabIndex={0} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setLarge(true)}>
-          <VisualizerCanvas
-            mode={style === 'milkdrop' ? 'milkdrop' : 'simple'}
-            style={style === 'milkdrop' ? 'bars' : style}
-            active={live && smallVisible && !large}
-            botAudioId={botAudioId}
-            reducedMotion={reducedMotion}
-            controlRef={smallControl}
-            onPreset={setSmallPreset}
-            shuffle={prefs.shuffle}
-          />
-          {status && <div className="viz-message">{status}</div>}
-          {style === 'milkdrop' && smallPreset && !status && <div className="viz-small-name">{smallPreset}</div>}
-        </div>
-      )}
+      {reducedMotion && <div className="viz-small-note">Reduced motion is on in your system, so this is calmer.</div>}
+    </div>
+  )
+
+  return (
+    <div className="viz">
+      <button type="button" className="viz-toggle" aria-pressed={prefs.enabled} onClick={() => update({ enabled: !prefs.enabled })}>
+        <Icon name="bars" size={16} strokeWidth={2} />
+        <span className="viz-toggle-label">{prefs.enabled ? 'Visualizer: on' : 'Visualizer'}</span>
+        <span className="viz-switch" aria-hidden="true" />
+      </button>
+      {smallWindow && (windowHost === undefined ? smallWindow : windowHost ? createPortal(smallWindow, windowHost) : null)}
       {prefs.enabled && large && (
         <LargeView prefs={prefs} update={update} live={live} status={status} botAudioId={botAudioId} reducedMotion={reducedMotion} webgl={webgl} search={search} player={player} onClose={() => setLarge(false)} />
       )}

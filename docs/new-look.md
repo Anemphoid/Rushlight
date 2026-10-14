@@ -139,3 +139,10 @@ A page of its own on `PageShell`, titled "Admin tools · <server>" (or "Owner to
 separate from Settings because it is per server and only for admins and the owner. Sections: Members (mute, timed access, make or remove
 admin, kick, ban), Guests (remove), Join codes, Banned (unban), and for the owner Music, History and Ownership (hand over, delete). Logic
 and messages are unchanged; only the layout moved. The ban confirmation is a dialog (Esc cancels).
+
+## Jellybox, simplified (v0.20.x)
+
+No tabs and no stacked scroll bars. The column is header, player, and one Up next line; the cover takes all the room left over (a
+square as big as fits, centred), or shrinks to a row when the visualizer is on so the window can use the space. Search, the library
+and the full queue are one sheet that replaces the player while open; it closes with Esc or Back, after a song is played from it, or
+stays open with a note when songs are added to the queue. The song pop-up checkbox is only in Settings > Music now.

@@ -86,8 +86,18 @@ test('the default look (no attributes set) is Lantern dark, as Parchment dark wa
 
 test('no rule or component uses a variable that nothing defines', () => {
   const defined = new Set([...COLOUR_TOKENS, ...SKIN_TOKENS])
-  const own = readFileSync(join(src, 'index.css'), 'utf8')
-  for (const m of own.matchAll(/^\s+(--[\w-]+)\s*:/gm)) defined.add(m[1])
+  // names the app's own stylesheets declare (shared ones in index.css, local helpers in the style files)
+  const declare = (dir) => {
+    for (const n of readdirSync(dir)) {
+      const p = join(dir, n)
+      if (statSync(p).isDirectory()) {
+        if (n !== 'dev' && n !== 'skins') declare(p)
+      } else if (/\.css$/.test(n)) {
+        for (const m of readFileSync(p, 'utf8').matchAll(/^\s+(--[\w-]+)\s*:/gm)) defined.add(m[1])
+      }
+    }
+  }
+  declare(src)
   const unknown = new Set()
   const walk = (dir) => {
     for (const n of readdirSync(dir)) {
