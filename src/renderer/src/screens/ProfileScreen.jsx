@@ -109,8 +109,8 @@ function ProfileScreen({
                 width: 26,
                 height: 26,
                 borderRadius: '50%',
-                border: avatarColor === null ? '2px solid var(--text)' : '1px solid var(--line)',
-                background: 'var(--bg)',
+                border: avatarColor === null ? '2px solid var(--text)' : '1px solid var(--border)',
+                background: 'var(--bg-app)',
                 cursor: 'pointer',
                 padding: 0
               }}
@@ -125,7 +125,7 @@ function ProfileScreen({
                   width: 26,
                   height: 26,
                   borderRadius: '50%',
-                  border: avatarColor === c ? '2px solid var(--text)' : '1px solid var(--line)',
+                  border: avatarColor === c ? '2px solid var(--text)' : '1px solid var(--border)',
                   background: c,
                   cursor: 'pointer',
                   padding: 0

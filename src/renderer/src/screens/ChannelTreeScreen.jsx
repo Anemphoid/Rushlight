@@ -813,8 +813,7 @@ function ChannelTreeScreen({
                     </button>
                     <button
                       type="button"
-                      className="btn-primary"
-                      style={{ background: 'var(--danger)' }}
+                      className="btn-primary btn-danger"
                       onClick={() => deleteChannel(ch.id)}
                     >
                       Delete
@@ -919,8 +918,7 @@ function ChannelTreeScreen({
                           </button>
                           <button
                             type="button"
-                            className="btn-primary"
-                            style={{ background: 'var(--danger)' }}
+                            className="btn-primary btn-danger"
                             onClick={() => deleteRoom(ch.id, room.id)}
                           >
                             Delete

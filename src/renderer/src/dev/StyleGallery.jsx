@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Avatar from '../components/Avatar'
 import RushlightLogo from '../components/RushlightLogo'
-import { parseColor, contrastRatio, MIN_TEXT, MIN_CONTROL } from './contrast'
+import { parseColor, contrastRatio } from './contrast'
+import { COLOUR_TOKENS, SKIN_TOKENS, CONTRAST_PAIRS } from '../styles/contract'
+import { SKINS } from '../skins'
 import './gallery.css'
 
 // The dev-only style gallery (pull request 1 of the UI refresh): a page that shows what the client's styling
@@ -13,43 +15,6 @@ import './gallery.css'
 const DENSITIES = ['compact', 'cozy', 'comfortable']
 const ICON_SIZES = ['small', 'medium', 'large']
 const MODES = ['dark', 'light']
-
-// Every skin the stylesheet knows about, and every custom property a skin or :root sets.
-function readStyleSheets() {
-  const skins = new Set(['parchment'])
-  const vars = new Set()
-  for (const sheet of document.styleSheets) {
-    let rules
-    try {
-      rules = sheet.cssRules
-    } catch {
-      continue
-    }
-    for (const rule of rules) {
-      if (!rule.selectorText) continue
-      const isSkin = /^:root$|data-skin/.test(rule.selectorText)
-      if (!isSkin) continue
-      for (const m of rule.selectorText.matchAll(/data-skin="([^"]+)"/g)) skins.add(m[1])
-      for (const prop of rule.style) if (prop.startsWith('--')) vars.add(prop)
-    }
-  }
-  return { skins: [...skins], vars: [...vars] }
-}
-
-// The pairs that matter: text on each surface, controls on the page. Names are the variables the skins set.
-const PAIRS = [
-  { fg: '--text', bg: '--bg', need: MIN_TEXT, what: 'text on the page' },
-  { fg: '--text', bg: '--panel', need: MIN_TEXT, what: 'text on a panel' },
-  { fg: '--dim', bg: '--bg', need: MIN_TEXT, what: 'dim text on the page' },
-  { fg: '--dim', bg: '--panel', need: MIN_TEXT, what: 'dim text on a panel' },
-  { fg: '--label', bg: '--bg', need: MIN_TEXT, what: 'section labels on the page' },
-  { fg: '--label', bg: '--panel', need: MIN_TEXT, what: 'section labels on a panel' },
-  { fg: '--accent', bg: '--bg', need: MIN_TEXT, what: 'accent text and links on the page' },
-  { fg: '--on-accent', bg: '--accent', need: MIN_TEXT, what: 'text on an accent button' },
-  { fg: '--danger', bg: '--bg', need: MIN_TEXT, what: 'danger text on the page' },
-  { fg: '--line', bg: '--bg', need: MIN_CONTROL, what: 'borders against the page (controls)' },
-  { fg: '--accent', bg: '--panel', need: MIN_CONTROL, what: 'accent controls and icons on a panel' }
-]
 
 function Segmented({ label, value, options, onChange }) {
   return (
@@ -88,7 +53,7 @@ function StyleGallery({ onClose }) {
   const [mode, setMode] = useState(root.dataset.mode || 'dark')
   const [density, setDensity] = useState(root.dataset.density || 'cozy')
   const [iconSize, setIconSize] = useState(root.dataset.iconSize || 'medium')
-  const sheet = useMemo(readStyleSheets, [])
+  const skinIds = useMemo(() => SKINS.map((k) => k.id), [])
   const [tick, setTick] = useState(0) // recompute the readings after a switch has been applied
 
   // switches act on the same attributes the app itself sets, so what is shown is what the app would show
@@ -143,15 +108,15 @@ function StyleGallery({ onClose }) {
       </header>
 
       <div className="gal-switches">
-        <Segmented label="Skin" value={skin} options={sheet.skins} onChange={setSkin} />
+        <Segmented label="Skin" value={skin} options={skinIds} onChange={setSkin} />
         <Segmented label="Mode" value={mode} options={MODES} onChange={setMode} />
         <Segmented label="Density" value={density} options={DENSITIES} onChange={setDensity} />
         <Segmented label="Icon size" value={iconSize} options={ICON_SIZES} onChange={setIconSize} />
       </div>
 
-      <Section title="Colour variables" note="Every custom property the skins set, as it reads now. A skin that leaves one out inherits the Parchment dark value.">
+      <Section title="Skin tokens" note="Every name a skin must set (styles/contract.js), as it reads for the skin and mode chosen. The tests fail if a skin leaves one out.">
         <div className="gal-swatches">
-          {sheet.vars.map((name) => {
+          {[...COLOUR_TOKENS, ...SKIN_TOKENS].map((name) => {
             const value = read(name)
             return (
               <div className="gal-swatch" key={name}>
@@ -167,7 +132,8 @@ function StyleGallery({ onClose }) {
       <Section title="Contrast" note="Text needs 4.5 to 1, controls and icons 3 to 1. Measured on the values above, for the skin and mode chosen.">
         <table className="gal-table">
           <tbody>
-            {PAIRS.map((p) => {
+            {CONTRAST_PAIRS.map(([pfg, pbg, pneed]) => {
+              const p = { fg: pfg, bg: pbg, need: pneed, what: pfg.slice(2) + ' on ' + pbg.slice(2) }
               const fg = parseColor(read(p.fg))
               const bg = parseColor(read(p.bg))
               const ratio = fg && bg ? contrastRatio(fg, bg) : null
@@ -179,7 +145,7 @@ function StyleGallery({ onClose }) {
                       Aa
                     </span>
                   </td>
-                  <td>{p.what}</td>
+                  <td>{p.need === 3 ? 'control or icon' : 'text'}</td>
                   <td>
                     <code>
                       {p.fg} on {p.bg}
@@ -204,6 +170,17 @@ function StyleGallery({ onClose }) {
               </TypeRow>
             )
           })}
+        </div>
+      </Section>
+
+      <Section title="Shape" note="The radius tokens, which differ by skin: Lantern is rounder, Slate crisper.">
+        <div className="gal-row">
+          {['--radius-sm', '--radius-md', '--radius-lg', '--radius-pill'].map((name) => (
+            <div className="gal-radius" key={name} style={{ borderRadius: `var(${name})` }}>
+              <code>{name.slice(2)}</code>
+              <span className="gal-value">{read(name)}</span>
+            </div>
+          ))}
         </div>
       </Section>
 

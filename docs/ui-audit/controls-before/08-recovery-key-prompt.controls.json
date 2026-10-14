@@ -1,0 +1,56 @@
+[
+ {
+  "tag": "button",
+  "name": "Minimize",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Maximize",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "button",
+  "name": "Close",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 44,
+  "h": 31
+ },
+ {
+  "tag": "input:password",
+  "name": "Password",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 320,
+  "h": 38
+ },
+ {
+  "tag": "button",
+  "name": "Make my recovery key",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 320,
+  "h": 38
+ },
+ {
+  "tag": "button",
+  "name": "Log out",
+  "disabled": false,
+  "shown": true,
+  "covered": false,
+  "w": 49,
+  "h": 14
+ }
+]

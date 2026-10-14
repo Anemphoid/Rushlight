@@ -1,0 +1,96 @@
+/* Slate: cool teal on blue-black (the successor of Cool Slate; its stored id is still "cool-slate"). Crisper than
+   Lantern: smaller radii. Plain by design, like Lantern. Every name is part of the skin contract (contract.js). */
+
+/* shape and type, both modes */
+html[data-skin='cool-slate'] {
+  --font-ui: 'Manrope', system-ui, sans-serif;
+  --font-heading: 'Sora', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --heading-weight: 700;
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+}
+
+/* dark */
+html[data-skin='cool-slate'][data-mode='dark'] {
+  --bg-app: #0f141a;
+  --bg-rail: #0a0e13;
+  --bg-panel: #151c24;
+  --bg-raised: #1d2630;
+  --bg-sunken: #0c1117;
+  --border: #2a3644;
+  --border-strong: #566a80;
+  --divider: #202a35;
+  --text: #e6edf5;
+  --text-dim: #a2b0c2;
+  --text-faint: #8494a8;
+  --accent: #4fd1c5;
+  --accent-hover: #7ae0d6;
+  --on-accent: #04201d;
+  --accent-soft: #12332f;
+  --danger: #ff8a8a;
+  --on-danger: #2a0a0c;
+  --danger-soft: #3a1a1e;
+  --success: #6fd08c;
+  --warning: #f0c05a;
+  --info: #7fb4f0;
+  --overlay: rgba(4, 8, 12, 0.66);
+  --selection: rgba(79, 209, 197, 0.3);
+  --scrollbar: #2f3d4d;
+  --speaking: #4fd1c5;
+  --focus-ring: #7ae0d6;
+  --meter-low: #6fd08c;
+  --meter-mid: #f0c05a;
+  --meter-high: #ff8a8a;
+  --redact-outline: color-mix(in srgb, var(--text) 32%, transparent);
+  --logo-ring1: #2f6d68;
+  --logo-ring2: #3aa79d;
+  --logo-ring3: #4fd1c5;
+  --logo-wax: #4fd1c5;
+  --logo-flame: #c9f5f0;
+  --logo-flame-core: #ffffff;
+  --logo-wick: #0f141a;
+}
+
+/* light */
+html[data-skin='cool-slate'][data-mode='light'] {
+  --bg-app: #f3f6f9;
+  --bg-rail: #e6ebf0;
+  --bg-panel: #ffffff;
+  --bg-raised: #edf1f5;
+  --bg-sunken: #f0f4f8;
+  --border: #cdd6e0;
+  --border-strong: #6c7f94;
+  --divider: #e1e7ee;
+  --text: #121a24;
+  --text-dim: #465567;
+  --text-faint: #566679;
+  --accent: #2fc4b8;
+  --accent-hover: #0b6f67;
+  --on-accent: #04201d;
+  --accent-soft: #d7f3f0;
+  --danger: #c0392b;
+  --on-danger: #ffffff;
+  --danger-soft: #fbe4e1;
+  --success: #17753f;
+  --warning: #8a5a00;
+  --info: #1f5fa8;
+  --overlay: rgba(18, 26, 36, 0.45);
+  --selection: rgba(47, 196, 184, 0.3);
+  --scrollbar: #c3cdd8;
+  --speaking: #0b6f67;
+  --focus-ring: #0b6f67;
+  --meter-low: #17753f;
+  --meter-mid: #8a5a00;
+  --meter-high: #c0392b;
+  --redact-outline: color-mix(in srgb, var(--text) 32%, transparent);
+  --logo-ring1: #7bbab4;
+  --logo-ring2: #2ea597;
+  --logo-ring3: #0f8f84;
+  --logo-wax: #0f8f84;
+  --logo-flame: #1fb5a8;
+  --logo-flame-core: #c9f7f2;
+  --logo-wick: #0b2f2c;
+}

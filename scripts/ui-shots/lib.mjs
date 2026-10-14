@@ -2,7 +2,7 @@
 // in it, and a Chromium with the Electron preload stubbed. See run.mjs for how to run it.
 import { createServer } from 'node:http'
 import { createRequire } from 'node:module'
-import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join, extname, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { startWorld, seed, NOW } from './world.mjs'
@@ -39,6 +39,60 @@ const stub = (serverUrl, version) => `
     onWindowMaximizedChange: () => () => {}
   }
 `
+
+// Runs in the page. Every control a person can use, by what it is called, and whether it can actually be used:
+// shown at all, and not covered by something else at its centre (the check that would have caught the Back bar).
+function inventory() {
+  const SELECTOR = 'button, a[href], input, select, textarea, [role="button"], [role="tab"], [role="link"], summary, [contenteditable="true"]'
+  const nameOf = (el) => {
+    const label = el.getAttribute('aria-label')
+    if (label) return label.trim()
+    if (el.id) {
+      const l = document.querySelector(`label[for="${CSS.escape(el.id)}"]`)
+      if (l) return l.textContent.replace(/\s+/g, ' ').trim()
+    }
+    const wrap = el.closest('label')
+    if (wrap && el.tagName !== 'BUTTON') {
+      const t = wrap.textContent.replace(/\s+/g, ' ').trim()
+      if (t) return t
+    }
+    const field = el.closest('.field')
+    if (field && el.tagName !== 'BUTTON') {
+      const l = field.querySelector('label')
+      if (l) return l.textContent.replace(/\s+/g, ' ').trim()
+    }
+    const text = (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim()
+    if (text) return text
+    return (el.getAttribute('title') || el.getAttribute('placeholder') || el.value || '').trim()
+  }
+  const out = []
+  for (const el of document.querySelectorAll(SELECTOR)) {
+    if (el.closest('[hidden]') || el.type === 'hidden') continue
+    const style = getComputedStyle(el)
+    const r = el.getBoundingClientRect()
+    const shown = style.display !== 'none' && style.visibility !== 'hidden' && r.width > 0 && r.height > 0 && Number(style.opacity) > 0
+    let covered = false
+    if (shown) {
+      const x = Math.min(Math.max(r.left + r.width / 2, 0), innerWidth - 1)
+      const y = Math.min(Math.max(r.top + r.height / 2, 0), innerHeight - 1)
+      const inView = r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth
+      if (inView) {
+        const top = document.elementFromPoint(x, y)
+        covered = !!top && top !== el && !el.contains(top) && !top.contains(el)
+      }
+    }
+    out.push({
+      tag: el.tagName.toLowerCase() + (el.type && el.tagName === 'INPUT' ? ':' + el.type : ''),
+      name: nameOf(el).slice(0, 80),
+      disabled: !!el.disabled,
+      shown,
+      covered,
+      w: Math.round(r.width),
+      h: Math.round(r.height)
+    })
+  }
+  return out
+}
 
 export async function setup({ outDir, only = null, distDir = join(root, 'out', 'renderer'), seedWorld = true } = {}) {
   mkdirSync(outDir, { recursive: true })
@@ -110,6 +164,9 @@ export async function setup({ outDir, only = null, distDir = join(root, 'out', '
     await page.evaluate(() => document.fonts && document.fonts.ready)
     await page.waitForTimeout(250)
     await page.screenshot({ path: join(outDir, `${name}.png`), fullPage: full, clip })
+    // what a person can click, type into or choose on this screen, so a restyle can be checked for lost controls
+    const controls = await page.evaluate(inventory)
+    writeFileSync(join(outDir, `${name}.controls.json`), JSON.stringify(controls, null, 1) + '\n')
     taken.push(name)
     console.log('  shot', name)
   }

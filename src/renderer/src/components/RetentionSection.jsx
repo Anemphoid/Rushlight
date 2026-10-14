@@ -100,7 +100,7 @@ function RetentionSection({ serverId, sessionToken }) {
             <button type="button" className="btn-secondary" disabled={busy} onClick={() => { setConfirm(null); setChoice(current) }}>
               Cancel
             </button>
-            <button type="button" className="btn-primary" style={{ background: 'var(--danger)' }} disabled={busy} onClick={() => commit(confirm.months)}>
+            <button type="button" className="btn-primary btn-danger" disabled={busy} onClick={() => commit(confirm.months)}>
               Delete them, keep {retentionLabel(confirm.months)}
             </button>
           </div>

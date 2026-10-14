@@ -1,5 +1,8 @@
 import React, { lazy, Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
+import './styles/fonts.css'
+import './styles/skins/lantern.css'
+import './styles/skins/slate.css'
 import './index.css'
 import App from './App'
 

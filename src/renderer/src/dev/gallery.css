@@ -169,6 +169,8 @@
 }
 .card-h1 {
   font-size: 1.25rem;
+  font-family: var(--font-heading);
+  font-weight: var(--heading-weight);
 }
 .gal-section-label {
   font-size: 0.9375rem;
@@ -191,4 +193,19 @@
 }
 .gal-row button {
   width: auto;
+}
+
+.gal-radius {
+  width: 130px;
+  height: 70px;
+  padding: 10px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-panel);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 0.6875rem;
+}
+.gal-radius .gal-value {
+  margin-left: 0;
 }

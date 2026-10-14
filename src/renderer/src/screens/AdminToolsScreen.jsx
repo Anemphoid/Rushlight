@@ -469,8 +469,7 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onSer
                         </button>
                         <button
                           type="button"
-                          className="btn-primary"
-                          style={{ background: 'var(--danger)' }}
+                          className="btn-primary btn-danger"
                           disabled={removingGuest}
                           onClick={() => removeGuest(g)}
                         >
@@ -562,8 +561,7 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onSer
                         </button>
                         <button
                           type="button"
-                          className="btn-primary"
-                          style={{ background: 'var(--danger)' }}
+                          className="btn-primary btn-danger"
                           disabled={transferBusy}
                           onClick={handOver}
                         >
@@ -621,8 +619,7 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onSer
                     </button>
                     <button
                       type="button"
-                      className="btn-primary"
-                      style={{ background: 'var(--danger)' }}
+                      className="btn-primary btn-danger"
                       disabled={deleteBusy}
                       onClick={removeServer}
                     >
