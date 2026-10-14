@@ -150,3 +150,12 @@ stays open with a note when songs are added to the queue. The song pop-up checkb
 ## The small pieces
 
 `styles/pieces.css`: the vote (persistence) and avatar-picture dialogs now use the same dialog as add-a-server (`rl-dialog`, with Esc and a close button on the picture dialog), menus (right-click menu, per-person volume, timed-access menu) are rounder with taller items, the update banner and the song pop-up match the dialogs' surface and shadow, the picture viewer has a close button, the title bar follows the mockup (20 px logo, quiet name, 46 px buttons, red on close), and the forms that open inside the channel list and their Create/Cancel buttons are in the new shape.
+
+## Motion
+
+Smooth and relaxing, nothing snaps (roadmap, decided Oct 13). Screen changes crossfade with a 10 px slide over `--dur-screen`, the screen being left stays
+underneath until the new one has arrived. Settings, Profile and Admin Tools slide over the server and slide away the same way (the server
+stays mounted for presence and voice, and is hidden only once covered). Dialogs close as they opened. The Jellybox column grows and shrinks
+by width over `--dur-panel` while the window glides to the matching width (main process), and no longer disappears and reappears when
+you move between two voice rooms. A skin or mode change crossfades colours over `--dur-colour`. New chat messages, people joining a
+voice room, queue rows and server cards ease in. Hover, focus and press take `--dur-fast`. Reduced motion removes all of it.

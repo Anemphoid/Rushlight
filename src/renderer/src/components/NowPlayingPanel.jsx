@@ -7,6 +7,7 @@ import * as api from '../api'
 import * as songPrefs from '../songPrefs'
 import Icon from './Icon'
 import { loadPrefs } from '../visualizer/prefs'
+import { reducedMotion, MOVE_MS } from './ViewTransition'
 
 const POLL_MS = 3000
 
@@ -22,21 +23,25 @@ function fmt(ms) {
 // The progress bar runs from the last reported position, so it moves smoothly between the few-second polls.
 // While the column is showing, ask the window for its width on top of the chat's; hand it back after.
 const COLUMN_WIDTH = 292
-function WidenWindow() {
+function WidenWindow({ extra }) {
+  const animate = !reducedMotion()
   useEffect(() => {
     try {
-      window.api?.windowWiden?.(COLUMN_WIDTH)
+      window.api?.windowWiden?.(extra, animate, true)
     } catch {
       // no window API (tests): nothing to widen
     }
-    return () => {
+  }, [extra, animate])
+  useEffect(
+    () => () => {
       try {
-        window.api?.windowWiden?.(0)
+        window.api?.windowWiden?.(0, true)
       } catch {
         // ignore
       }
-    }
-  }, [])
+    },
+    []
+  )
   return null
 }
 
@@ -64,15 +69,20 @@ function NowPlayingPanel({ sessionToken, serverId, space, voiceOnly = false }) {
     }
   })
   const toastOn = useSyncExternalStore(songPrefs.subscribe, songPrefs.songToastEnabled)
+  const [closing, setClosing] = useState(false) // the column is sliding shut (the window gives its room back with it)
   function toggleOpen() {
-    setOpen((o) => {
-      try {
-        localStorage.setItem('rushlight.jellyboxOpen', o ? '0' : '1')
-      } catch {
-        // not remembered
-      }
-      return !o
-    })
+    try {
+      localStorage.setItem('rushlight.jellyboxOpen', open ? '0' : '1')
+    } catch {
+      // not remembered
+    }
+    if (open && !reducedMotion()) {
+      setClosing(true)
+      setTimeout(() => {
+        setOpen(false)
+        setClosing(false)
+      }, MOVE_MS)
+    } else setOpen(!open)
   }
   useEffect(() => {
     if (!sheet) return undefined
@@ -88,7 +98,6 @@ function NowPlayingPanel({ sessionToken, serverId, space, voiceOnly = false }) {
 
   useEffect(() => {
     alive.current = true
-    setSt(null)
     setResults(null)
     setQuery('')
     setError('')
@@ -241,8 +250,8 @@ function NowPlayingPanel({ sessionToken, serverId, space, voiceOnly = false }) {
   return (
     <>
       {toast}
-      <aside className={'now-playing side' + (vizOn ? ' viz-on' : '')} aria-label="Jellybox">
-        <WidenWindow />
+      <aside className={'now-playing side' + (vizOn ? ' viz-on' : '') + (closing ? ' closing' : '')} aria-label="Jellybox">
+        <WidenWindow extra={closing ? 0 : COLUMN_WIDTH} />
         <div className="np-header">
           <strong>Jellybox</strong>
           <span className="member-badge">bot</span>

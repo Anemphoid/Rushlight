@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import Icon from './Icon'
+import { useClosing } from './ViewTransition'
 import { cropToBlob, blobToBase64 } from '../avatarCrop'
 
 const FRAME_SIZE = 220 // on-screen preview size in CSS pixels
@@ -9,7 +10,8 @@ const MAX_ZOOM = 4
 // object URL — nothing is uploaded until "Use this photo" bakes the current
 // view into one square JPEG. onDone receives { base64, mime }; onCancel
 // backs out with nothing changed.
-function AvatarCropper({ onDone, onCancel }) {
+function AvatarCropper({ onDone, onCancel: leave }) {
+  const [closing, onCancel] = useClosing(leave)
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onCancel()
     window.addEventListener('keydown', onKey)
@@ -117,7 +119,7 @@ function AvatarCropper({ onDone, onCancel }) {
   }
 
   return (
-    <div className="poll-backdrop rl-backdrop">
+    <div className={'poll-backdrop rl-backdrop' + (closing ? ' closing' : '')}>
       <div className="rl-dialog narrow" role="dialog" aria-modal="true" aria-labelledby="crop-title">
         <div className="rl-dialog-head">
           <h2 id="crop-title">Choose a picture</h2>

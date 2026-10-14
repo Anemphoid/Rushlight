@@ -17,6 +17,7 @@ import RecoveryKeyPrompt from './components/RecoveryKeyPrompt'
 import SettingsScreen from './screens/SettingsScreen'
 import ProfileScreen from './screens/ProfileScreen'
 import AdminToolsScreen from './screens/AdminToolsScreen'
+import ViewTransition, { OverlayLayer } from './components/ViewTransition'
 import * as api from './api'
 import { playSound } from './sounds'
 import * as voice from './voice'
@@ -94,12 +95,26 @@ function App() {
     saveIconSize(iconSize)
   }, [iconSize])
 
+  // a change of skin or mode fades over about 300 ms instead of flashing: a class on <html> turns the colour
+  // transitions on for just that moment (not on the first paint)
+  const lookReady = useRef(false)
+  const lookTimer = useRef(null)
+  function fadeLook() {
+    if (!lookReady.current) return
+    const root = document.documentElement
+    root.classList.add('look-fade')
+    clearTimeout(lookTimer.current)
+    lookTimer.current = setTimeout(() => root.classList.remove('look-fade'), 400)
+  }
   useEffect(() => {
+    fadeLook()
     document.documentElement.dataset.skin = skin
     localStorage.setItem('rushlight-skin', skin)
   }, [skin])
 
   useEffect(() => {
+    fadeLook()
+    lookReady.current = true
     document.documentElement.dataset.mode = mode
     localStorage.setItem('rushlight-mode', mode)
   }, [mode])
@@ -593,46 +608,66 @@ function App() {
     (view === 'connected' || (OVERLAY_VIEWS.includes(view) && returnView === 'connected'))
   const overlayOpen = treeKept && view !== 'connected'
 
+  // The page under an overlay is hidden once the overlay has fully covered it (so it is not drawn for nothing), and shown
+  // again the moment the overlay starts to close, so it is there to be revealed.
+  const [coveredByOverlay, setCoveredByOverlay] = useState(false)
+  useEffect(() => {
+    if (!overlayOpen) setCoveredByOverlay(false)
+  }, [overlayOpen])
+
+  const serverRail = (
+    <ServerRail
+      servers={servers}
+      currentServerId={currentServer ? currentServer.id : null}
+      onSelect={handleSelectServer}
+      onHome={handleGoHome}
+      onAdd={() => setShowServerDialog(true)}
+    />
+  )
+
+  // What is on screen, and the key that says when it has become a different screen (a different key crossfades).
+  let stage
+  let stageKey
+  if (treeKept) {
+    stageKey = 'tree'
+    const tree = sessionToken ? (
+      <div className="rail-layout">
+        {serverRail}
+        <div className="rail-content">{renderTree()}</div>
+      </div>
+    ) : (
+      renderTree()
+    )
+    stage = (
+      <>
+        <div style={{ display: coveredByOverlay ? 'none' : 'contents' }}>{tree}</div>
+        <OverlayLayer show={overlayOpen} viewKey={view} onSettled={(open) => open && setCoveredByOverlay(true)}>
+          {overlayOpen ? renderView() : null}
+        </OverlayLayer>
+      </>
+    )
+  } else if (showRail) {
+    stageKey = 'rail'
+    stage = (
+      <div className="rail-layout">
+        {serverRail}
+        <div className="rail-content">
+          <ViewTransition viewKey={view}>{renderView()}</ViewTransition>
+        </div>
+      </div>
+    )
+  } else {
+    stageKey = view
+    stage = renderView()
+  }
+
   return (
     <div className={'app-shell' + (isMaximized ? ' maximized' : '')}>
       <LogoSprite />
       <TitleBar />
       <UpdateBanner />
       <div className="app-content">
-        {treeKept ? (
-          <>
-            <div style={{ display: overlayOpen ? 'none' : 'contents' }}>
-              {sessionToken ? (
-                <div className="rail-layout">
-                  <ServerRail
-                    servers={servers}
-                    currentServerId={currentServer.id}
-                    onSelect={handleSelectServer}
-                    onHome={handleGoHome}
-                    onAdd={() => setShowServerDialog(true)}
-                  />
-                  <div className="rail-content">{renderTree()}</div>
-                </div>
-              ) : (
-                renderTree()
-              )}
-            </div>
-            {overlayOpen && renderView()}
-          </>
-        ) : showRail ? (
-          <div className="rail-layout">
-            <ServerRail
-              servers={servers}
-              currentServerId={currentServer ? currentServer.id : null}
-              onSelect={handleSelectServer}
-              onHome={handleGoHome}
-              onAdd={() => setShowServerDialog(true)}
-            />
-            <div className="rail-content">{renderView()}</div>
-          </div>
-        ) : (
-          renderView()
-        )}
+        <ViewTransition viewKey={stageKey}>{stage}</ViewTransition>
         {showServerDialog && sessionToken && (
           <ServerDialog
             onCreate={handleCreateServer}

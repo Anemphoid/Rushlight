@@ -10,7 +10,7 @@ const api = {
   windowSetLoginSize: (width, height, resizable = false) =>
     ipcRenderer.invoke('window-set-login-size', { width, height, resizable }),
   windowRestoreNormalSize: () => ipcRenderer.invoke('window-restore-normal-size'),
-  windowWiden: (extra) => ipcRenderer.invoke('window-widen', extra),
+  windowWiden: (extra, animate = true, immediate = false) => ipcRenderer.invoke('window-widen', extra, animate, immediate),
   getServerConfig: () => ipcRenderer.invoke('get-server-config'),
   getVersion: () => ipcRenderer.invoke('app-version'),
   getPendingUpdate: () => ipcRenderer.invoke('update-pending'),
