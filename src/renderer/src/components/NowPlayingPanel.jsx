@@ -51,7 +51,9 @@ function NowPlayingPanel({ sessionToken, serverId, space, voiceOnly = false }) {
   const [searching, setSearching] = useState(false)
   const [volume, setVolume] = useState(100)
   const draggingVolume = useRef(false)
-  const [tab, setTab] = useState('queue')
+  const [sheet, setSheet] = useState(null) // null = the player; 'browse' = search and library; 'queue' = the whole queue
+  const [stageEl, setStageEl] = useState(null) // where the small visualizer window is drawn
+  const [added, setAdded] = useState('')
   const [vizOn, setVizOn] = useState(() => loadPrefs().enabled)
   // open down the right side by default; fold it to a thin line with its tab. Remembered on this computer.
   const [open, setOpen] = useState(() => {
@@ -62,7 +64,6 @@ function NowPlayingPanel({ sessionToken, serverId, space, voiceOnly = false }) {
     }
   })
   const toastOn = useSyncExternalStore(songPrefs.subscribe, songPrefs.songToastEnabled)
-  const setToast = songPrefs.setSongToastEnabled
   function toggleOpen() {
     setOpen((o) => {
       try {
@@ -73,6 +74,15 @@ function NowPlayingPanel({ sessionToken, serverId, space, voiceOnly = false }) {
       return !o
     })
   }
+  useEffect(() => {
+    if (!sheet) return undefined
+    const onKey = (e) => {
+      if (e.key === 'Escape' && !e.defaultPrevented) setSheet(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [sheet])
+
   const alive = useRef(true)
   const v = useSyncExternalStore(voice.subscribe, voice.getSnapshot)
 
@@ -215,11 +225,18 @@ function NowPlayingPanel({ sessionToken, serverId, space, voiceOnly = false }) {
     <>Jellybox is not in this room yet. Pick something below to bring it in.</>
   )
 
-  const tabs = [
-    { id: 'queue', label: `Up next${st.queue.length ? ' · ' + st.queue.length : ''}` },
-    ...(canControl ? [{ id: 'search', label: 'Search' }, { id: 'library', label: 'Library' }] : [])
-  ]
-  const shownTab = tabs.some((t) => t.id === tab) ? tab : 'queue'
+  // Search and the library are one sheet that takes the player's place while it is open (Esc or Back returns). A
+  // song played from it closes it; one added to the queue stays, with a note, so several can be added.
+  async function sheetAct(body) {
+    await act(body)
+    if (body.action === 'queue') {
+      setAdded('Added to the queue')
+      setTimeout(() => setAdded(''), 2000)
+    } else if (body.action === 'play-now' || body.action === 'play-album') setSheet(null)
+  }
+
+  const next = st.queue[0]
+  const more = st.queue.length - 1
 
   return (
     <>
@@ -230,23 +247,30 @@ function NowPlayingPanel({ sessionToken, serverId, space, voiceOnly = false }) {
           <strong>Jellybox</strong>
           <span className="member-badge">bot</span>
           {playing && <span className="settings-note np-state">{st.state === 'paused' ? 'paused' : 'playing'}</span>}
-          <button type="button" className="np-toggle" aria-expanded="true" aria-label="Hide Jellybox" title="Fold this away" onClick={toggleOpen}>
+          {canControl && (
+            <button type="button" className="np-hbtn" aria-label="Search and library" title="Search and browse the library" onClick={() => setSheet('browse')}>
+              <Icon name="search" size={16} strokeWidth={2} />
+            </button>
+          )}
+          <button type="button" className="np-hbtn" aria-expanded="true" aria-label="Hide Jellybox" title="Fold this away" onClick={toggleOpen}>
             <Icon name="forward" size={16} strokeWidth={2} />
           </button>
         </div>
 
-        <div className="np-player">
-          {playing ? (
-            <div className="np-now">
-              <div className="np-cover">{cover ? <img src={cover} alt="" /> : <Icon name="music" size={40} strokeWidth={1.4} />}</div>
-              <div className="np-info">
-                <div className="np-title" title={playing.title}>{playing.title}</div>
-                <div className="np-artist">{[playing.artist, playing.album].filter(Boolean).join(' · ')}</div>
-              </div>
-            </div>
-          ) : (
-            <div className="settings-note np-idle">{idle}</div>
-          )}
+        <div className="np-body">
+          <div className="np-stage" ref={setStageEl}>
+            {playing ? (
+              <>
+                <div className="np-cover">{cover ? <img src={cover} alt="" /> : <Icon name="music" size={40} strokeWidth={1.4} />}</div>
+                <div className="np-info">
+                  <div className="np-title" title={playing.title}>{playing.title}</div>
+                  <div className="np-artist">{[playing.artist, playing.album].filter(Boolean).join(' · ')}</div>
+                </div>
+              </>
+            ) : (
+              <div className="settings-note np-idle">{idle}</div>
+            )}
+          </div>
 
           {playing && (
             <div className="np-progress">
@@ -294,94 +318,115 @@ function NowPlayingPanel({ sessionToken, serverId, space, voiceOnly = false }) {
             botAudioId={v.botAudioId}
             deafened={v.deafened}
             onEnabledChange={setVizOn}
+            windowHost={stageEl}
             player={{ track: playing || null, paused: st.state === 'paused', canControl, act }}
             search={{ canSearch: canControl, run: async (q) => (await api.searchMusic(sessionToken, serverId, q)).results, act: (b) => act(b, { rethrow: true }) }}
           />
+
+          <button type="button" className="np-next" onClick={() => setSheet('queue')} title="See everything in the queue">
+            <span className="np-next-label">Up next</span>
+            <span className="np-next-song">{next ? [next.title, next.artist].filter(Boolean).join(' · ') : 'Nothing queued'}</span>
+            {more > 0 && <span className="np-next-more">+{more}</span>}
+          </button>
         </div>
 
-        <div className="np-tabs" role="tablist">
-          {tabs.map((t) => (
-            <button key={t.id} type="button" role="tab" aria-selected={shownTab === t.id} className="np-tabbtn" onClick={() => setTab(t.id)}>
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="np-tabbody" key={shownTab}>
-          {shownTab === 'queue' && (
-            <>
-              {st.queue.length === 0 && <div className="settings-note">Nothing is waiting.</div>}
-              {st.queue.length > 0 && (
-                <ol className="np-queue">
-                  {st.queue.slice(0, 2).map((t, i) => (
-                    <li key={i}>
-                      <span className="np-qnum">{i + 1}</span>
-                      <span className="np-qname">
-                        {t.title}
-                        {t.artist ? ` - ${t.artist}` : ''}
-                        {t.addedBy ? ` (${t.addedBy})` : ''}
-                      </span>
-                      {canControl && (
-                        <button type="button" className="link-btn" onClick={() => act({ action: 'remove', value: i + 1 })}>
-                          remove
-                        </button>
-                      )}
-                    </li>
-                  ))}
-                  {st.queue.length > 2 && <li className="settings-note np-more">and {st.queue.length - 2} more</li>}
-                </ol>
-              )}
-              {canControl && st.queue.length > 0 && btn('clear queue', 'Clear everything waiting', () => act({ action: 'clear' }))}
-              <label className="np-toast-toggle">
-                <input type="checkbox" checked={toastOn} onChange={(e) => setToast(e.target.checked)} /> Pop up when the song changes
-              </label>
-            </>
-          )}
-
-          {shownTab === 'search' && canControl && (
-            <>
-              <form className="np-search" onSubmit={runSearch}>
-                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search songs, albums, artists" aria-label="Search songs, albums, artists" />
-                <button type="submit" className="btn-secondary np-btn" disabled={searching || !query.trim()}>
-                  Search
+        {sheet && (
+          <div className="np-sheet" role="dialog" aria-label={sheet === 'queue' ? 'Queue' : 'Search and library'}>
+            <div className="np-sheet-head">
+              <button type="button" className="np-hbtn" aria-label="Back to the player" title="Back to the player (Esc)" onClick={() => setSheet(null)}>
+                <Icon name="back" size={16} strokeWidth={2} />
+              </button>
+              <strong>{sheet === 'queue' ? 'Up next' : 'Search and library'}</strong>
+              {sheet === 'queue' && canControl && (
+                <button type="button" className="np-link" onClick={() => setSheet('browse')}>
+                  Add songs
                 </button>
-              </form>
-              {results && (
-                <ul className="np-results">
-                  {results.length === 0 && <li className="settings-note">Nothing found.</li>}
-                  {results.map((r) => (
-                    <li key={r.id}>
-                      <span>
-                        {r.title}
-                        <span className="settings-note" style={{ margin: 0 }}>
-                          {' '}
-                          {r.kind}
-                          {r.artist ? ` by ${r.artist}` : ''}
-                        </span>
-                      </span>
-                      <span className="np-result-actions">
-                        <button type="button" className="link-btn" onClick={() => act({ action: 'play-now', itemId: r.id, kind: r.kind })}>
-                          Play now
-                        </button>
-                        <button type="button" className="link-btn" onClick={() => act({ action: 'queue', itemId: r.id, kind: r.kind })}>
-                          Add to queue
-                        </button>
-                        {(r.kind === 'album' || (r.kind === 'song' && r.albumId)) && (
-                          <button type="button" className="link-btn" onClick={() => act({ action: 'play-album', itemId: r.kind === 'album' ? r.id : r.albumId })}>
-                            Play album
-                          </button>
-                        )}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
               )}
-            </>
-          )}
+              {sheet === 'browse' && (
+                <button type="button" className="np-link" onClick={() => setSheet('queue')}>
+                  Queue{st.queue.length ? ` (${st.queue.length})` : ''}
+                </button>
+              )}
+            </div>
+            {added && <div className="np-added" role="status">{added}</div>}
+            <div className="np-sheet-body">
+              {sheet === 'queue' && (
+                <>
+                  {st.queue.length === 0 && <div className="settings-note">Nothing is waiting.</div>}
+                  {st.queue.length > 0 && (
+                    <ol className="np-queue">
+                      {st.queue.map((t, i) => (
+                        <li key={i}>
+                          <span className="np-qnum">{i + 1}</span>
+                          <span className="np-qname">
+                            {t.title}
+                            {t.artist ? ` - ${t.artist}` : ''}
+                            {t.addedBy ? ` (${t.addedBy})` : ''}
+                          </span>
+                          {canControl && (
+                            <button type="button" className="link-btn" onClick={() => act({ action: 'remove', value: i + 1 })}>
+                              remove
+                            </button>
+                          )}
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                  {canControl && st.queue.length > 0 && btn('clear queue', 'Clear everything waiting', () => act({ action: 'clear' }))}
+                </>
+              )}
 
-          {shownTab === 'library' && canControl && <BrowseSection sessionToken={sessionToken} serverId={serverId} act={act} />}
-          {error && <div className="error-text">{error}</div>}
-        </div>
+              {sheet === 'browse' && canControl && (
+                <>
+                  <form className="np-search" onSubmit={runSearch}>
+                    <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search songs, albums, artists" aria-label="Search songs, albums, artists" autoFocus />
+                    <button type="submit" className="btn-secondary np-btn" disabled={searching || !query.trim()}>
+                      Search
+                    </button>
+                  </form>
+                  {results ? (
+                    <>
+                      <button type="button" className="np-link" onClick={() => setResults(null)}>
+                        Back to the library
+                      </button>
+                      <ul className="np-results">
+                        {results.length === 0 && <li className="settings-note">Nothing found.</li>}
+                        {results.map((r) => (
+                          <li key={r.id}>
+                            <span>
+                              {r.title}
+                              <span className="settings-note" style={{ margin: 0 }}>
+                                {' '}
+                                {r.kind}
+                                {r.artist ? ` by ${r.artist}` : ''}
+                              </span>
+                            </span>
+                            <span className="np-result-actions">
+                              <button type="button" className="link-btn" onClick={() => sheetAct({ action: 'play-now', itemId: r.id, kind: r.kind })}>
+                                Play now
+                              </button>
+                              <button type="button" className="link-btn" onClick={() => sheetAct({ action: 'queue', itemId: r.id, kind: r.kind })}>
+                                Add to queue
+                              </button>
+                              {(r.kind === 'album' || (r.kind === 'song' && r.albumId)) && (
+                                <button type="button" className="link-btn" onClick={() => sheetAct({ action: 'play-album', itemId: r.kind === 'album' ? r.id : r.albumId })}>
+                                  Play album
+                                </button>
+                              )}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : (
+                    <BrowseSection sessionToken={sessionToken} serverId={serverId} act={sheetAct} />
+                  )}
+                </>
+              )}
+              {error && <div className="error-text">{error}</div>}
+            </div>
+          </div>
+        )}
       </aside>
     </>
   )
