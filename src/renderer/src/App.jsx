@@ -1,3 +1,4 @@
+import { loadDensity, loadIconSize, saveDensity, saveIconSize } from './displayPrefs'
 import { useState, useEffect, useRef } from 'react'
 import '@livekit/components-styles'
 import TitleBar from './components/TitleBar'
@@ -62,8 +63,8 @@ function App() {
 
   // Settings — density and icon size apply globally via data attributes,
   // so they take effect everywhere, not just while Settings is open.
-  const [density, setDensity] = useState('cozy')
-  const [iconSize, setIconSize] = useState('medium')
+  const [density, setDensity] = useState(loadDensity)
+  const [iconSize, setIconSize] = useState(loadIconSize)
   const [pttKey, setPttKey] = useState(() => {
     try {
       return localStorage.getItem('rushlight-ptt-key') || 'ControlLeft'
@@ -84,10 +85,12 @@ function App() {
 
   useEffect(() => {
     document.documentElement.dataset.density = density
+    saveDensity(density)
   }, [density])
 
   useEffect(() => {
     document.documentElement.dataset.iconSize = iconSize
+    saveIconSize(iconSize)
   }, [iconSize])
 
   useEffect(() => {
