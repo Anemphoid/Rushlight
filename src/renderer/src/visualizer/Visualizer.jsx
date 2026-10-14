@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import Icon from '../components/Icon'
 import VisualizerCanvas from './VisualizerCanvas'
 import { loadPrefs, savePrefs, STYLES } from './prefs'
 import { supportsWebGL2 } from './milkdrop'
@@ -32,7 +33,7 @@ function useWindowVisible() {
 // visualizer (Butterchurn) in miniature. Clicking the window opens the large view. It draws only while it is on,
 // Jellybox is playing, the window is visible and the person can hear it (not deafened).
 // search: { canSearch, run(query) -> results, act(body) } lets an admin look up a song from the full screen view.
-function Visualizer({ playing, botAudioId, deafened, search }) {
+function Visualizer({ playing, botAudioId, deafened, search, onEnabledChange }) {
   const [prefs, setPrefs] = useState(() => loadPrefs())
   const [large, setLarge] = useState(false)
   const [smallVisible, setSmallVisible] = useState(true)
@@ -64,6 +65,10 @@ function Visualizer({ playing, botAudioId, deafened, search }) {
     return () => io.disconnect()
   }, [prefs.enabled])
 
+  useEffect(() => {
+    if (onEnabledChange) onEnabledChange(prefs.enabled)
+  }, [prefs.enabled, onEnabledChange])
+
   const live = prefs.enabled && playing && !!botAudioId && !deafened && windowVisible
   let status = ''
   if (prefs.enabled) {
@@ -76,8 +81,10 @@ function Visualizer({ playing, botAudioId, deafened, search }) {
   return (
     <div className="viz">
       <div className="viz-bar">
-        <button type="button" className="btn-secondary np-btn" aria-pressed={prefs.enabled} onClick={() => update({ enabled: !prefs.enabled })}>
-          {prefs.enabled ? 'Visualizer: on' : 'Visualizer'}
+        <button type="button" className="viz-toggle" aria-pressed={prefs.enabled} onClick={() => update({ enabled: !prefs.enabled })}>
+          <Icon name="bars" size={16} strokeWidth={2} />
+          <span className="viz-toggle-label">{prefs.enabled ? 'Visualizer: on' : 'Visualizer'}</span>
+          <span className="viz-switch" aria-hidden="true" />
         </button>
         {prefs.enabled && (
           <button type="button" className="btn-secondary np-btn" onClick={nextStyle} title="Bars, waveform, or the real Milkdrop visualizer">
