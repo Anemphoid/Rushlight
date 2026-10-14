@@ -121,7 +121,7 @@ export async function setup({ outDir, only = null, distDir = join(root, 'out', '
   const taken = []
 
   async function newPage({ session = null, width = 900, height = 670, skin, mode, density, iconSize, css = '' } = {}) {
-    const ctx = await browser.newContext({ viewport: { width, height }, timezoneId: 'UTC', locale: 'en-US', deviceScaleFactor: 1, reducedMotion: 'reduce' })
+    const ctx = await browser.newContext({ viewport: { width, height }, timezoneId: 'UTC', locale: 'en-US', deviceScaleFactor: 1, reducedMotion: process.env.UI_SHOTS_MOTION ? 'no-preference' : 'reduce' })
     const page = await ctx.newPage()
     await page.clock.setFixedTime(NOW)
     await page.addInitScript(stub(world.url, '0.14.0'))
@@ -131,7 +131,7 @@ export async function setup({ outDir, only = null, distDir = join(root, 'out', '
       Math.random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296)
     })
     await page.addInitScript(
-      ({ session, skin, mode, density, iconSize, css }) => {
+      ({ session, skin, mode, density, iconSize, css, motion }) => {
         try {
           if (session) localStorage.setItem('rushlight-session', session)
           if (skin) localStorage.setItem('rushlight-skin', skin)
@@ -141,10 +141,10 @@ export async function setup({ outDir, only = null, distDir = join(root, 'out', '
         } catch {}
         // no caret, no animation: two runs of the same build must match
         const s = document.createElement('style')
-        s.textContent = '* { caret-color: transparent !important; animation: none !important; transition: none !important; }' + css
+        s.textContent = (motion ? '* { caret-color: transparent !important; }' : '* { caret-color: transparent !important; animation: none !important; transition: none !important; }') + css
         document.addEventListener('DOMContentLoaded', () => document.head.appendChild(s))
       },
-      { session, skin, mode, density, iconSize, css }
+      { session, skin, mode, density, iconSize, css, motion: !!process.env.UI_SHOTS_MOTION }
     )
     // the login screens ask Electron to size the window to fit them; do the same with the viewport
     await page.exposeFunction('__setLoginSize', async (w, h) => {
