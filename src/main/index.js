@@ -155,15 +155,16 @@ ipcMain.handle('window-is-maximized', (event) => {
   return BrowserWindow.fromWebContents(event.sender)?.isMaximized() ?? false
 })
 
-// Login screen only: size the window exactly to fit its measured content,
-// then lock resizing. Called by the renderer once it's measured itself.
-ipcMain.handle('window-set-login-size', (event, { width, height }) => {
+// Sign-in screens: size the window, centre it and show it. Called once by the renderer when the first
+// sign-in screen is up. `resizable` keeps the window resizable (the new sign-in screens fill whatever size they
+// get); without it the window is locked, as the old fixed-size login card needed.
+ipcMain.handle('window-set-login-size', (event, { width, height, resizable }) => {
   const win = BrowserWindow.fromWebContents(event.sender)
   if (!win) return
   win.setResizable(true)
   win.setContentSize(Math.max(1, Math.round(width)), Math.max(1, Math.round(height)))
   win.center()
-  win.setResizable(false)
+  win.setResizable(!!resizable)
   if (!win.isVisible()) win.show()
 })
 

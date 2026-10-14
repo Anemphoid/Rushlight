@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import * as api from '../api'
 import RecoveryKeyScreen from '../components/RecoveryKeyScreen'
+import AuthLayout from '../components/AuthLayout'
 
 function CreateAccountScreen({ onBack, onAccountCreated }) {
   const [username, setUsername] = useState('')
@@ -57,46 +58,36 @@ function CreateAccountScreen({ onBack, onAccountCreated }) {
   }
 
   return (
-    <div className="screen">
-      <div className="card">
-        <h1>Create account</h1>
-        <p className="sub">
-          After you create it you will be given a 12 word recovery key. It is the only way back in
-          if you forget your password, so you'll be asked to save it.
-        </p>
-
-        <form onSubmit={handleSubmit}>
-          <div className="field">
-            <label>Username</label>
-            <input value={username} onChange={(e) => setUsername(e.target.value)} autoFocus />
-          </div>
-          <div className="field">
-            <label>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-          <div className="field">
-            <label>Confirm password</label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />
-          </div>
-          <button type="submit" className="btn-primary" disabled={creating}>
-            {creating ? 'Creating…' : 'Create account'}
-          </button>
-          {error && <div className="error-text">{error}</div>}
-        </form>
-
-        <button type="button" className="link-btn" onClick={onBack}>
+    <AuthLayout
+      heading="Create account"
+      sub="After you create it you will be given a 12 word recovery key. It is the only way back in if you forget your password, so you'll be asked to save it."
+      tab="create"
+      onTab={(id) => id !== 'create' && onBack(id)}
+    >
+      <form onSubmit={handleSubmit} className="auth-form">
+        <div className="auth-field">
+          <label htmlFor="auth-new-username">Username</label>
+          <input id="auth-new-username" value={username} onChange={(e) => setUsername(e.target.value)} autoFocus autoComplete="username" />
+        </div>
+        <div className="auth-field">
+          <label htmlFor="auth-new-password">Password</label>
+          <input id="auth-new-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
+        </div>
+        <div className="auth-field">
+          <label htmlFor="auth-new-confirm">Confirm password</label>
+          <input id="auth-new-confirm" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" />
+        </div>
+        <button type="submit" className="auth-primary" disabled={creating}>
+          {creating ? 'Creating…' : 'Create account'}
+        </button>
+        {error && <div className="auth-error">{error}</div>}
+      </form>
+      <p className="auth-alt">
+        <button type="button" className="auth-link strong" onClick={() => onBack('login')}>
           Back to login
         </button>
-      </div>
-    </div>
+      </p>
+    </AuthLayout>
   )
 }
 

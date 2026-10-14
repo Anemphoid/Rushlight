@@ -7,8 +7,8 @@ const api = {
   windowMaximizeToggle: () => ipcRenderer.invoke('window-maximize-toggle'),
   windowClose: () => ipcRenderer.invoke('window-close'),
   windowIsMaximized: () => ipcRenderer.invoke('window-is-maximized'),
-  windowSetLoginSize: (width, height) =>
-    ipcRenderer.invoke('window-set-login-size', { width, height }),
+  windowSetLoginSize: (width, height, resizable = false) =>
+    ipcRenderer.invoke('window-set-login-size', { width, height, resizable }),
   windowRestoreNormalSize: () => ipcRenderer.invoke('window-restore-normal-size'),
   windowWiden: (extra) => ipcRenderer.invoke('window-widen', extra),
   getServerConfig: () => ipcRenderer.invoke('get-server-config'),

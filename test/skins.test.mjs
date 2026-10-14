@@ -129,3 +129,11 @@ test('the preview colours on the Settings skin cards are the skin\'s real dark c
     assert.equal(s.preview.text.toLowerCase(), dark['--text'].toLowerCase(), `${s.id} text`)
   }
 })
+
+test('every skin names a sign-in layout, and an unknown id gets the default skin\'s', async () => {
+  const { authLayoutFor } = await import('../src/renderer/src/skins.js')
+  for (const s of SKINS) assert.ok(['split', 'card'].includes(s.authLayout), `${s.id} authLayout`)
+  assert.equal(authLayoutFor('parchment'), 'split')
+  assert.equal(authLayoutFor('cool-slate'), 'card')
+  assert.equal(authLayoutFor('removed-skin'), authLayoutFor(DEFAULT_SKIN))
+})

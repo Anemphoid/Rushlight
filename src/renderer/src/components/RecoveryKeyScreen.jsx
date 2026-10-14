@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import AuthLayout from './AuthLayout'
 import { keyWords, pickCheckPositions, checkAnswers } from '../recoveryKey'
 
 // Shows a recovery key once and won't let the person continue until they have saved it,
@@ -39,68 +40,58 @@ function RecoveryKeyScreen({ title = 'Save your recovery key', recoveryKey, onCo
   }
 
   return (
-    <div className="screen">
-      <div className="card" style={{ maxWidth: 480 }}>
-        <h1>{title}</h1>
-        <p className="sub">
-          This key is the only way back into your account if you forget your password. It is shown
-          once. No one can recover it for you: not the server admin and not the developer.
-        </p>
+    <AuthLayout
+      heading={title}
+      sub="This key is the only way back into your account if you forget your password. It is shown once. No one can recover it for you: not the server admin and not the developer."
+      wide
+    >
+      <div className="key-grid" aria-label="Your recovery key">
+        {words.map((w, i) => (
+          <div className="key-word" key={i}>
+            <span className="key-num">{i + 1}</span>
+            {w}
+          </div>
+        ))}
+      </div>
+      <button type="button" className="auth-secondary block" onClick={copy}>
+        {copied ? 'Copied' : 'Copy the key'}
+      </button>
+      <p className="auth-hint">Write it down or save it in a password manager, somewhere that is not this computer alone.</p>
 
-        <div className="key-grid" aria-label="Your recovery key">
-          {words.map((w, i) => (
-            <div className="key-word" key={i}>
-              <span className="key-num">{i + 1}</span>
-              {w}
-            </div>
-          ))}
-        </div>
-        <button type="button" className="btn-secondary" onClick={copy}>
-          {copied ? 'Copied' : 'Copy the key'}
-        </button>
-        <p className="settings-note">
-          Write it down or save it in a password manager, somewhere that is not this computer alone.
-        </p>
+      <label className="auth-check block">
+        <input type="checkbox" id="keyUnderstood" checked={understood} onChange={(e) => setUnderstood(e.target.checked)} />
+        I understand that if I lose both my password and this key, my account can't be recovered.
+      </label>
 
-        <div className="checkbox-row">
-          <input
-            type="checkbox"
-            id="keyUnderstood"
-            checked={understood}
-            onChange={(e) => setUnderstood(e.target.checked)}
-          />
-          <label htmlFor="keyUnderstood" style={{ marginBottom: 0 }}>
-            I understand that if I lose both my password and this key, my account can't be recovered.
-          </label>
-        </div>
+      <p className="auth-hint">To check you saved it, type these words from the key:</p>
+      <div className="key-check">
+        {positions.map((pos, i) => (
+          <div className="auth-field" key={pos}>
+            <label htmlFor={'key-word-' + pos}>Word {pos + 1}</label>
+            <input
+              id={'key-word-' + pos}
+              value={answers[i]}
+              autoComplete="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              onChange={(e) => setAnswers((a) => a.map((v, j) => (j === i ? e.target.value : v)))}
+            />
+          </div>
+        ))}
+      </div>
 
-        <p className="settings-note">To check you saved it, type these words from the key:</p>
-        <div className="key-check">
-          {positions.map((pos, i) => (
-            <div className="field" key={pos}>
-              <label>Word {pos + 1}</label>
-              <input
-                value={answers[i]}
-                autoComplete="off"
-                autoCapitalize="off"
-                spellCheck={false}
-                onChange={(e) => setAnswers((a) => a.map((v, j) => (j === i ? e.target.value : v)))}
-              />
-            </div>
-          ))}
-        </div>
-
-        <button type="button" className="btn-primary" disabled={!ready || busy} onClick={confirm}>
-          {busy ? 'Saving…' : confirmLabel}
-        </button>
-        {error && <div className="error-text">{error}</div>}
-        {onCancel && (
-          <button type="button" className="link-btn" disabled={busy} onClick={onCancel}>
+      <button type="button" className="auth-primary" disabled={!ready || busy} onClick={confirm}>
+        {busy ? 'Saving…' : confirmLabel}
+      </button>
+      {error && <div className="auth-error">{error}</div>}
+      {onCancel && (
+        <p className="auth-alt">
+          <button type="button" className="auth-link strong" disabled={busy} onClick={onCancel}>
             {cancelLabel}
           </button>
-        )}
-      </div>
-    </div>
+        </p>
+      )}
+    </AuthLayout>
   )
 }
 
