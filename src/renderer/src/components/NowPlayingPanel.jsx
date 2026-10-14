@@ -306,13 +306,13 @@ function NowPlayingPanel({ sessionToken, serverId, space, voiceOnly = false }) {
           ))}
         </div>
 
-        <div className="np-tabbody">
+        <div className="np-tabbody" key={shownTab}>
           {shownTab === 'queue' && (
             <>
               {st.queue.length === 0 && <div className="settings-note">Nothing is waiting.</div>}
               {st.queue.length > 0 && (
                 <ol className="np-queue">
-                  {st.queue.slice(0, 8).map((t, i) => (
+                  {st.queue.slice(0, 2).map((t, i) => (
                     <li key={i}>
                       <span className="np-qnum">{i + 1}</span>
                       <span className="np-qname">
@@ -327,7 +327,7 @@ function NowPlayingPanel({ sessionToken, serverId, space, voiceOnly = false }) {
                       )}
                     </li>
                   ))}
-                  {st.queue.length > 8 && <li className="settings-note">and {st.queue.length - 8} more</li>}
+                  {st.queue.length > 2 && <li className="settings-note np-more">and {st.queue.length - 2} more</li>}
                 </ol>
               )}
               {canControl && st.queue.length > 0 && btn('clear queue', 'Clear everything waiting', () => act({ action: 'clear' }))}

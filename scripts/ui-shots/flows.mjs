@@ -202,7 +202,7 @@ export async function flows(s) {
 
   // ---------- Jellybox column and the visualizer ----------
   await step('jellybox', async () => {
-    const j = await newPage({ session: owner, width: 1240, height: 670 })
+    const j = await newPage({ session: owner, width: 1240, height: 800 })
     await j.waitForSelector('.home-screen')
     await openServer(j)
     await open(j, 'Gaming')
@@ -218,7 +218,18 @@ export async function flows(s) {
     await j.waitForTimeout(1200)
     await shot(j, '30-jellybox-library-tab')
     await j.click('.np-tabbtn:has-text("Up next")')
-    await j.click('.viz-toggle')
+    if (process.env.UI_SHOTS_MOTION) {
+      // with motion allowed, the cover should be part way between big and small shortly after the switch is pressed
+      const width = () => j.evaluate(() => Math.round(document.querySelector('.np-cover').getBoundingClientRect().width))
+      const before = await width()
+      await j.click('.viz-toggle')
+      await j.waitForTimeout(120)
+      const mid = await width()
+      await j.waitForTimeout(700)
+      console.log(`cover width: ${before} -> ${mid} (120 ms) -> ${await width()}`)
+    } else {
+      await j.click('.viz-toggle')
+    }
     await j.waitForTimeout(1500)
     await shot(j, '31-visualizer-small-bars')
     const style = j.locator('button:has-text("style:")')

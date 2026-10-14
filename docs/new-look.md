@@ -101,3 +101,9 @@ old words kept as their names, volume, the Visualizer switch); tabs Up next, Sea
 scrolls, so the queue and library are one click away instead of a scroll away. With the visualizer on, the cover becomes a small row
 and the visualizer window sits under the switch (`viz-on` on the panel; `Visualizer` reports its state through `onEnabledChange`).
 Parity: across the three Jellybox pictures only "hide >" changed, to "Hide Jellybox".
+
+Motion in Jellybox: the cover and the song title slide between the big layout and the small row when the visualizer is switched
+(width, position and height transition over `--dur-panel`), the panel slides in, the visualizer window grows in, tab contents and
+queue rows rise in, and the progress bar and knob glide between polls. All of it is off under reduced motion. The screenshot
+tool normally switches animation off so pictures match; `UI_SHOTS_MOTION=1` leaves it on and prints the cover width part way
+through the switch (256 -> 193 at 120 ms -> 64). The rest of the app gets its motion in the later motion pass.
