@@ -2,6 +2,7 @@
 // they follow the skin. Decorative by default (the word next to them says what they are); give `label` for an icon
 // that stands alone. Paths come from the approved mockups.
 const PATHS = {
+  star: <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.8 6.8 19.6l1-5.8L3.5 9.7l5.9-.9z" />,
   prev: <path fill="currentColor" stroke="none" d="M6 5h2v14H6zM20 5v14L9 12z" />,
   next: <path fill="currentColor" stroke="none" d="M16 5h2v14h-2zM4 5v14l11-7z" />,
   play: <path fill="currentColor" stroke="none" d="M7 4v16l13-8z" />,

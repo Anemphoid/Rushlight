@@ -120,3 +120,11 @@ export function clear(key) {
     publish()
   }
 }
+
+// Unread messages in one server: the total over the spaces the app has checked, from a getSnapshot() result. The
+// app only checks the open server, so other servers count as none until the server can report unread totals.
+// The id is followed by a colon so server 1 never picks up server 12's spaces.
+export function serverUnread(counts, serverId) {
+  const prefix = serverId + ':'
+  return Object.keys(counts).reduce((n, k) => (k.startsWith(prefix) ? n + (counts[k] || 0) : n), 0)
+}

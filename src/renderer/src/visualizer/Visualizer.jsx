@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import Icon from '../components/Icon'
 import VisualizerCanvas from './VisualizerCanvas'
 import { loadPrefs, savePrefs, STYLES } from './prefs'
@@ -33,7 +34,7 @@ function useWindowVisible() {
 // visualizer (Butterchurn) in miniature. Clicking the window opens the large view. It draws only while it is on,
 // Jellybox is playing, the window is visible and the person can hear it (not deafened).
 // search: { canSearch, run(query) -> results, act(body) } lets an admin look up a song from the full screen view.
-function Visualizer({ playing, botAudioId, deafened, search, onEnabledChange }) {
+function Visualizer({ playing, botAudioId, deafened, search, player, onEnabledChange }) {
   const [prefs, setPrefs] = useState(() => loadPrefs())
   const [large, setLarge] = useState(false)
   const [smallVisible, setSmallVisible] = useState(true)
@@ -115,13 +116,13 @@ function Visualizer({ playing, botAudioId, deafened, search, onEnabledChange }) 
         </div>
       )}
       {prefs.enabled && large && (
-        <LargeView prefs={prefs} update={update} live={live} status={status} botAudioId={botAudioId} reducedMotion={reducedMotion} webgl={webgl} search={search} onClose={() => setLarge(false)} />
+        <LargeView prefs={prefs} update={update} live={live} status={status} botAudioId={botAudioId} reducedMotion={reducedMotion} webgl={webgl} search={search} player={player} onClose={() => setLarge(false)} />
       )}
     </div>
   )
 }
 
-function LargeView({ prefs, update, live, status, botAudioId, reducedMotion, webgl, search, onClose }) {
+function LargeView({ prefs, update, live, status, botAudioId, reducedMotion, webgl, search, player, onClose }) {
   const rootRef = useRef(null)
   const controlRef = useRef(null)
   const [useSimple, setUseSimple] = useState(false)
@@ -135,7 +136,7 @@ function LargeView({ prefs, update, live, status, botAudioId, reducedMotion, web
   const [search2, setSearch] = useState('')
   const [favOnly, setFavOnly] = useState(false)
   const [, bump] = useState(0)
-  const [fullscreen, setFullscreen] = useState(!!document.fullscreenElement)
+  const [fullscreen, setFullscreen] = useState(false) // 'Full window': covers the rail and title bar too
   const [awake, setAwake] = useState(true) // the buttons are showing
   const flashTimer = useRef(null)
   const idleTimer = useRef(null)
@@ -163,29 +164,22 @@ function LargeView({ prefs, update, live, status, botAudioId, reducedMotion, web
       if (!overControls.current && !typing) setAwake(false)
     }, HIDE_AFTER_MS)
   }, [])
+  // the buttons only fade in full window; windowed, they stay
   useEffect(() => {
-    const onChange = () => {
-      const fs = !!document.fullscreenElement
-      setFullscreen(fs)
-      if (fs) wake()
-      else {
-        clearTimeout(idleTimer.current)
-        setAwake(true)
-      }
-    }
-    document.addEventListener('fullscreenchange', onChange)
-    return () => {
-      document.removeEventListener('fullscreenchange', onChange)
+    if (fullscreen) wake()
+    else {
       clearTimeout(idleTimer.current)
+      setAwake(true)
     }
-  }, [wake])
+    return () => clearTimeout(idleTimer.current)
+  }, [fullscreen, wake])
   const controlsShowing = !fullscreen || awake || listOpen || !!results
 
   useEffect(() => {
     const onKey = (e) => {
       if (fullscreen) wake()
       const typing = e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)
-      if (e.key === 'Escape' && !document.fullscreenElement) {
+      if (e.key === 'Escape') {
         if (results) setResults(null)
         else onClose()
       } else if (!typing && e.key === 'ArrowRight') controlRef.current?.next()
@@ -195,15 +189,7 @@ function LargeView({ prefs, update, live, status, botAudioId, reducedMotion, web
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose, fullscreen, wake, results])
 
-  // leave full screen when the large view goes away
-  useEffect(() => () => {
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
-  }, [])
-
-  function toggleFullscreen() {
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
-    else rootRef.current?.requestFullscreen?.().catch(() => {})
-  }
+  const toggleFullscreen = () => setFullscreen((f) => !f)
 
   async function runSearch(e) {
     e.preventDefault()
@@ -235,9 +221,22 @@ function LargeView({ prefs, update, live, status, botAudioId, reducedMotion, web
   const toggleFav = (name) => update({ favourites: prefs.favourites.includes(name) ? prefs.favourites.filter((n) => n !== name) : [...prefs.favourites, name] })
   const nextSimple = () => update({ style: simpleStyle === 'bars' ? 'wave' : 'bars' })
 
-  return (
+  // windowed, the big view fills everything right of the server rail (so the rail and its unread bubbles stay in
+  // view); 'Full window' covers the whole window
+  const host = document.querySelector('.rail-content')
+  const fade = controlsShowing ? '' : ' hidden'
+  const hoverProps = {
+    onMouseEnter: () => (overControls.current = true),
+    onMouseLeave: () => {
+      overControls.current = false
+      if (fullscreen) wake()
+    }
+  }
+  const pl = player && player.track ? player : null
+
+  const view = (
     <div
-      className={'viz-large' + (controlsShowing ? '' : ' viz-idle')}
+      className={'viz-large' + (fullscreen ? ' viz-full' : ' viz-windowed') + (host ? '' : ' viz-nohost') + (controlsShowing ? '' : ' viz-idle')}
       ref={rootRef}
       role="dialog"
       aria-label="Visualizer"
@@ -258,40 +257,71 @@ function LargeView({ prefs, update, live, status, botAudioId, reducedMotion, web
       />
       {flash && <div className="viz-flash">{flash}</div>}
       {status && <div className="viz-message viz-message-large">{status}</div>}
-      <div
-        className={'viz-controls' + (controlsShowing ? '' : ' hidden')}
-        onMouseEnter={() => (overControls.current = true)}
-        onMouseLeave={() => {
-          overControls.current = false
-          if (fullscreen) wake()
-        }}
-      >
+
+      <div className={'viz-controls viz-top' + fade} {...hoverProps}>
         {milkdrop ? (
           <>
-            <button type="button" className="btn-secondary np-btn" onClick={() => controlRef.current?.previous()}>previous</button>
-            <button type="button" className="btn-secondary np-btn" onClick={() => controlRef.current?.next()}>next</button>
-            <button type="button" className="btn-secondary np-btn" aria-pressed={prefs.shuffle} onClick={() => update({ shuffle: !prefs.shuffle })}>
-              shuffle: {prefs.shuffle ? 'on' : 'off'}
+            <button type="button" className="viz-btn viz-sq" aria-label="previous" title="Previous visual" onClick={() => controlRef.current?.previous()}>
+              <Icon name="back" size={18} strokeWidth={2} />
             </button>
-            <button type="button" className="btn-secondary np-btn" onClick={() => setListOpen((o) => !o)}>presets</button>
-            <button type="button" className="btn-secondary np-btn" disabled={!current} onClick={() => toggleFav(current)}>{isFav ? 'unfavourite' : 'favourite'}</button>
+            <button type="button" className="viz-btn viz-sq" aria-label="next" title="Next visual" onClick={() => controlRef.current?.next()}>
+              <Icon name="forward" size={18} strokeWidth={2} />
+            </button>
+            <button type="button" className="viz-btn" aria-pressed={prefs.shuffle} aria-label={'shuffle: ' + (prefs.shuffle ? 'on' : 'off')} onClick={() => update({ shuffle: !prefs.shuffle })}>
+              Shuffle
+            </button>
+            <button type="button" className="viz-btn viz-sq" aria-label={isFav ? 'unfavourite' : 'favourite'} title={isFav ? 'Remove from favourites' : 'Add to favourites'} disabled={!current} aria-pressed={!!isFav} onClick={() => toggleFav(current)}>
+              <Icon name="star" size={18} strokeWidth={2} />
+            </button>
+            <button type="button" className="viz-btn" aria-label="presets" aria-pressed={listOpen} onClick={() => setListOpen((o) => !o)}>
+              Presets
+            </button>
           </>
         ) : (
           <>
-            <button type="button" className="btn-secondary np-btn" onClick={nextSimple}>style: {simpleStyle}</button>
             <span className="viz-note">
               {!webgl ? 'This computer cannot run the full visualizer (it needs WebGL 2), so the simple styles are shown.' : reducedMotion ? 'Reduced motion is on in your system settings, so only the calm styles are shown.' : 'The full visualizer could not start, so the simple styles are shown.'}
             </span>
+            <button type="button" className="viz-btn" onClick={nextSimple}>style: {simpleStyle}</button>
           </>
         )}
-        <button type="button" className="btn-secondary np-btn" onClick={toggleFullscreen}>{fullscreen ? 'exit full screen' : 'full screen'}</button>
-        <button type="button" className="btn-secondary np-btn" onClick={onClose}>close (Esc)</button>
+        <button type="button" className="viz-btn" aria-label={fullscreen ? 'exit full window' : 'full window'} onClick={toggleFullscreen}>
+          {fullscreen ? 'Exit full window' : 'Full window'}
+        </button>
+        <button type="button" className="viz-btn viz-sq" aria-label="close (Esc)" title="Close (Esc)" onClick={onClose}>
+          <Icon name="close" size={18} strokeWidth={2} />
+        </button>
+      </div>
+
+      <div className={'viz-controls viz-bottom' + fade} {...hoverProps}>
+        <div className="viz-track">
+          {pl && (
+            <>
+              <div className="viz-track-title">{pl.track.title}</div>
+              <div className="viz-track-artist">{[pl.track.artist, pl.track.album].filter(Boolean).join(' · ')}</div>
+            </>
+          )}
+        </div>
+        {pl && pl.canControl && (
+          <div className="viz-transport">
+            <button type="button" className="viz-round" aria-label="prev" title="Restart the song; press again within 3 seconds to go back one" onClick={() => pl.act({ action: 'previous' })}>
+              <Icon name="prev" size={16} strokeWidth={2} />
+            </button>
+            <button type="button" className="viz-round viz-main" aria-label={pl.paused ? 'play' : 'pause'} onClick={() => pl.act({ action: pl.paused ? 'resume' : 'pause' })}>
+              <Icon name={pl.paused ? 'play' : 'pause'} size={20} strokeWidth={2} />
+            </button>
+            <button type="button" className="viz-round" aria-label="skip" title="Skip this song" onClick={() => pl.act({ action: 'skip' })}>
+              <Icon name="next" size={16} strokeWidth={2} />
+            </button>
+          </div>
+        )}
         {search && search.canSearch && (
           <form className="viz-search" onSubmit={runSearch}>
             <input value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="Search for a song" aria-label="Search for a song" />
-            <button type="submit" className="btn-secondary np-btn" disabled={searching || !searchText.trim()}>Search</button>
+            <button type="submit" className="viz-btn" disabled={searching || !searchText.trim()}>Search</button>
           </form>
         )}
+        <span className="viz-esc">Esc to close</span>
       </div>
       {(results || searchError) && (
         <div className="viz-results" onMouseEnter={() => (overControls.current = true)} onMouseLeave={() => (overControls.current = false)}>
@@ -339,6 +369,7 @@ function LargeView({ prefs, update, live, status, botAudioId, reducedMotion, web
       )}
     </div>
   )
+  return host ? createPortal(view, host) : view
 }
 
 export default Visualizer

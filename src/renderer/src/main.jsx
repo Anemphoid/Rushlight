@@ -6,6 +6,7 @@ import './styles/skins/slate.css'
 import './index.css'
 import './styles/components.css'
 import './styles/server-view.css'
+import './styles/viz-view.css'
 import App from './App'
 
 // The style gallery exists in development builds only: `import.meta.env.DEV` is a build-time constant, so a

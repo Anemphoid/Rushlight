@@ -1,0 +1,207 @@
+/* The big visualizer view. Windowed it fills everything right of the server rail (so the rail, with its unread
+   bubbles, stays visible); "Full window" covers the whole window. Esc closes either. */
+
+.rail-content {
+  position: relative;
+}
+.viz-large.viz-windowed {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+}
+.viz-large.viz-windowed.viz-nohost {
+  position: fixed;
+  top: var(--title-bar-height);
+}
+.viz-large.viz-full {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.viz-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  padding: 0 24px;
+}
+.viz-controls.viz-top {
+  top: 0;
+  bottom: auto;
+  height: 80px;
+  justify-content: flex-end;
+  background: linear-gradient(rgba(0, 0, 0, 0.5), transparent);
+}
+.viz-controls.viz-bottom {
+  height: 80px;
+  gap: 16px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+}
+.viz-btn {
+  width: auto;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 54px;
+  min-width: 54px;
+  padding: 0 18px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--dur-fast), border-color var(--dur-fast);
+}
+.viz-btn.viz-sq {
+  padding: 0;
+}
+.viz-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+}
+.viz-btn[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent-hover);
+}
+.viz-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.viz-note {
+  flex: 1;
+  margin-right: auto;
+  font-size: 0.75rem;
+  color: #ccc;
+}
+.viz-track {
+  min-width: 0;
+  flex: 0 1 280px;
+}
+.viz-track-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.viz-track-artist {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.7);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.viz-transport {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.viz-round {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  cursor: pointer;
+}
+.viz-round:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+.viz-round.viz-main {
+  width: 64px;
+  height: 64px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.viz-round.viz-main:hover {
+  background: var(--accent-hover);
+}
+.viz-controls.viz-bottom .viz-search {
+  margin-left: auto;
+}
+.viz-controls.viz-bottom .viz-search input {
+  height: 40px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  padding: 0 12px;
+}
+.viz-controls.viz-bottom .viz-search .viz-btn {
+  height: 40px;
+  min-width: 0;
+  padding: 0 14px;
+  font-size: 0.875rem;
+}
+.viz-esc {
+  margin-left: auto;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+}
+.viz-search + .viz-esc {
+  margin-left: 0;
+}
+.viz-list {
+  top: 80px;
+  bottom: 80px;
+  right: 24px;
+  border-radius: var(--radius-md);
+}
+.viz-results {
+  bottom: 88px;
+  right: 24px;
+}
+
+/* ---- unread bubble on a server icon ---- */
+.rail-item {
+  position: relative;
+  flex: none;
+}
+.rail-bubble {
+  position: absolute;
+  top: -8px;
+  right: -10px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  background: var(--bubble);
+  color: var(--on-bubble);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  box-shadow: 0 0 0 3px var(--bg-rail);
+  pointer-events: none;
+  animation: bubble-pop 420ms var(--ease-out);
+}
+@keyframes bubble-pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.18);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rail-bubble {
+    animation: none;
+  }
+}

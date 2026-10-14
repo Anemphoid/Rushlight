@@ -294,6 +294,7 @@ function NowPlayingPanel({ sessionToken, serverId, space, voiceOnly = false }) {
             botAudioId={v.botAudioId}
             deafened={v.deafened}
             onEnabledChange={setVizOn}
+            player={{ track: playing || null, paused: st.state === 'paused', canControl, act }}
             search={{ canSearch: canControl, run: async (q) => (await api.searchMusic(sessionToken, serverId, q)).results, act: (b) => act(b, { rethrow: true }) }}
           />
         </div>

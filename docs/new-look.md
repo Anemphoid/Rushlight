@@ -107,3 +107,12 @@ Motion in Jellybox: the cover and the song title slide between the big layout an
 queue rows rise in, and the progress bar and knob glide between polls. All of it is off under reduced motion. The screenshot
 tool normally switches animation off so pictures match; `UI_SHOTS_MOTION=1` leaves it on and prints the cover width part way
 through the switch (256 -> 193 at 120 ms -> 64). The rest of the app gets its motion in the later motion pass.
+
+## Big visualizer view and the unread bubble
+
+The big view is windowed by default: portalled into `.rail-content`, so it covers everything right of the server rail. "Full window"
+covers the whole window, including the rail and title bar (it no longer uses the browser's full screen), and Esc closes either. Top
+right: previous, next, Shuffle, favourite, Presets, Full window, close. Bottom: the track, prev/pause/skip for admins, the song
+search for admins, "Esc to close". In full window the buttons fade after 3 s as before. The red bubble on a server icon (`--bubble`,
+the same in every skin, white text above 4.5 to 1) counts unread messages the app has already checked, which is the open server;
+other servers show none until the server reports unread totals (a server change, see the backlog).
