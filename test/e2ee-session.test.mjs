@@ -184,3 +184,43 @@ test('after a removal only an admin starts the new key, and everyone else picks 
   await w.refresh(bystander, false)
   assert.deepEqual(w.status(), { state: 'ready', epoch: 2 })
 })
+
+test('an opened picture message carries its type, shape and key; a message that lies about its picture is unreadable', async () => {
+  const w = await world()
+  await w.refresh(w.owner, true)
+  const bytes = new Uint8Array(1500).fill(7)
+  const body = await session.sealPictureFor(w.owner.id, w.server.id, w.space, w.owner.id, bytes, { mime: 'image/webp', width: 320, height: 200 }, 'look')
+  await api.postImage(w.owner.token, 'channel', w.channel.id, new Blob([body], { type: 'application/x-rushlight-sealed' }), {})
+  const raw = await api.getMessages(w.owner.token, 'channel', w.channel.id)
+  assert.equal(raw[0].image.sealed, true)
+  assert.equal(raw[0].image.width, 0, 'the server does not know the shape')
+  const [opened] = await session.openMessages(w.owner.id, w.server.id, w.space, raw)
+  assert.equal(opened.text, 'look')
+  assert.deepEqual({ ...opened.image, key: typeof opened.image.key }, { id: raw[0].image.id, sealed: true, mime: 'image/webp', width: 320, height: 200, key: 'string' })
+  // the same picture message on a computer without the key: unreadable, and no picture to fetch
+  const [blind] = await session.openMessages(w.member.id, w.server.id, w.space, raw)
+  assert.equal(blind.locked, 'no_key')
+  assert.equal(blind.image, null)
+
+  // a text message whose server record claims a picture (the server, or someone, adding one): not shown
+  const plainText = await session.seal(w.owner.id, w.server.id, w.space, w.owner.id, 'just words')
+  const [fake] = await session.openMessages(w.owner.id, w.server.id, w.space, [{ id: 777, authorId: w.owner.id, encrypted: true, text: plainText, image: { id: 5, sealed: true } }])
+  assert.equal(fake.locked, 'cannot_open')
+  assert.equal(fake.image, null)
+})
+
+test('a picture notification says a picture was sent and nothing more', async () => {
+  const sent = []
+  globalThis.Notification = class {
+    constructor(title, opts) {
+      sent.push(opts.body)
+    }
+  }
+  globalThis.document = { hasFocus: () => false }
+  const unread = await import('../src/renderer/src/unread.js')
+  const key = unread.scopedKey(9, 'channel:1')
+  const base = [{ id: 1, authorId: 2, author: 'Mia', text: 'x', encrypted: true }]
+  unread.observe({ key, title: 'S', messages: base, isOpen: false, selfId: 1 })
+  unread.observe({ key, title: 'S', messages: [...base, { id: 2, authorId: 2, author: 'Mia', text: 'rl1.1.AAAAAAAAAAAAAAAA.BBBBBBBBBBBBBBBBBBBBBB', encrypted: true, image: { id: 3, sealed: true } }], isOpen: false, selfId: 1 })
+  assert.equal(sent.at(-1), 'Mia: sent a picture')
+})

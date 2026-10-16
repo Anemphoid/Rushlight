@@ -7,7 +7,7 @@ import assert from 'node:assert/strict'
 import { startServer, installBridge, openServerDb, rejection } from './helpers.mjs'
 import { createKeyManager } from '../src/renderer/src/e2ee/keys.js'
 import { memoryStore } from '../src/renderer/src/e2ee/keystore.js'
-import { CryptoProblem } from '../src/renderer/src/e2ee/crypto.js'
+import { CryptoProblem, pictureInfo, openPicture } from '../src/renderer/src/e2ee/crypto.js'
 
 let srv
 let api
@@ -241,4 +241,94 @@ test('forgetting everything on a computer leaves nothing to read with', async ()
   await w.member.keys.forgetAll()
   assert.deepEqual(await w.member.keys.epochsHeld(w.server.id), [])
   assert.equal(await w.member.store.getDevice(`${srv.url}|${w.member.id}`), null)
+})
+
+// --- pictures ---
+const MARK = Buffer.from('PICTURE-MARKER-0123456789')
+const fakePicture = (n) => {
+  const b = Buffer.alloc(n)
+  for (let i = 0; i < n; i += 65536) crypto.getRandomValues(b.subarray(i, Math.min(n, i + 65536)))
+  MARK.copy(b, 0)
+  return new Uint8Array(b)
+}
+const SEALED = 'application/x-rushlight-sealed'
+async function sendPicture(w, who, bytes, caption = '') {
+  const body = await who.keys.sealImage(w.server.id, { ...where(w), authorId: who.id }, bytes, { mime: 'image/png', width: 64, height: 48 }, caption)
+  return api.postImage(who.token, 'channel', w.channel.id, new Blob([body], { type: SEALED }), { avatarColor: '#abcdef' })
+}
+// what a reader's computer does with a picture message
+async function openPictureOf(w, who, message) {
+  const body = await who.keys.openBody(w.server.id, { ...where(w), authorId: message.authorId }, message.text)
+  const info = pictureInfo(body)
+  const stored = await api.fetchChatImageBytes(who.token, message.image.id)
+  return { caption: body.t, info, bytes: await openPicture(stored, info.key), stored }
+}
+
+test('a picture goes to the server sealed, and the other member opens it', async () => {
+  const w = await world()
+  await w.owner.keys.startEpoch(w.owner.token, w.server.id)
+  await w.member.keys.syncKeys(w.member.token, w.server.id)
+  const bytes = fakePicture(300000)
+  const sent = await sendPicture(w, w.member, bytes, 'the plan')
+  assert.equal(sent.encrypted, true)
+  assert.equal(sent.image.sealed, true)
+
+  const [m] = await api.getMessages(w.owner.token, 'channel', w.channel.id)
+  const got = await openPictureOf(w, w.owner, m)
+  assert.equal(got.caption, 'the plan')
+  assert.deepEqual({ mime: got.info.mime, width: got.info.width, height: got.info.height }, { mime: 'image/png', width: 64, height: 48 })
+  assert.deepEqual(got.bytes, bytes)
+
+  // what the server holds: scrambled bytes of the right length, a sealed type, no shape, and a sealed caption
+  const [row] = rows('SELECT mime, width, height, size, data FROM message_images')
+  assert.deepEqual({ mime: row.mime, width: row.width, height: row.height, size: row.size }, { mime: SEALED, width: 0, height: 0, size: bytes.length + 28 })
+  assert.equal(Buffer.from(row.data).indexOf(MARK), -1)
+  assert.ok(!JSON.stringify(rows('SELECT text FROM messages')).includes('the plan'))
+})
+
+test("the server cannot hand back one picture for another: each opens only with its own message's key", async () => {
+  const w = await world()
+  await w.owner.keys.startEpoch(w.owner.token, w.server.id)
+  await w.member.keys.syncKeys(w.member.token, w.server.id)
+  await sendPicture(w, w.member, fakePicture(2000), 'first')
+  await sendPicture(w, w.member, fakePicture(2000), 'second')
+  const [a, b] = await api.getMessages(w.owner.token, 'channel', w.channel.id)
+  const infoB = pictureInfo(await w.owner.keys.openBody(w.server.id, { ...where(w), authorId: b.authorId }, b.text))
+  const storedA = await api.fetchChatImageBytes(w.owner.token, a.image.id)
+  const swapped = await rejection(openPicture(storedA, infoB.key))
+  assert.equal(swapped.code, 'cannot_open')
+})
+
+test('a person who joins later reads old pictures once handed the key, and a removed one cannot open new ones', async () => {
+  const w = await world()
+  await w.owner.keys.startEpoch(w.owner.token, w.server.id)
+  await w.member.keys.syncKeys(w.member.token, w.server.id)
+  const bytes = fakePicture(4000)
+  await sendPicture(w, w.owner, bytes, 'old')
+
+  const late = await w.join('late')
+  await late.keys.ensureDevice(late.token)
+  await w.owner.keys.shareKeys(w.owner.token, w.server.id)
+  await late.keys.syncKeys(late.token, w.server.id)
+  const [m] = await api.getMessages(late.token, 'channel', w.channel.id)
+  assert.deepEqual((await openPictureOf(w, late, m)).bytes, bytes)
+
+  await api.kickMember(w.owner.token, w.server.id, w.member.id)
+  await w.owner.keys.startEpoch(w.owner.token, w.server.id)
+  await late.keys.syncKeys(late.token, w.server.id)
+  await sendPicture(w, late, fakePicture(3000), 'after the kick')
+  const newest = (await api.getMessages(w.owner.token, 'channel', w.channel.id)).at(-1)
+  const cannot = await rejection(w.member.keys.openBody(w.server.id, { ...where(w), authorId: late.id }, newest.text))
+  assert.equal(cannot.code, 'no_key')
+  assert.equal((await openPictureOf(w, w.owner, newest)).caption, 'after the kick')
+})
+
+test('a plain picture is refused by an encrypted server, in the server\'s own words', async () => {
+  const w = await world()
+  await w.owner.keys.startEpoch(w.owner.token, w.server.id)
+  const before = rows('SELECT COUNT(*) AS n FROM message_images')[0].n
+  const err = await rejection(api.postImage(w.owner.token, 'channel', w.channel.id, new Blob([fakePicture(500)], { type: 'image/png' }), { text: 'sneaky' }))
+  assert.equal(err.status, 400)
+  assert.equal(err.reason, 'encryption_required')
+  assert.equal(rows('SELECT COUNT(*) AS n FROM message_images')[0].n, before)
 })

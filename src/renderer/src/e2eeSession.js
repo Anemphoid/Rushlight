@@ -9,6 +9,7 @@
 //                  'problem'  something failed (status.message)
 import * as api from './api.js'
 import { createKeyManager } from './e2ee/keys.js'
+import { pictureInfo } from './e2ee/crypto.js'
 import { defaultStore } from './e2ee/keystore.js'
 
 const store = defaultStore()
@@ -17,7 +18,7 @@ let statuses = {} // serverId -> status
 const listeners = new Set()
 const inFlight = new Map() // serverId -> promise
 const lastShare = new Map() // serverId -> time keys were last offered to other devices
-const plain = new Map() // "<accountId>:<serverId>:<messageId>" -> opened text; messages never change, but only their reader may see it
+const plain = new Map() // "<accountId>:<serverId>:<messageId>" -> opened body ({ t, img? }); messages never change, but only their reader may see it
 const SHARE_EVERY_MS = 4000 // about every check of the server (5 s): a new member or computer should not wait long
 
 export function subscribe(l) {
@@ -84,23 +85,38 @@ export async function openMessages(accountId, serverId, space, messages) {
       continue
     }
     const cacheKey = `${accountId}:${serverId}:${m.id}`
-    if (plain.has(cacheKey)) {
-      out.push({ ...m, text: plain.get(cacheKey) })
+    let body = plain.get(cacheKey)
+    if (!body) {
+      try {
+        body = await mgr.openBody(serverId, { type: space.type, spaceId: space.id, authorId: m.authorId }, m.text)
+        plain.set(cacheKey, body)
+      } catch (err) {
+        out.push({ ...m, text: '', image: null, locked: err.code === 'no_key' ? 'no_key' : 'cannot_open' })
+        continue
+      }
+    }
+    if (m.image && m.image.sealed) {
+      // The picture's type, shape and key are inside the sealed text. A message that says nothing usable about
+      // its picture is shown as unreadable, never fetched.
+      const info = pictureInfo(body)
+      if (!info) {
+        out.push({ ...m, text: '', image: null, locked: 'cannot_open' })
+        continue
+      }
+      out.push({ ...m, text: body.t, image: { id: m.image.id, sealed: true, mime: info.mime, width: info.width, height: info.height, key: info.key } })
       continue
     }
-    try {
-      const text = await mgr.open(serverId, { type: space.type, spaceId: space.id, authorId: m.authorId }, m.text)
-      plain.set(cacheKey, text)
-      out.push({ ...m, text })
-    } catch (err) {
-      out.push({ ...m, text: '', locked: err.code === 'no_key' ? 'no_key' : 'cannot_open' })
-    }
+    out.push({ ...m, text: body.t })
   }
   return out
 }
 
 // Seals text for sending. Throws a CryptoProblem with code 'no_key' if this computer has no key yet.
 export const seal = (accountId, serverId, space, authorId, text) => manager(accountId).seal(serverId, { type: space.type, spaceId: space.id, authorId }, text)
+
+// Seals a picture for sending: returns the body to upload. Throws a CryptoProblem ('no_key' ...).
+export const sealPictureFor = (accountId, serverId, space, authorId, bytes, info, caption) =>
+  manager(accountId).sealImage(serverId, { type: space.type, spaceId: space.id, authorId }, bytes, info, caption)
 
 // Signing out: forget everything held in memory (opened text, key status). The keys on disk stay, so signing
 // back in picks up where it left off.

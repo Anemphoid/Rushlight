@@ -15,6 +15,10 @@ import {
   sealMessage,
   openMessage,
   messageEpoch,
+  openPayload,
+  sealPicture,
+  openPicture,
+  pictureInfo,
   MAX_PLAINTEXT_BYTES
 } from '../src/renderer/src/e2ee/crypto.js'
 
@@ -165,4 +169,110 @@ test('the voice key is 32 bytes, repeatable, and different per space, server and
     assert.notDeepEqual(new Uint8Array(await deriveVoiceKey(key, { ...base, ...change })), a)
   }
   assert.notDeepEqual(new Uint8Array(await deriveVoiceKey(newServerKey(), base)), a)
+})
+
+// --- pictures ---
+const info = { mime: 'image/png', width: 200, height: 120 }
+const MARKER = new Uint8Array(24).fill(0xab)
+const pictureBytes = (n) => {
+  const b = new Uint8Array(n)
+  for (let i = 0; i < n; i += 65536) crypto.getRandomValues(b.subarray(i, Math.min(n, i + 65536))) // 64 KB at a time at most
+  b.set(MARKER.subarray(0, Math.min(24, n)), 0)
+  return b
+}
+// pulls the upload apart the way the server does
+function unframe(body) {
+  const n = new DataView(body.buffer, body.byteOffset).getUint32(0)
+  const text = new TextDecoder().decode(body.subarray(4, 4 + n))
+  return { text, picture: body.subarray(4 + n) }
+}
+
+test('a sealed picture round-trips through the caption message and the picture key it carries', async () => {
+  const key = newServerKey()
+  for (const n of [1, 100, 70000, 3 * 1024 * 1024]) {
+    const bytes = pictureBytes(n)
+    const body = await sealPicture(key, space, bytes, info, 'my caption')
+    const { text, picture } = unframe(body)
+    assert.match(text, SERVER_ENVELOPE)
+    assert.equal(picture.length, 12 + n + 16, 'nonce + ciphertext + tag')
+    const payload = await openPayload(key, space, text)
+    assert.equal(payload.t, 'my caption')
+    const found = pictureInfo(payload)
+    assert.deepEqual({ mime: found.mime, width: found.width, height: found.height }, info)
+    assert.deepEqual(await openPicture(picture, found.key), bytes)
+  }
+})
+
+test('a picture without a caption is fine, and nothing recognisable is left in what the server sees', async () => {
+  const key = newServerKey()
+  const bytes = new Uint8Array(5000).fill(0xab) // an obvious pattern: it must not survive
+  const body = await sealPicture(key, space, bytes, info)
+  const { text, picture } = unframe(body)
+  assert.equal((await openPayload(key, space, text)).t, '')
+  const hay = Buffer.from(body)
+  assert.equal(hay.indexOf(Buffer.from(MARKER)), -1)
+  assert.ok(!text.includes('image/png'), 'the type is inside the seal')
+  assert.ok(picture.length === 12 + 5000 + 16)
+})
+
+test('every picture has its own key, so one cannot be passed off as another', async () => {
+  const key = newServerKey()
+  const a = unframe(await sealPicture(key, space, pictureBytes(500), info))
+  const b = unframe(await sealPicture(key, space, pictureBytes(500), info))
+  const ka = pictureInfo(await openPayload(key, space, a.text)).key
+  const kb = pictureInfo(await openPayload(key, space, b.text)).key
+  assert.notEqual(ka, kb)
+  await problem(openPicture(a.picture, kb), 'cannot_open') // the server handing back B's bytes for A's message
+  await problem(openPicture(b.picture, ka), 'cannot_open')
+})
+
+test('a changed, cut or empty sealed picture does not open', async () => {
+  const key = newServerKey()
+  const { text, picture } = unframe(await sealPicture(key, space, pictureBytes(800), info))
+  const k = pictureInfo(await openPayload(key, space, text)).key
+  for (const i of [0, 11, 12, 400, picture.length - 1]) {
+    const bent = new Uint8Array(picture)
+    bent[i] ^= 1
+    await problem(openPicture(bent, k), 'cannot_open')
+  }
+  await problem(openPicture(picture.subarray(0, picture.length - 1), k), 'cannot_open')
+  await problem(openPicture(new Uint8Array(10), k), 'cannot_open')
+  await problem(openPicture(picture, 'not-a-key'), 'cannot_open')
+})
+
+test("a picture's message only opens for its own author and space", async () => {
+  const key = newServerKey()
+  const { text } = unframe(await sealPicture(key, space, pictureBytes(300), info, 'hi'))
+  await problem(openPayload(key, { ...space, authorId: 6 }, text), 'cannot_open')
+  await problem(openPayload(key, { ...space, spaceId: 4 }, text), 'cannot_open')
+})
+
+test('only real picture types and sizes are trusted from a message', async () => {
+  const k = 'A'.repeat(43)
+  const good = { img: { m: 'image/jpeg', w: 10, h: 20, k, n: 5 } }
+  assert.deepEqual(pictureInfo(good), { mime: 'image/jpeg', width: 10, height: 20, key: k })
+  const bad = [
+    null,
+    {},
+    { img: null },
+    { img: { ...good.img, m: 'text/html' } },
+    { img: { ...good.img, m: 'image/svg+xml' } },
+    { img: { ...good.img, m: 'image/gif' } },
+    { img: { ...good.img, w: 0 } },
+    { img: { ...good.img, h: -3 } },
+    { img: { ...good.img, w: 1.5 } },
+    { img: { ...good.img, w: '10' } },
+    { img: { ...good.img, w: 20001 } },
+    { img: { ...good.img, k: 'short' } },
+    { img: { ...good.img, k: 'A'.repeat(42) + '+' } },
+    { img: { ...good.img, k: 12 } }
+  ]
+  for (const b of bad) assert.equal(pictureInfo(b), null, JSON.stringify(b))
+})
+
+test('nothing is sealed for an empty picture, a type the app does not send, or something that is not bytes', async () => {
+  const key = newServerKey()
+  await problem(sealPicture(key, space, new Uint8Array(0), info), 'empty')
+  await problem(sealPicture(key, space, 'text', info), 'empty')
+  for (const mime of ['image/gif', 'text/html', 'image/svg+xml', '', undefined]) await problem(sealPicture(key, space, pictureBytes(10), { ...info, mime }), 'bad_picture')
 })

@@ -123,16 +123,21 @@ export const deriveVoiceKey = (serverKey, space) => derive(serverKey, spaceInfo(
 
 const messageAad = ({ serverId, type, spaceId, epoch, authorId }) => enc.encode(`rl1|${serverId}|${type}|${spaceId}|${epoch}|${authorId}`)
 
-// Seals chat text. The author, space and epoch are authenticated, so the server cannot present the same
-// ciphertext as another person's, or in another space.
-export async function sealMessage(serverKey, ctx, text) {
-  if (typeof text !== 'string' || !text.trim()) throw new CryptoProblem('empty', 'Message text is required')
-  const plain = enc.encode(JSON.stringify({ v: 1, t: text }))
+// Seals a message body. `payload` is { t: text, img?: {...} }; the author, space and epoch are authenticated, so
+// the server cannot present the same ciphertext as another person's, or in another space.
+async function sealPayload(serverKey, ctx, payload) {
+  const plain = enc.encode(JSON.stringify({ v: 1, ...payload }))
   if (plain.length > MAX_PLAINTEXT_BYTES) throw new CryptoProblem('too_long', 'Message is too long')
   const key = await deriveSpaceKey(serverKey, ctx)
   const nonce = randomBytes(12)
   const sealed = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv: nonce, additionalData: messageAad(ctx) }, key, plain))
   return `rl1.${ctx.epoch}.${toB64u(nonce)}.${toB64u(sealed)}`
+}
+
+// Seals chat text.
+export async function sealMessage(serverKey, ctx, text) {
+  if (typeof text !== 'string' || !text.trim()) throw new CryptoProblem('empty', 'Message text is required')
+  return sealPayload(serverKey, ctx, { t: text })
 }
 
 const ENVELOPE = /^rl1\.(\d{1,9})\.([A-Za-z0-9_-]{16})\.([A-Za-z0-9_-]{22,})$/
@@ -141,9 +146,9 @@ export function messageEpoch(text) {
   return m ? Number(m[1]) : null
 }
 
-// Opens chat text. Returns the string, or throws CryptoProblem('cannot_open'): wrong key, wrong author or
-// space, or altered. ctx.epoch is taken from the message itself.
-export async function openMessage(serverKey, ctx, text) {
+// Opens a message body: { t, img? }. Throws CryptoProblem('cannot_open'): wrong key, wrong author or space, or
+// altered. ctx.epoch is taken from the message itself.
+export async function openPayload(serverKey, ctx, text) {
   const m = typeof text === 'string' ? ENVELOPE.exec(text) : null
   if (!m) throw new CryptoProblem('cannot_open', 'Not an encrypted message')
   const full = { ...ctx, epoch: Number(m[1]) }
@@ -152,8 +157,65 @@ export async function openMessage(serverKey, ctx, text) {
     const plain = await subtle.decrypt({ name: 'AES-GCM', iv: fromB64u(m[2]), additionalData: messageAad(full) }, key, fromB64u(m[3]))
     const body = JSON.parse(dec.decode(plain))
     if (!body || body.v !== 1 || typeof body.t !== 'string') throw new Error('shape')
-    return body.t
+    return body
   } catch {
     throw new CryptoProblem('cannot_open', 'This message could not be opened')
+  }
+}
+
+// Opens chat text: the string.
+export async function openMessage(serverKey, ctx, text) {
+  return (await openPayload(serverKey, ctx, text)).t
+}
+
+// --- pictures ---
+// A picture is sealed with a key of its own (fresh for every picture); that key, its type and its shape travel
+// inside the sealed message text, so only people who can open the message can open the picture, and the server
+// can neither swap one picture for another nor learn what it is. The upload is one body (Rushlight-Server
+// src/e2ee.js): 4 bytes length of the message text, the message text, then nonce (12) + ciphertext + tag (16).
+export const PICTURE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const PICTURE_AAD = enc.encode('rl1img')
+const MAX_SIDE_VALUE = 20000
+
+// Returns the body to upload. `info` = { mime, width, height }; the caption may be empty.
+export async function sealPicture(serverKey, ctx, bytes, info, caption = '') {
+  if (!(bytes instanceof Uint8Array) || bytes.length === 0) throw new CryptoProblem('empty', 'No picture')
+  if (!PICTURE_TYPES.includes(info.mime)) throw new CryptoProblem('bad_picture', "That kind of picture can't be sent")
+  const pictureKey = randomBytes(32)
+  const nonce = randomBytes(12)
+  const key = await subtle.importKey('raw', pictureKey, 'AES-GCM', false, ['encrypt'])
+  const sealed = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv: nonce, additionalData: PICTURE_AAD }, key, bytes))
+  const text = await sealPayload(serverKey, ctx, {
+    t: caption,
+    img: { m: info.mime, w: info.width, h: info.height, k: toB64u(pictureKey), n: bytes.length }
+  })
+  const textBytes = enc.encode(text)
+  const out = new Uint8Array(4 + textBytes.length + 12 + sealed.length)
+  new DataView(out.buffer).setUint32(0, textBytes.length)
+  out.set(textBytes, 4)
+  out.set(nonce, 4 + textBytes.length)
+  out.set(sealed, 4 + textBytes.length + 12)
+  return out
+}
+
+// What a message says about its picture, once opened: { mime, width, height, key }, or null if it says nothing
+// usable (so a bad or hostile message can never make the app fetch or draw something odd).
+export function pictureInfo(payload) {
+  const i = payload && payload.img
+  if (!i || !PICTURE_TYPES.includes(i.m)) return null
+  const ok = (v) => Number.isInteger(v) && v >= 1 && v <= MAX_SIDE_VALUE
+  if (!ok(i.w) || !ok(i.h) || typeof i.k !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(i.k)) return null
+  return { mime: i.m, width: i.w, height: i.h, key: i.k }
+}
+
+// Opens the bytes the server returns for a sealed picture. Throws CryptoProblem('cannot_open').
+export async function openPicture(sealedBytes, pictureKey) {
+  try {
+    const bytes = sealedBytes instanceof Uint8Array ? sealedBytes : new Uint8Array(sealedBytes)
+    if (bytes.length < 12 + 16 + 1) throw new Error('size')
+    const key = await subtle.importKey('raw', fromB64u(pictureKey), 'AES-GCM', false, ['decrypt'])
+    return new Uint8Array(await subtle.decrypt({ name: 'AES-GCM', iv: bytes.subarray(0, 12), additionalData: PICTURE_AAD }, key, bytes.subarray(12)))
+  } catch {
+    throw new CryptoProblem('cannot_open', 'This picture could not be opened')
   }
 }

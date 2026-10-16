@@ -10,6 +10,8 @@ import {
   unwrapServerKey,
   sealMessage,
   openMessage,
+  openPayload,
+  sealPicture,
   messageEpoch,
   deriveVoiceKey
 } from './crypto.js'
@@ -145,14 +147,27 @@ export function createKeyManager({ api, store, scope, label = 'This computer' })
     return sealMessage(k.key, { serverId, ...ctx, epoch: k.epoch }, text)
   }
 
-  // Opens chat text. Throws CryptoProblem 'no_key' when the message is from an epoch this computer has no
-  // key for, 'cannot_open' when the key is wrong or the message was changed.
-  async function open(serverId, ctx, ciphertext) {
+  // Opens a message body, { t, img? }. Throws CryptoProblem 'no_key' when the message is from an epoch this computer
+  // has no key for, 'cannot_open' when the key is wrong or the message was changed.
+  async function openBody(serverId, ctx, ciphertext) {
     const epoch = messageEpoch(ciphertext)
     if (!epoch) throw new CryptoProblem('cannot_open', 'Not an encrypted message')
     const key = (await heldKeys(serverId)).get(epoch)
     if (!key) throw new CryptoProblem('no_key', 'No key for this part of the history')
-    return openMessage(key, { serverId, ...ctx }, ciphertext)
+    return openPayload(key, { serverId, ...ctx }, ciphertext)
+  }
+
+  // Opens chat text: the string.
+  async function open(serverId, ctx, ciphertext) {
+    return (await openBody(serverId, ctx, ciphertext)).t
+  }
+
+  // Seals a picture (bytes, { mime, width, height }) with a caption, with the newest key this computer holds.
+  // Returns the body to upload.
+  async function sealImage(serverId, ctx, bytes, info, caption) {
+    const k = await latest(serverId)
+    if (!k) throw new CryptoProblem('no_key', 'This computer does not have the key for this server yet')
+    return sealPicture(k.key, { serverId, ...ctx, epoch: k.epoch }, bytes, info, caption)
   }
 
   // The 32 bytes LiveKit's key provider takes for a voice space (used by the voice step).
@@ -174,5 +189,5 @@ export function createKeyManager({ api, store, scope, label = 'This computer' })
     await store.clear(scope)
   }
 
-  return { ensureDevice, syncKeys, startEpoch, shareKeys, seal, open, voiceKey, epochsHeld, forgetAll }
+  return { ensureDevice, syncKeys, startEpoch, shareKeys, seal, open, openBody, sealImage, voiceKey, epochsHeld, forgetAll }
 }

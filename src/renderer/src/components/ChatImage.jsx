@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import Icon from './Icon'
 import * as api from '../api'
+import { openPicture } from '../e2ee/crypto'
 
 // As wide as the picture itself, but no wider than 360 and no taller than 320 at its own shape, so a tall
 // picture gets a narrow box instead of black bars.
@@ -24,7 +25,18 @@ function ChatImage({ image, token, author }) {
     let made = null
     setUrl(null)
     setFailed(false)
-    api.fetchChatImage(token, image.id).then((u) => {
+    // An encrypted server's picture comes back sealed: it is opened here with the key from the message.
+    const get = image.sealed
+      ? api.fetchChatImageBytes(token, image.id).then(async (bytes) => {
+          if (!bytes) return null
+          try {
+            return URL.createObjectURL(new Blob([await openPicture(bytes, image.key)], { type: image.mime }))
+          } catch {
+            return null
+          }
+        })
+      : api.fetchChatImage(token, image.id)
+    get.then((u) => {
       if (!alive) {
         if (u) URL.revokeObjectURL(u)
         return
@@ -37,7 +49,7 @@ function ChatImage({ image, token, author }) {
       alive = false
       if (made) URL.revokeObjectURL(made)
     }
-  }, [image.id, token])
+  }, [image.id, image.sealed, image.key, token])
 
   useEffect(() => {
     if (!big) return
