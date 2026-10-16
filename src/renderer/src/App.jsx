@@ -18,6 +18,7 @@ import SettingsScreen from './screens/SettingsScreen'
 import ProfileScreen from './screens/ProfileScreen'
 import AdminToolsScreen from './screens/AdminToolsScreen'
 import ViewTransition, { OverlayLayer } from './components/ViewTransition'
+import * as e2eeSession from './e2eeSession'
 import * as api from './api'
 import { playSound } from './sounds'
 import * as voice from './voice'
@@ -173,7 +174,7 @@ function App() {
 
   async function enterServer(token, serverId) {
     const data = await api.getServer(token, serverId)
-    setCurrentServer({ id: data.id, name: data.name, isAdmin: data.isAdmin, isOwner: !!data.isOwner, retentionMonths: data.retentionMonths || null })
+    setCurrentServer({ id: data.id, name: data.name, isAdmin: data.isAdmin, isOwner: !!data.isOwner, retentionMonths: data.retentionMonths || null, e2ee: data.e2ee || null })
     setChannels(withEmptyMessages(data.channels))
     setPresence(data.presence || {})
     setOpenSpace(null)
@@ -405,6 +406,7 @@ function App() {
 
   function resetToLogin() {
     if (openSpace) playSound('self-leave', 0.5)
+    e2eeSession.lock()
     localStorage.removeItem('rushlight-session')
     setPendingJoinKey(null)
     setScreenName(null)
@@ -460,6 +462,8 @@ function App() {
         onRoleChanged={handleRoleChanged}
         retentionMonths={currentServer.retentionMonths}
         onRetentionChanged={handleRetentionChanged}
+        e2ee={currentServer.e2ee}
+        onE2eeChanged={(e2ee) => setCurrentServer((s) => (s ? { ...s, e2ee } : s))}
         openSpace={openSpace}
         setOpenSpace={setOpenSpace}
       />

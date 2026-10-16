@@ -11,7 +11,7 @@
     "dist": "electron-vite build && electron-builder --linux AppImage",
     "ui:audit": "node scripts/ui-audit.mjs",
     "ui:shots": "node scripts/ui-shots/run.mjs",
-    "test": "node --test --test-concurrency=1 test/time.test.mjs test/spaces.test.mjs test/access-ended.test.mjs test/redaction.test.mjs test/recovery-key.test.mjs test/audio-output.test.mjs test/visualizer.test.mjs test/css.test.mjs test/retention.test.mjs test/image-prep.test.mjs test/gallery.test.mjs test/skins.test.mjs test/display-prefs.test.mjs test/server-unread.test.mjs test/motion.test.mjs test/app-icon.test.mjs test/api.test.mjs test/e2ee-crypto.test.mjs test/e2ee-store.test.mjs test/e2ee-flow.test.mjs"
+    "test": "node --test --test-concurrency=1 test/time.test.mjs test/spaces.test.mjs test/access-ended.test.mjs test/redaction.test.mjs test/recovery-key.test.mjs test/audio-output.test.mjs test/visualizer.test.mjs test/css.test.mjs test/retention.test.mjs test/image-prep.test.mjs test/gallery.test.mjs test/skins.test.mjs test/display-prefs.test.mjs test/server-unread.test.mjs test/motion.test.mjs test/app-icon.test.mjs test/api.test.mjs test/e2ee-crypto.test.mjs test/e2ee-store.test.mjs test/e2ee-flow.test.mjs test/e2ee-session.test.mjs"
   },
   "dependencies": {
     "@livekit/components-react": "^2.9.24",

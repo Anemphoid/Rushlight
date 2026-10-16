@@ -3,6 +3,7 @@ import CreateItemForm from '../components/CreateItemForm'
 import UserFooter from '../components/UserFooter'
 import ContextMenu from '../components/ContextMenu'
 import PersistenceVote from '../components/PersistenceVote'
+import * as e2eeSession from '../e2eeSession'
 import TextChatView from '../components/TextChatView'
 import VoicePanel from '../components/VoicePanel'
 import NowPlayingPanel from '../components/NowPlayingPanel'
@@ -139,6 +140,8 @@ function ChannelTreeScreen({
   onRoleChanged,
   retentionMonths,
   onRetentionChanged,
+  e2ee,
+  onE2eeChanged,
   openSpace,
   setOpenSpace
 }) {
@@ -182,13 +185,14 @@ function ChannelTreeScreen({
   const [volumeMenu, setVolumeMenu] = useState(null) // { x, y, name }
   const unreadCounts = useSyncExternalStore(unread.subscribe, unread.getSnapshot)
   const voiceState = useSyncExternalStore(voice.subscribe, voice.getSnapshot)
+  const e2eeStatus = e2eeSession.statusOf(useSyncExternalStore(e2eeSession.subscribe, e2eeSession.getSnapshot), serverId)
 
   // Polling bookkeeping. The version counters let a poll that started before
   // a local change throw its (now stale) result away instead of overwriting it.
   const mutationVersion = useRef(0)
   const messageVersion = useRef(0)
   const live = useRef({})
-  live.current = { onLeave, onServerRenamed, onRoleChanged, onRetentionChanged, retentionMonths, isAdmin, isOwner, serverName, openSpace, channels, accountName, accountId, screenName }
+  live.current = { onLeave, onServerRenamed, onRoleChanged, onRetentionChanged, onE2eeChanged, e2ee, retentionMonths, isAdmin, isOwner, serverName, openSpace, channels, accountName, accountId, screenName }
   // Accounts and guests both check in to presence; only accounts have a session token.
   const authToken = sessionToken || guestToken
   // Who else was in the open space at the last check — the baseline the
@@ -248,6 +252,14 @@ function ChannelTreeScreen({
         if (data.retentionMonths && data.retentionMonths !== live.current.retentionMonths && live.current.onRetentionChanged) {
           live.current.onRetentionChanged(data.retentionMonths)
         }
+        // Encryption: keep the keys current, and tell the app if the server's key state moved.
+        if (data.e2ee) {
+          const was = live.current.e2ee || {}
+          if (live.current.onE2eeChanged && (was.enabled !== data.e2ee.enabled || was.epoch !== data.e2ee.epoch || was.rekeyNeeded !== data.e2ee.rekeyNeeded)) {
+            live.current.onE2eeChanged(data.e2ee)
+          }
+          e2eeSession.refresh({ token: sessionToken, accountId: live.current.accountId, serverId, e2ee: data.e2ee, isAdmin: !!data.isAdmin })
+        }
         // Made an admin or the owner (or demoted) since this person last looked.
         if (
           live.current.onRoleChanged &&
@@ -273,6 +285,12 @@ function ChannelTreeScreen({
     }
   }, [sessionToken, serverId])
 
+  // Pick up this server's keys as soon as it opens, not five seconds later.
+  useEffect(() => {
+    if (!sessionToken || !e2ee) return
+    e2eeSession.refresh({ token: sessionToken, accountId, serverId, e2ee, isAdmin })
+  }, [sessionToken, serverId, e2ee && e2ee.enabled])
+
   // Keep the open chat's history fresh — same stopgap as above.
   useEffect(() => {
     if (!sessionToken || !openSpace || openSpace.mode === 'voice') return
@@ -281,7 +299,10 @@ function ChannelTreeScreen({
     async function load() {
       const version = messageVersion.current
       try {
-        const msgs = await api.getMessages(sessionToken, space.type, spaceId(space))
+        let msgs = await api.getMessages(sessionToken, space.type, spaceId(space))
+        if (live.current.e2ee && live.current.e2ee.enabled) {
+          msgs = await e2eeSession.openMessages(live.current.accountId, serverId, { type: space.type, id: spaceId(space) }, msgs)
+        }
         if (cancelled) return
         unread.observe({
           key: unread.scopedKey(serverId, spaceKey(space)),
@@ -577,6 +598,27 @@ function ChannelTreeScreen({
     }
     messageVersion.current++
     try {
+      if (live.current.e2ee && live.current.e2ee.enabled) {
+        // The server cannot read chat here: a command goes on its own route (and is not a message), anything
+        // else is sealed on this computer before it leaves.
+        if (message.text.startsWith('/')) {
+          await api.postCommand(sessionToken, space.type, spaceId(space), message.text)
+          return
+        }
+        const ref = { type: space.type, id: spaceId(space) }
+        let sealed
+        try {
+          sealed = await e2eeSession.seal(accountId, serverId, ref, accountId, message.text)
+        } catch (err) {
+          if (err.code === 'no_key') throw new Error("This computer doesn't have this server's key yet. It arrives when another member opens Rushlight.")
+          if (err.code === 'too_long') throw new Error('That message is too long.')
+          throw err
+        }
+        const saved = await api.postMessage(sessionToken, space.type, spaceId(space), { text: sealed, avatarColor: message.avatarColor })
+        const [opened] = await e2eeSession.openMessages(accountId, serverId, ref, [saved])
+        setChannels((prev) => withAppendedMessage(prev, space, opened))
+        return
+      }
       const saved = await api.postMessage(sessionToken, space.type, spaceId(space), {
         text: message.text,
         avatarColor: message.avatarColor
@@ -978,6 +1020,8 @@ function ChannelTreeScreen({
             })()}
             onSend={sendMessageToOpenSpace}
             onSendImage={sendImageToOpenSpace}
+            encrypted={!!(e2ee && e2ee.enabled)}
+            keyState={e2eeStatus.state}
             sessionToken={sessionToken}
             localOnly={!sessionToken}
             retentionMonths={retentionMonths}
