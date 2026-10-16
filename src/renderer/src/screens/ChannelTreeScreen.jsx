@@ -630,11 +630,27 @@ function ChannelTreeScreen({
   }
 
   // A picture is its own message. Throws on failure so the composer can keep it and say why.
-  async function sendImageToOpenSpace(blob, { text, avatarColor }) {
+  async function sendImageToOpenSpace(blob, { text, avatarColor, width, height }) {
     if (!openSpace || !sessionToken) return
     const space = openSpace
     messageVersion.current++
     try {
+      if (live.current.e2ee && live.current.e2ee.enabled) {
+        // Sealed here, so the server only ever holds scrambled bytes; the caption, type and size go inside the sealed text.
+        const ref = { type: space.type, id: spaceId(space) }
+        let body
+        try {
+          body = await e2eeSession.sealPictureFor(accountId, serverId, ref, accountId, new Uint8Array(await blob.arrayBuffer()), { mime: blob.type, width, height }, text || '')
+        } catch (err) {
+          if (err.code === 'no_key') throw new Error("This computer doesn't have this server's key yet. It arrives when another member opens Rushlight.")
+          if (err.code === 'too_long') throw new Error('That caption is too long.')
+          throw err
+        }
+        const saved = await api.postImage(sessionToken, space.type, spaceId(space), new Blob([body], { type: 'application/x-rushlight-sealed' }), { avatarColor })
+        const [opened] = await e2eeSession.openMessages(accountId, serverId, ref, [saved])
+        setChannels((prev) => withAppendedMessage(prev, space, opened))
+        return
+      }
       const saved = await api.postImage(sessionToken, space.type, spaceId(space), blob, { text, avatarColor })
       setChannels((prev) => withAppendedMessage(prev, space, saved))
     } finally {

@@ -151,7 +151,7 @@ a server change has to wait for a server release.
   `look-fade` class on `<html>`; new chat messages, voice-room rows, queue rows and cards ease in. Reduced motion removes all of
   it (last rule in `motion.css`, guarded by `test/motion.test.mjs`). The screenshot tool turns animation off; `UI_SHOTS_MOTION=1`
   leaves it on and checks the crossfade, the overlay and the Jellybox slide part-way through.
-- End-to-end encryption, client side (`src/renderer/src/e2ee/`, needs server v0.13.0; the server has no route yet that switches a
+- End-to-end encryption, client side (`src/renderer/src/e2ee/`, needs server v0.13.0, pictures v0.14.0; the server has no route yet that switches a
   server to encrypted, so until the owner step ships nothing here is reachable in a real install): `crypto.js` is pure WebCrypto
   (P-256 ECDH, HKDF-SHA256, AES-256-GCM; the same code in Electron and in the Node tests): a device key (private half
   non-extractable), a 32 byte server key per epoch wrapped to each member device (ECIES, bound to server, epoch and recipient),
@@ -167,8 +167,14 @@ a server change has to wait for a server release.
   everything held in memory (the opened-text cache is per account, so another account on the same computer reads nothing).
   In an encrypted server `ChannelTreeScreen` seals before `postMessage`, sends `/commands` to `postCommand` (never a chat
   message), opens messages after `getMessages`, and `TextChatView` shows an `encrypted` label, a notice and a disabled composer
-  while the key is missing, `locked` placeholders, and no picture button (pictures are refused by the server until they are
-  encrypted too). Desktop notifications for encrypted messages never carry the text (`unread.js`). Messages are limited to 8000
+  while the key is missing, and `locked` placeholders. Pictures (needs server v0.14.0): `imagePrep.js` still cleans them, then
+  `sealPicture` seals the bytes with a fresh key per picture and puts that key, the type and the size inside the sealed message
+  text (the caption too), so the server holds scrambled bytes only and cannot swap one picture for another; the upload is
+  `postImage` with a Blob of type `application/x-rushlight-sealed` (framing in `crypto.js` and the server's `src/e2ee.js`).
+  `openMessages` turns that into `image: { id, sealed, mime, width, height, key }` after `pictureInfo` has checked the type
+  and sizes (anything else makes the message `locked`, so a hostile message never makes the app fetch or draw something odd);
+  `ChatImage` fetches the bytes (`fetchChatImageBytes`), opens them and shows a blob URL. The picture button is hidden while the
+  key is missing. Desktop notifications for encrypted messages never carry the text (`unread.js`), only "sent a picture". Messages are limited to 8000
   bytes of UTF-8 so the sealed text fits the server's 12000 character limit.
   Checked by hand-run scripts that need Playwright's Chromium: `scripts/e2ee-store-check.mjs` (the IndexedDB store, run in
   Chromium 141; Electron 33 ships 130) and `scripts/e2ee-chat-check.mjs` (the production build with real people in separate

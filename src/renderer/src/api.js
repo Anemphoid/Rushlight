@@ -348,6 +348,8 @@ export async function postImage(token, type, id, blob, { text = '', avatarColor 
   if (!res.ok) {
     const err = new Error(data.error || `The picture wasn't sent (${res.status})`)
     err.status = res.status
+    if (data.reason) err.reason = data.reason
+    if (data.minClient) err.minClient = data.minClient
     if (token && res.status === 401 && (data.reason === 'session_ended' || data.reason === 'session_expired')) {
       try {
         if (sessionEndedHandler) sessionEndedHandler({ token, reason: data.reason, message: err.message })
@@ -368,6 +370,19 @@ export async function fetchChatImage(token, imageId) {
     const res = await fetch(`${baseUrl}/api/images/${imageId}`, { headers: { Authorization: `Bearer ${token}`, ...(await versionHeader()) } })
     if (!res.ok) return null
     return URL.createObjectURL(await res.blob())
+  } catch {
+    return null
+  }
+}
+
+// A sealed picture's bytes (encrypted servers): the server returns them as they were sent, and the app opens them
+// with the key from the message. Null if they can't be had.
+export async function fetchChatImageBytes(token, imageId) {
+  try {
+    const baseUrl = await getBaseUrl()
+    const res = await fetch(`${baseUrl}/api/images/${imageId}`, { headers: { Authorization: `Bearer ${token}`, ...(await versionHeader()) } })
+    if (!res.ok) return null
+    return new Uint8Array(await res.arrayBuffer())
   } catch {
     return null
   }

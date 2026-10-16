@@ -21,8 +21,8 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, onS
   const [pending, setPending] = useState(null)
   const [preparing, setPreparing] = useState(false)
   const [dragging, setDragging] = useState(false)
-  // Pictures are not encrypted yet, so an encrypted server cannot take them (the server refuses them too).
-  const canSendImages = !localOnly && !!onSendImage && !!sessionToken && !encrypted
+  // In an encrypted server a picture is sealed on this computer, which needs the server's key.
+  const canSendImages = !localOnly && !!onSendImage && !!sessionToken && (!encrypted || keyState === 'ready')
   // This computer cannot write here until it holds the server's key (it arrives from another member's Rushlight).
   const noKey = !!encrypted && (keyState === 'waiting' || keyState === 'problem')
   // True while the person is at (or near) the bottom. The list is replaced on every poll, so only
@@ -63,8 +63,8 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, onS
     }
     setPreparing(true)
     try {
-      const { blob } = await prepareImage(file)
-      setPending({ blob, previewUrl: URL.createObjectURL(blob) })
+      const { blob, width, height } = await prepareImage(file)
+      setPending({ blob, width, height, previewUrl: URL.createObjectURL(blob) })
     } catch (err) {
       setSendError(err.message)
     } finally {
@@ -95,7 +95,7 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, onS
     stickRef.current = true // their own message always scrolls into view
     try {
       if (pending) {
-        await onSendImage(pending.blob, { text: draft.trim(), avatarColor })
+        await onSendImage(pending.blob, { text: draft.trim(), avatarColor, width: pending.width, height: pending.height })
         setPending(null)
       } else {
         await onSend({
@@ -208,7 +208,7 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, onS
               ) : (
                 m.text && <div className="text-chat-message-body">{m.text}</div>
               )}
-              {m.image && sessionToken && <ChatImage key={m.image.id} image={m.image} token={sessionToken} author={m.author} />}
+              {m.image && !m.locked && sessionToken && <ChatImage key={m.image.id} image={m.image} token={sessionToken} author={m.author} />}
             </div>
           </div>
           )}
