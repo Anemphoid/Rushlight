@@ -69,7 +69,8 @@ function notify(title, newOnes) {
   const last = newOnes[newOnes.length - 1]
   const body =
     newOnes.length === 1
-      ? `${last.author}: ${last.text || (last.image ? 'sent a picture' : '')}`
+      ? // an encrypted server's text is never put in a notification: the system keeps those
+        `${last.author}: ${last.encrypted ? 'sent a message' : last.text || (last.image ? 'sent a picture' : '')}`
       : `${newOnes.length} new messages, latest from ${last.author}`
   try {
     const n = new Notification(title, { body, silent: true })

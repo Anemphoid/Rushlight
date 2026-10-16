@@ -120,11 +120,11 @@ export async function setup({ outDir, only = null, distDir = join(root, 'out', '
   const log = []
   const taken = []
 
-  async function newPage({ session = null, width = 900, height = 670, skin, mode, density, iconSize, css = '' } = {}) {
+  async function newPage({ session = null, width = 900, height = 670, skin, mode, density, iconSize, css = '', fixedClock = true, version = '0.14.0' } = {}) {
     const ctx = await browser.newContext({ viewport: { width, height }, timezoneId: 'UTC', locale: 'en-US', deviceScaleFactor: 1, reducedMotion: process.env.UI_SHOTS_MOTION ? 'no-preference' : 'reduce' })
     const page = await ctx.newPage()
-    await page.clock.setFixedTime(NOW)
-    await page.addInitScript(stub(world.url, '0.14.0'))
+    if (fixedClock) await page.clock.setFixedTime(NOW)
+    await page.addInitScript(stub(world.url, version))
     // a fixed sequence for anything the app picks at random (the guest's suggested name, which words to re-type)
     await page.addInitScript(() => {
       let seed = 1234567

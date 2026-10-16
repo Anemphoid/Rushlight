@@ -11,7 +11,7 @@ import jellyboxImage from '../assets/images/jellybox.png'
 // When a message was written. A guest's local-only message has no stored time, so it is today's.
 const when = (m) => m.createdAt || Date.now()
 
-function TextChatView({ roomName, screenName, avatarColor, messages, onSend, onSendImage, sessionToken, localOnly, persistent, retentionMonths }) {
+function TextChatView({ roomName, screenName, avatarColor, messages, onSend, onSendImage, sessionToken, localOnly, persistent, retentionMonths, encrypted, keyState }) {
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState('')
@@ -21,7 +21,10 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, onS
   const [pending, setPending] = useState(null)
   const [preparing, setPreparing] = useState(false)
   const [dragging, setDragging] = useState(false)
-  const canSendImages = !localOnly && !!onSendImage && !!sessionToken
+  // Pictures are not encrypted yet, so an encrypted server cannot take them (the server refuses them too).
+  const canSendImages = !localOnly && !!onSendImage && !!sessionToken && !encrypted
+  // This computer cannot write here until it holds the server's key (it arrives from another member's Rushlight).
+  const noKey = !!encrypted && (keyState === 'waiting' || keyState === 'problem')
   // True while the person is at (or near) the bottom. The list is replaced on every poll, so only
   // follow new messages when they were already reading the latest; scrolling up must stay put.
   const stickRef = useRef(true)
@@ -134,6 +137,11 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, onS
       <div className="text-chat-header">
         <Icon name="text" size={18} />
         <span className="text-chat-title">{roomName}</span>
+        {encrypted && (
+          <span className="chat-encrypted" title="Only the people in this server can read this. The server only stores scrambled text.">
+            encrypted
+          </span>
+        )}
         {!localOnly && (
           <span className="chat-retention">
             {persistent ? (retentionMonths ? `history kept for ${retentionMonths} months` : 'history is kept') : 'cleared when everyone leaves'}
@@ -141,6 +149,13 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, onS
         )}
       </div>
 
+      {noKey && (
+        <div className="key-notice" role="status">
+          {keyState === 'problem'
+            ? "Couldn't get this server's key. Check your connection; Rushlight keeps trying."
+            : "This computer doesn't have this server's key yet. It arrives when another member opens Rushlight, so messages stay hidden until then."}
+        </div>
+      )}
       <div className="text-chat-list" ref={listRef} onScroll={onListScroll}>
         {messages.length === 0 && (
           <p className="settings-note" style={{ textAlign: 'center', marginTop: 20 }}>
@@ -186,7 +201,13 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, onS
                   {m.time}
                 </span>
               </div>
-              {m.text && <div className="text-chat-message-body">{m.text}</div>}
+              {m.locked ? (
+                <div className="text-chat-message-body locked-message">
+                  {m.locked === 'no_key' ? "Can't be read on this computer yet." : 'This message could not be opened.'}
+                </div>
+              ) : (
+                m.text && <div className="text-chat-message-body">{m.text}</div>
+              )}
               {m.image && sessionToken && <ChatImage key={m.image.id} image={m.image} token={sessionToken} author={m.author} />}
             </div>
           </div>
@@ -241,9 +262,10 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, onS
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onPaste={onPaste}
-          placeholder={pending ? 'Add a caption' : `Message in ${roomName}`}
+          placeholder={pending ? 'Add a caption' : noKey ? 'Waiting for the key' : `Message in ${roomName}`}
+          disabled={noKey}
         />
-        <button type="submit" className="btn-primary composer-send">
+        <button type="submit" className="btn-primary composer-send" disabled={noKey}>
           <span className="composer-btn-text">Send</span>
           <Icon name="send" size={18} strokeWidth={2} />
         </button>
