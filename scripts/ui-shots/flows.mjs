@@ -310,6 +310,30 @@ export async function flows(s) {
     await j.context().close()
   })
 
+  // a narrow window puts Jellybox under the chat; its folded tab must still be on screen and must bring it back
+  await step('jellybox narrow', async () => {
+    const j = await newPage({ session: owner, width: 800, height: 670 })
+    await j.waitForSelector('.home-screen')
+    await openServer(j)
+    await open(j, 'Gaming')
+    await j.fill('.text-chat-composer input:not([type=file])', '/play sunrise')
+    await j.click('.text-chat-composer button[type=submit]')
+    await j.waitForSelector('.now-playing', { timeout: 20000 })
+    await j.waitForTimeout(1500)
+    await j.click('button[aria-label="Hide Jellybox"]')
+    await j.waitForSelector('.np-tab')
+    await j.waitForTimeout(500)
+    const box = await j.evaluate(() => {
+      const r = document.querySelector('.np-tab').getBoundingClientRect()
+      return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, w: innerWidth, h: innerHeight }
+    })
+    if (box.bottom > box.h || box.right > box.w || box.left < 0 || box.top < 0) throw new Error('the folded tab is off screen: ' + JSON.stringify(box))
+    await shot(j, '34-jellybox-folded-narrow')
+    await j.click('.np-tab')
+    await j.waitForSelector('.now-playing', { timeout: 5000 })
+    await j.context().close()
+  })
+
   // ---------- Settings, Profile, Admin Tools ----------
   await step('settings', async () => {
     const q = await newPage({ session: owner })

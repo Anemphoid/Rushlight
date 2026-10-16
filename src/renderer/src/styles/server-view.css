@@ -913,3 +913,29 @@
     transition: none;
   }
 }
+
+/* narrow window: Jellybox sits under the chat, so its folded tab is a short bar across the bottom, in reach, with the
+   arrow pointing up (the wide layout's tab hangs off the right edge and would be cut off here) */
+@media (max-width: 900px) {
+  .np-fold {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    width: auto;
+    height: 22px;
+    border-left: 0;
+    border-top: 1px solid var(--divider);
+  }
+  .np-tab {
+    position: static;
+    transform: none;
+    width: 72px;
+    height: 22px;
+    border: 1px solid var(--border);
+    border-bottom: 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+  }
+  .np-tab svg {
+    transform: rotate(90deg);
+  }
+}
