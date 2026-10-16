@@ -176,10 +176,26 @@ a server change has to wait for a server release.
   `ChatImage` fetches the bytes (`fetchChatImageBytes`), opens them and shows a blob URL. The picture button is hidden while the
   key is missing. Desktop notifications for encrypted messages never carry the text (`unread.js`), only "sent a picture". Messages are limited to 8000
   bytes of UTF-8 so the sealed text fits the server's 12000 character limit.
+  Voice (needs server v0.15.0, which answers `encrypted` and `epoch` on the voice token, refuses old apps, guests and Jellybox in an
+  encrypted server): the audio is encrypted by LiveKit's own end-to-end encryption in a worker (`livekit-client/e2ee-worker?worker&inline`,
+  blob-made so it loads from a file in the packaged app; the CSP has `worker-src 'self' blob:`), with a `VoiceKeyProvider`
+  (`e2ee/voiceKeys.js`, a shared-key provider: each key epoch in slot epoch mod 16 of LiveKit's ring of 16, the slot set last is the
+  one sent with) fed 32 bytes per epoch from `keys.voiceKeys` (`deriveVoiceKey`, the newest 8 epochs). `App`'s join effect joins
+  encrypted whenever the token says `encrypted`, never because of its own idea of the server, and `voice.join` FAILS CLOSED: no key
+  of the room's current epoch or no encryption support means it does not connect at all (`needsKey` makes `ChannelTreeScreen` retry
+  by itself once the key arrives), so audio is never sent in the clear into an encrypted room. When a new epoch arrives mid-call
+  `setVoiceKeys` loads it at once but keeps sending with the old key for 7 s (everyone learns of an epoch within one 5 s check), so
+  nobody is unheard while it spreads. `VoicePanel` shows an `encrypted` label and, when someone's audio cannot be opened, that their key
+  differs. Jellybox is off in encrypted servers until the per-room switch (a later step).
   Checked by hand-run scripts that need Playwright's Chromium: `scripts/e2ee-store-check.mjs` (the IndexedDB store, run in
   Chromium 141; Electron 33 ships 130) and `scripts/e2ee-chat-check.mjs` (the production build with real people in separate
   browser profiles on an encrypted server: first key, reading, ciphertext on disk, commands, the waiting state, a removal and
-  the new key; needs `npm run build` and `RUSHLIGHT_SERVER_DIR`). The screenshot harness' `newPage` takes `fixedClock: false`
+  the new key; needs `npm run build` and `RUSHLIGHT_SERVER_DIR`) and `scripts/e2ee-voice-check.mjs` (real calls: the production build
+  in Chromium with fake microphones that play a tone, a real LiveKit server (`LIVEKIT_SERVER_BIN`, built from
+  github.com/livekit/livekit with Go) and a real Rushlight server; measures the audio energy on each incoming stream: two members hear
+  each other, a wrong key hears nobody, a newcomer with no key does not connect and then does by itself, and after a removal the call
+  carries on and a newcomer sending with the new key is heard. `xvfb-run -a env E2EE_ELECTRON=1 node scripts/e2ee-voice-check.mjs`
+  runs Mia as the real Electron app from its built files). The screenshot harness' `newPage` takes `fixedClock: false`
   (a frozen clock stops timers that read `Date.now()`) and `version` (encrypted servers refuse old ones).
 - `sounds.js` loads sounds by base name from `assets/sounds/` (missing = silent).
 

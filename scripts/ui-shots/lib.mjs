@@ -94,7 +94,7 @@ function inventory() {
   return out
 }
 
-export async function setup({ outDir, only = null, distDir = join(root, 'out', 'renderer'), seedWorld = true } = {}) {
+export async function setup({ outDir, only = null, distDir = join(root, 'out', 'renderer'), seedWorld = true, worldEnv = {}, fakeMedia = false, chromiumArgs = [] } = {}) {
   mkdirSync(outDir, { recursive: true })
   if (!existsSync(join(distDir, 'index.html'))) throw new Error('Run npm run build first')
   const web = createServer((req, res) => {
@@ -110,17 +110,17 @@ export async function setup({ outDir, only = null, distDir = join(root, 'out', '
   })
   await new Promise((r) => web.listen(0, '127.0.0.1', r))
   const appUrl = `http://127.0.0.1:${web.address().port}/`
-  const world = await startWorld()
+  const world = await startWorld(worldEnv)
   const cast = seedWorld ? await seed(world) : null
   const { chromium } = findPlaywright()
   const browser = await chromium.launch({
     executablePath: findChromium(),
-    args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required']
+    args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required', ...(fakeMedia ? ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] : []), ...chromiumArgs]
   })
   const log = []
   const taken = []
 
-  async function newPage({ session = null, width = 900, height = 670, skin, mode, density, iconSize, css = '', fixedClock = true, version = '0.14.0' } = {}) {
+  async function newPage({ session = null, width = 900, height = 670, skin, mode, density, iconSize, css = '', fixedClock = true, version = '0.14.0', init = '' } = {}) {
     const ctx = await browser.newContext({ viewport: { width, height }, timezoneId: 'UTC', locale: 'en-US', deviceScaleFactor: 1, reducedMotion: process.env.UI_SHOTS_MOTION ? 'no-preference' : 'reduce' })
     const page = await ctx.newPage()
     if (fixedClock) await page.clock.setFixedTime(NOW)
@@ -150,6 +150,7 @@ export async function setup({ outDir, only = null, distDir = join(root, 'out', '
     await page.exposeFunction('__setLoginSize', async (w, h) => {
       await page.setViewportSize({ width: Math.round(w), height: Math.round(h) }).catch(() => {})
     })
+    if (init) await page.addInitScript(init)
     page.on('console', (m) => {
       // no LiveKit server here, so the voice connection always fails; that is expected, not a finding
       if (m.type() === 'error' && !/WebSocket connection to|ERR_UNSAFE_PORT/.test(m.text())) log.push(`[console] ${m.text().slice(0, 200)}`)

@@ -34,7 +34,7 @@ const freePort = () =>
     s.on('error', bad)
   })
 
-export async function startWorld() {
+export async function startWorld(extraEnv = {}) {
   const dir = serverDir()
   const tmp = mkdtempSync(join(tmpdir(), 'rushlight-shots-'))
   const sinks = join(tmp, 'sinks')
@@ -64,7 +64,8 @@ export async function startWorld() {
       RECOVER_LIMIT: '1000',
       PRESENCE_LIMIT: '100000',
       MUSIC_LIMIT: '100000',
-      MUSIC_LINK_LIMIT: '1000'
+      MUSIC_LINK_LIMIT: '1000',
+      ...extraEnv
     },
     stdio: ['ignore', 'pipe', 'pipe']
   })

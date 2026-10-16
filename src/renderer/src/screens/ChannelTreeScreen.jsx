@@ -285,6 +285,24 @@ function ChannelTreeScreen({
     }
   }, [sessionToken, serverId])
 
+  // An encrypted call that could not start for want of the key starts by itself once the key is here.
+  useEffect(() => {
+    if (voiceState.needsKey && e2eeStatus.state === 'ready' && onRetryVoice) onRetryVoice()
+  }, [voiceState.needsKey, e2eeStatus.state, e2eeStatus.epoch])
+
+  // A new key epoch arrived (someone was removed) while in an encrypted call: switch to it, so the call goes on.
+  useEffect(() => {
+    if (!voiceState.encrypted || e2eeStatus.state !== 'ready' || !voiceState.key) return
+    const [type, id] = voiceState.key.split(':')
+    let cancelled = false
+    e2eeSession.voiceKeysFor(accountId, serverId, { type, id: Number(id) }).then((keys) => {
+      if (!cancelled) voice.setVoiceKeys(keys)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [e2eeStatus.epoch, voiceState.encrypted, voiceState.key])
+
   // Pick up this server's keys as soon as it opens, not five seconds later.
   useEffect(() => {
     if (!sessionToken || !e2ee) return

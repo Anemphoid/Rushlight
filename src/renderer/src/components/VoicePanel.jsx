@@ -23,6 +23,11 @@ function VoicePanel({ compact, pttKey, pttHookOk, onRetry }) {
     <div className={'voice-panel' + (compact ? ' compact' : '')}>
       <div className="voice-header">
         <span className={'voice-status ' + v.status}>{STATUS_TEXT[v.status]}</span>
+        {v.encrypted && (
+          <span className="voice-encrypted" title="Only the people in this call can hear it. The voice server only passes on scrambled audio.">
+            encrypted
+          </span>
+        )}
         {live && (v.quality || v.pingMs !== null) && (
           <span
             className={'voice-quality ' + (v.quality || '')}
@@ -34,6 +39,8 @@ function VoicePanel({ compact, pttKey, pttHookOk, onRetry }) {
           </span>
         )}
       </div>
+
+      {v.e2eeProblem && <div className="error-text">{v.e2eeProblem}</div>}
 
       {v.error && (
         <div className="error-text">

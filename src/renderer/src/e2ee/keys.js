@@ -170,11 +170,14 @@ export function createKeyManager({ api, store, scope, label = 'This computer' })
     return sealPicture(k.key, { serverId, ...ctx, epoch: k.epoch }, bytes, info, caption)
   }
 
-  // The 32 bytes LiveKit's key provider takes for a voice space (used by the voice step).
-  async function voiceKey(serverId, ctx) {
-    const k = await latest(serverId)
-    if (!k) throw new CryptoProblem('no_key', 'This computer does not have the key for this server yet')
-    return { epoch: k.epoch, bytes: await deriveVoiceKey(k.key, { serverId, ...ctx, epoch: k.epoch }) }
+  // The voice keys for one space: the 32 bytes LiveKit's key provider takes, for every epoch this computer holds (the
+  // newest 8 at most). [{ epoch, bytes }], oldest first.
+  async function voiceKeys(serverId, ctx) {
+    const have = await heldKeys(serverId)
+    const epochs = [...have.keys()].sort((a, b) => a - b).slice(-8)
+    const out = []
+    for (const epoch of epochs) out.push({ epoch, bytes: await deriveVoiceKey(have.get(epoch), { serverId, ...ctx, epoch }) })
+    return out
   }
 
   // Everything this computer knows about a server, for screens to decide what to show.
@@ -189,5 +192,5 @@ export function createKeyManager({ api, store, scope, label = 'This computer' })
     await store.clear(scope)
   }
 
-  return { ensureDevice, syncKeys, startEpoch, shareKeys, seal, open, openBody, sealImage, voiceKey, epochsHeld, forgetAll }
+  return { ensureDevice, syncKeys, startEpoch, shareKeys, seal, open, openBody, sealImage, voiceKeys, epochsHeld, forgetAll }
 }

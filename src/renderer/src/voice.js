@@ -5,7 +5,11 @@
 // The mic and PTT behavior is ported from the Alpha 1 client, which worked on
 // real hardware: PTT mode starts muted and unmutes only while the key is held,
 // open mic stays live, and the mode survives room switches.
-import { Room, RoomEvent, Track, DisconnectReason } from 'livekit-client'
+import { Room, RoomEvent, Track, DisconnectReason, isE2EESupported } from 'livekit-client'
+// LiveKit's own worker for encrypting and decrypting audio frames. Inlined (made from a blob) so it loads the same
+// from a file in the packaged app as from a web address.
+import E2EEWorker from 'livekit-client/e2ee-worker?worker&inline'
+import { VoiceKeyProvider } from './e2ee/voiceKeys'
 import { playSound } from './sounds'
 import { applyTrackVolume, attachRemoteAudio } from './audioOutput'
 
@@ -59,6 +63,10 @@ try {
 } catch {
   userVolumes = {}
 }
+let keyProvider = null // the encrypted call's key provider, while in one
+let sendingEpoch = 0 // the key epoch this computer's audio is sent with
+let switchTimer = null
+let e2eeWorker = null
 let botTrack = null // Jellybox's audio track while we are subscribed to it, for the visualizer
 const remoteAudio = new Map() // subscribed audio track -> speaker's name, so volume changes can reach them
 const intentional = new WeakSet() // rooms we disconnected ourselves, vs. dropped on us
@@ -75,6 +83,9 @@ let state = {
   quality: null, // your connection quality: excellent | good | poor | lost
   pingMs: null,
   participants: [],
+  encrypted: false, // this call is end-to-end encrypted
+  needsKey: false, // an encrypted call could not start because this computer has no key yet; it retries once one arrives
+  e2eeProblem: '', // set when someone's audio could not be opened (their key and ours differ)
   botAudioId: null // changes when Jellybox's audio track arrives or goes, so the visualizer can re-tap it
 }
 
@@ -119,7 +130,8 @@ function refreshParticipants() {
       name: p.name || p.identity,
       isLocal: p.isLocal,
       isSpeaking: p.isSpeaking,
-      isMuted: !p.isMicrophoneEnabled
+      isMuted: !p.isMicrophoneEnabled,
+      encrypted: p.isEncrypted
     }))
   })
 }
@@ -314,6 +326,14 @@ async function teardown() {
       // already gone
     }
   }
+  keyProvider = null
+  sendingEpoch = 0
+  if (switchTimer) clearTimeout(switchTimer)
+  switchTimer = null
+  if (e2eeWorker) {
+    e2eeWorker.terminate() // LiveKit does not stop a worker it was handed
+    e2eeWorker = null
+  }
   document.querySelectorAll('audio[data-lk-audio]').forEach((el) => el.remove())
 }
 
@@ -330,9 +350,37 @@ export async function leave() {
       pttHeld: false,
       quality: null,
       pingMs: null,
-      participants: []
+      participants: [],
+      encrypted: false,
+      e2eeProblem: ''
     })
   }
+}
+
+// How long to keep sending with the old key after a new one arrives. Everyone learns of a new epoch within one check
+// of the server (5 s), so by then every computer in the call can open audio sent with it.
+const KEY_SWITCH_DELAY_MS = 7000
+
+// A new key epoch arrived while in an encrypted call (someone was removed). It is loaded straight away, so audio sent with
+// it can be opened, but this computer keeps sending with the old key for a few seconds before switching: people who
+// have not picked the new key up yet can still hear it, and they are still heard. The older keys stay loaded.
+export async function setVoiceKeys(keys) {
+  if (!keyProvider || !keys || keys.length === 0) return
+  const provider = keyProvider
+  const newest = keys[keys.length - 1]
+  if (newest.epoch <= sendingEpoch) {
+    await provider.setEpochKeys(keys, sendingEpoch || null) // nothing newer: just make sure all are loaded
+  } else {
+    await provider.setEpochKeys(keys, sendingEpoch || null) // newer loaded, still sending with the old one
+    if (switchTimer) clearTimeout(switchTimer)
+    switchTimer = setTimeout(async () => {
+      switchTimer = null
+      if (keyProvider !== provider) return
+      await provider.setEpochKeys([newest], newest.epoch)
+      sendingEpoch = newest.epoch
+    }, sendingEpoch ? KEY_SWITCH_DELAY_MS : 0)
+  }
+  update({ e2eeProblem: '' })
 }
 
 export function fail(message) {
@@ -340,13 +388,17 @@ export function fail(message) {
   update({ status: 'error', error: message })
 }
 
-export async function join({ url, token, key }) {
+// `encryption` is null for an ordinary call, or { keys: [{ epoch, bytes }] } for an end-to-end encrypted one (the keys
+// from e2eeSession.voiceKeysFor). An encrypted call fails closed: if this computer cannot encrypt, or holds no key,
+// it does not connect at all, so audio is never sent in the clear into a room that is meant to be encrypted.
+export async function join({ url, token, key, encryption = null }) {
   const seq = ++joinSeq
   await teardown()
   if (seq !== joinSeq) return
   update({
     status: 'connecting',
     error: '',
+    needsKey: false,
     key,
     micOn: false,
     pttHeld: false,
@@ -355,15 +407,38 @@ export async function join({ url, token, key }) {
     participants: []
   })
 
+  if (encryption && (!isE2EESupported() || !encryption.keys || encryption.keys.length === 0)) {
+    update({
+      needsKey: !!(isE2EESupported() && !(encryption.keys && encryption.keys.length)),
+      status: 'error',
+      error: encryption.keys && encryption.keys.length ? "This call is end-to-end encrypted and this computer can't encrypt audio." : "This call is end-to-end encrypted and this computer doesn't have the server's key yet. It arrives when another member opens Rushlight."
+    })
+    return
+  }
+
   const savedInput = readPref(PREF.input, '')
   const savedOutput = readPref(PREF.output, '')
+  let provider = null
+  let worker = null
+  if (encryption) {
+    provider = new VoiceKeyProvider()
+    worker = new E2EEWorker()
+  }
   const r = new Room({
     adaptiveStream: true,
     dynacast: true,
     audioCaptureDefaults: savedInput ? { deviceId: savedInput } : undefined,
-    audioOutput: savedOutput ? { deviceId: savedOutput } : undefined
+    audioOutput: savedOutput ? { deviceId: savedOutput } : undefined,
+    ...(encryption ? { e2ee: { keyProvider: provider, worker } } : {})
   })
   room = r
+  keyProvider = provider
+  e2eeWorker = worker
+  r.on(RoomEvent.EncryptionError, (err, participant) => {
+    if (room !== r) return
+    const who = participant && (participant.name || participant.identity)
+    update({ e2eeProblem: `${who ? who + "'s" : "Someone's"} audio can't be opened: this computer and theirs do not have the same key.` })
+  })
 
   r.on(RoomEvent.ParticipantConnected, () => {
     playSound('other-join')
@@ -444,6 +519,12 @@ export async function join({ url, token, key }) {
   })
 
   try {
+    if (encryption) {
+      // Keys first, then encryption on, then connect: the mic is only ever published after both.
+      await provider.setEpochKeys(encryption.keys)
+      sendingEpoch = encryption.keys[encryption.keys.length - 1].epoch
+      await r.setE2EEEnabled(true)
+    }
     await r.connect(url, token)
   } catch (err) {
     if (seq === joinSeq) {
@@ -466,7 +547,7 @@ export async function join({ url, token, key }) {
     return
   }
 
-  update({ status: 'connected', quality: r.localParticipant.connectionQuality })
+  update({ status: 'connected', quality: r.localParticipant.connectionQuality, encrypted: !!encryption, e2eeProblem: '' })
   refreshParticipants()
   measurePing(r)
   pingTimer = setInterval(() => measurePing(r), 3000)
