@@ -114,6 +114,20 @@ export async function openMessages(accountId, serverId, space, messages) {
 // Seals text for sending. Throws a CryptoProblem with code 'no_key' if this computer has no key yet.
 export const seal = (accountId, serverId, space, authorId, text) => manager(accountId).seal(serverId, { type: space.type, spaceId: space.id, authorId }, text)
 
+// The voice keys for a space, oldest epoch first: [{ epoch, bytes }] (empty when this computer holds none yet).
+export const voiceKeysFor = (accountId, serverId, space) => manager(accountId).voiceKeys(serverId, { type: space.type, spaceId: space.id })
+
+// The keys to join an encrypted call with: this computer's keys brought up to date first, and only if it holds the key of
+// the room's current epoch (`epoch`, from the voice token). An older key alone would send audio the others cannot open,
+// so that counts as no key and the call does not start. [{ epoch, bytes }], or [] for "no key yet".
+export async function prepareVoiceKeys({ token, accountId, serverId, space, epoch }) {
+  const mgr = manager(accountId)
+  await mgr.syncKeys(token, serverId)
+  const keys = await mgr.voiceKeys(serverId, { type: space.type, spaceId: space.id })
+  const newest = keys.length ? keys[keys.length - 1].epoch : 0
+  return newest >= epoch ? keys : []
+}
+
 // Seals a picture for sending: returns the body to upload. Throws a CryptoProblem ('no_key' ...).
 export const sealPictureFor = (accountId, serverId, space, authorId, bytes, info, caption) =>
   manager(accountId).sealImage(serverId, { type: space.type, spaceId: space.id, authorId }, bytes, info, caption)

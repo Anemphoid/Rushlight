@@ -294,6 +294,15 @@
 .chat-encrypted + .chat-retention {
   margin-left: 8px;
 }
+.voice-encrypted {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-pill);
+  padding: 2px 8px;
+  margin-left: 8px;
+}
 .key-notice {
   margin: 8px 24px 0;
   padding: 8px 12px;

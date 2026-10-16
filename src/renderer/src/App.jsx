@@ -200,9 +200,20 @@ function App() {
     const [type, id] = voiceKey.split(':')
     ;(async () => {
       try {
-        const { token, livekitUrl } = await api.getVoiceToken(voiceAuth, type, Number(id))
+        const { token, livekitUrl, encrypted, epoch } = await api.getVoiceToken(voiceAuth, type, Number(id))
         if (cancelled) return
-        await voice.join({ url: livekitUrl, token, key: voiceKey })
+        // An encrypted server's calls are encrypted by this app. The server says so with the token, so a stale idea of
+        // the server cannot make this connect in the clear; with no key the call does not start (see voice.join).
+        let encryption = null
+        if (encrypted) {
+          const keys =
+            sessionToken && currentServer
+              ? await e2eeSession.prepareVoiceKeys({ token: sessionToken, accountId, serverId: currentServer.id, space: { type, id: Number(id) }, epoch })
+              : []
+          if (cancelled) return
+          encryption = { keys }
+        }
+        await voice.join({ url: livekitUrl, token, key: voiceKey, encryption })
       } catch (err) {
         if (!cancelled) voice.fail(err.message)
       }
