@@ -33,6 +33,11 @@ jobs:
         run: npm ci --omit=dev
         working-directory: .server-under-test
 
+      # The tests import some of the client's own code, and some of that uses its libraries (the voice key tests use
+      # livekit-client). Scripts are skipped: nothing here needs Electron's binary or native modules.
+      - name: Install the client's dependencies
+        run: npm ci --ignore-scripts
+
       - name: Client api tests
         run: npm test
         env:
