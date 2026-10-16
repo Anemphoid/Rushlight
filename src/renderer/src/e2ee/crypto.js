@@ -116,8 +116,24 @@ const spaceInfo = (purpose, { serverId, type, spaceId, epoch }) => `${purpose}|$
 // The chat key of one channel or room in one epoch.
 export const deriveSpaceKey = (serverKey, space) => derive(serverKey, spaceInfo('space', space), 'key')
 
-// The 32 bytes handed to LiveKit's ExternalE2EEKeyProvider for a voice space (used by the voice step).
-export const deriveVoiceKey = (serverKey, space) => derive(serverKey, spaceInfo('voice', space), 'bits')
+// Voice keys are hierarchical, so one small thing can cover a whole channel. A channel has a base key (per epoch); the
+// voice key of the channel itself and of every room in it, now or made later, is derived from that base. A guest invite
+// for a channel carries the base, an invite for one room carries just that room's voice key, and nobody holds more
+// than they need. `space` = { serverId, type: 'channel' | 'room', spaceId, channelId (of the room's channel; for a
+// channel it is its own id), epoch }.
+const channelOf = (space) => {
+  const channelId = space.type === 'channel' ? space.spaceId : space.channelId
+  if (!Number.isInteger(channelId)) throw new CryptoProblem('bad_space', 'A room needs the channel it is in')
+  return channelId
+}
+export const deriveChannelVoiceBase = (serverKey, { serverId, channelId, epoch }) => derive(serverKey, `voicebase|${serverId}|${channelId}|${epoch}`, 'bits')
+export const deriveVoiceKeyFromBase = (base, space) => derive(new Uint8Array(base), spaceInfo('voice', space), 'bits')
+
+// The 32 bytes handed to LiveKit's key provider for a voice space (the voice step).
+export async function deriveVoiceKey(serverKey, space) {
+  const base = await deriveChannelVoiceBase(serverKey, { serverId: space.serverId, channelId: channelOf(space), epoch: space.epoch })
+  return deriveVoiceKeyFromBase(base, space)
+}
 
 // --- messages ---
 
@@ -217,5 +233,114 @@ export async function openPicture(sealedBytes, pictureKey) {
     return new Uint8Array(await subtle.decrypt({ name: 'AES-GCM', iv: bytes.subarray(0, 12), additionalData: PICTURE_AAD }, key, bytes.subarray(12)))
   } catch {
     throw new CryptoProblem('cannot_open', 'This picture could not be opened')
+  }
+}
+
+// --- invites that carry keys ---
+// An invite to an encrypted server is the visible code (which the server knows) plus a secret half (which it never
+// sees). The keys a joiner needs are sealed under the secret into a package the server stores; the secret itself is
+// sealed to the server key, so any admin's app can show the full invite and add the keys of a newer epoch. See the
+// server's src/e2ee.js. The secret is 25 characters of Crockford base32 (125 bits), written in groups of five.
+const B32 = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
+export const CODE_SECRET_LENGTH = 25
+
+export function newCodeSecret() {
+  const r = randomBytes(CODE_SECRET_LENGTH)
+  let out = ''
+  for (let i = 0; i < CODE_SECRET_LENGTH; i++) out += B32[r[i] & 31]
+  return out
+}
+
+// What a person typed, to the secret it stands for: upper case, dashes and spaces ignored, and the letters that look
+// like digits read as digits (O is 0, I and L are 1). Null if it is not a secret.
+export function normalizeCodeSecret(text) {
+  if (typeof text !== 'string') return null
+  const t = text.toUpperCase().replace(/[\s-]/g, '').replace(/O/g, '0').replace(/[IL]/g, '1')
+  return t.length === CODE_SECRET_LENGTH && [...t].every((c) => B32.includes(c)) ? t : null
+}
+export const formatCodeSecret = (secret) => secret.match(/.{1,5}/g).join('-')
+
+// The full invite, as it is shared: the visible code, a dot, the secret in groups.
+export const joinFullCode = (code, secret) => `${code}.${formatCodeSecret(secret)}`
+
+// A pasted or typed invite split into what goes to the server and what stays here. `secret` is null if there is no
+// valid second half.
+export function splitFullCode(text) {
+  const t = String(text || '').trim()
+  const i = t.lastIndexOf('.')
+  if (i < 0) return { code: t, secret: null, hadDot: false }
+  return { code: t.slice(0, i).trim(), secret: normalizeCodeSecret(t.slice(i + 1)), hadDot: true }
+}
+
+async function codeKey(material, info) {
+  const base = await subtle.importKey('raw', typeof material === 'string' ? enc.encode(material) : material, 'HKDF', false, ['deriveKey'])
+  return subtle.deriveKey({ name: 'HKDF', hash: 'SHA-256', salt: enc.encode('rushlight-code-v1'), info: enc.encode(info) }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt'])
+}
+const packageAad = (serverId) => enc.encode(`rlp1|${serverId}`)
+
+// payload = { v: 1, kind: 'server' | 'channel' | 'room', channelId?, roomId?, keys: { '<epoch>': base64url } }
+export async function sealCodePackage(secret, serverId, payload) {
+  const key = await codeKey(secret, `pkg|${serverId}`)
+  const nonce = randomBytes(12)
+  const sealed = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv: nonce, additionalData: packageAad(serverId) }, key, enc.encode(JSON.stringify({ v: 1, ...payload }))))
+  return `rlp1.${toB64u(nonce)}.${toB64u(sealed)}`
+}
+
+// Opens a package with the secret half. Returns { kind, channelId, roomId, keys: Map(epoch -> bytes) } or throws
+// CryptoProblem('cannot_open'). Anything that is not shaped like a package is refused whole.
+export async function openCodePackage(secret, serverId, text) {
+  try {
+    const m = /^rlp1\.([A-Za-z0-9_-]{16})\.([A-Za-z0-9_-]{22,})$/.exec(text)
+    if (!m) throw new Error('shape')
+    const key = await codeKey(secret, `pkg|${serverId}`)
+    const body = JSON.parse(dec.decode(await subtle.decrypt({ name: 'AES-GCM', iv: fromB64u(m[1]), additionalData: packageAad(serverId) }, key, fromB64u(m[2]))))
+    if (!body || body.v !== 1 || !['server', 'channel', 'room'].includes(body.kind) || !body.keys || typeof body.keys !== 'object') throw new Error('shape')
+    const keys = new Map()
+    for (const [epoch, value] of Object.entries(body.keys)) {
+      const n = Number(epoch)
+      const bytes = fromB64u(value)
+      if (!Number.isInteger(n) || n < 1 || bytes.length !== 32) throw new Error('key')
+      keys.set(n, bytes)
+    }
+    if (body.kind !== 'server' && !Number.isInteger(body.channelId)) throw new Error('shape')
+    if (body.kind === 'room' && !Number.isInteger(body.roomId)) throw new Error('shape')
+    return { kind: body.kind, channelId: body.channelId, roomId: body.roomId, keys }
+  } catch {
+    throw new CryptoProblem('cannot_open', 'This invite could not be opened')
+  }
+}
+
+export const packagePayload = (pkg) => ({
+  kind: pkg.kind,
+  ...(pkg.channelId !== undefined ? { channelId: pkg.channelId } : {}),
+  ...(pkg.roomId !== undefined ? { roomId: pkg.roomId } : {}),
+  keys: Object.fromEntries([...pkg.keys].map(([e, k]) => [String(e), toB64u(k)]))
+})
+
+// The secret sealed to a server key: rlc1.<epoch>.<nonce>.<ciphertext>, which is what the server stores beside the package.
+export async function sealCodeSecret(serverKey, { serverId, epoch }, secret) {
+  const key = await codeKey(serverKey, `secret|${serverId}|${epoch}`)
+  const nonce = randomBytes(12)
+  const sealed = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv: nonce, additionalData: enc.encode(`rlc1|${serverId}|${epoch}`) }, key, enc.encode(secret)))
+  return `rlc1.${epoch}.${toB64u(nonce)}.${toB64u(sealed)}`
+}
+
+export function codeSecretEpoch(text) {
+  const m = typeof text === 'string' ? /^rlc1\.(\d{1,9})\.[A-Za-z0-9_-]{16}\.[A-Za-z0-9_-]{22,}$/.exec(text) : null
+  return m ? Number(m[1]) : null
+}
+
+export async function openCodeSecret(serverKey, serverId, text) {
+  try {
+    const epoch = codeSecretEpoch(text)
+    if (!epoch) throw new Error('shape')
+    const parts = text.split('.')
+    const key = await codeKey(serverKey, `secret|${serverId}|${epoch}`)
+    const plain = dec.decode(await subtle.decrypt({ name: 'AES-GCM', iv: fromB64u(parts[2]), additionalData: enc.encode(`rlc1|${serverId}|${epoch}`) }, key, fromB64u(parts[3])))
+    const secret = normalizeCodeSecret(plain)
+    if (!secret) throw new Error('secret')
+    return secret
+  } catch {
+    throw new CryptoProblem('cannot_open', 'This invite could not be opened')
   }
 }

@@ -472,7 +472,7 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onSer
         <>
           <h2 className="rl-section-title">Join codes</h2>
           <p className="rl-section-sub">Invite people to {serverName}.</p>
-          <JoinCodesSection serverId={serverId} serverName={serverName} sessionToken={sessionToken} />
+          <JoinCodesSection serverId={serverId} serverName={serverName} sessionToken={sessionToken} accountId={accountId} />
         </>
       )}
 

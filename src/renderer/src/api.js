@@ -318,6 +318,13 @@ export const removeDevice = (token, deviceId) => request(`/api/devices/${deviceI
 export const getServerDevices = (token, serverId) => request(`/api/servers/${serverId}/devices`, { token })
 export const getKeyEnvelopes = (token, serverId, deviceId) => request(`/api/servers/${serverId}/key-envelopes?deviceId=${deviceId}`, { token })
 export const postKeyEnvelopes = (token, serverId, body) => request(`/api/servers/${serverId}/key-envelopes`, { method: 'POST', token, body })
+// Invites that carry keys (needs server v0.16.0): an admin's app adds a newer epoch to an invite's package, and a guest
+// asks again for the package of the invite it came in with.
+export const putCodePackage = (token, serverId, codeId, body) =>
+  request(`/api/servers/${serverId}/codes/${codeId}/package`, { method: 'PUT', token, body })
+// Looks at a code without using it up: whether the server is encrypted and the sealed keys the invite carries.
+export const checkCode = (code) => request('/api/code-check', { method: 'POST', body: { code } })
+export const getGuestKeyPackage = (guestToken) => request('/api/guest/key-package', { token: guestToken })
 export const rekeyServer = (token, serverId, body) => request(`/api/servers/${serverId}/rekey`, { method: 'POST', token, body })
 
 // Send a picture (a Blob already prepared by imagePrep.js) as its own message, with an optional caption.

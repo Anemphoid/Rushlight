@@ -19,6 +19,7 @@ import ProfileScreen from './screens/ProfileScreen'
 import AdminToolsScreen from './screens/AdminToolsScreen'
 import ViewTransition, { OverlayLayer } from './components/ViewTransition'
 import * as e2eeSession from './e2eeSession'
+import { splitFullCode } from './e2ee/crypto'
 import * as api from './api'
 import { playSound } from './sounds'
 import * as voice from './voice'
@@ -206,10 +207,13 @@ function App() {
         // the server cannot make this connect in the clear; with no key the call does not start (see voice.join).
         let encryption = null
         if (encrypted) {
-          const keys =
-            sessionToken && currentServer
-              ? await e2eeSession.prepareVoiceKeys({ token: sessionToken, accountId, serverId: currentServer.id, space: { type, id: Number(id) }, epoch })
+          const space = { type, id: Number(id), channelId: voiceSpace.channelId }
+          // A member's keys are their computer's; a guest holds only what their invite carried.
+          const keys = sessionToken
+            ? currentServer
+              ? await e2eeSession.prepareVoiceKeys({ token: sessionToken, accountId, serverId: currentServer.id, space, epoch })
               : []
+            : await e2eeSession.guestVoiceKeys(space, epoch)
           if (cancelled) return
           encryption = { keys }
         }
@@ -378,7 +382,14 @@ function App() {
   }
 
   async function handleJoinServer(code) {
-    const joined = await api.joinServerWithCode(sessionToken, code)
+    // An invite to an encrypted server is the code, a dot and a secret half; only the code goes to the server.
+    const { code: visible, secret } = splitFullCode(code)
+    const joined = await api.joinServerWithCode(sessionToken, visible)
+    if (joined.e2ee && joined.e2ee.enabled && joined.e2ee.package && secret) {
+      // The keys in it, so this member can read at once instead of waiting for another member's app. If it fails the
+      // usual way in still works.
+      await e2eeSession.takeInviteKeys(accountId, joined.id, secret, joined.e2ee.package).catch(() => {})
+    }
     await refreshServers(sessionToken)
     setShowServerDialog(false)
     await enterServer(sessionToken, joined.id)

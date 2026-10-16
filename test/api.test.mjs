@@ -39,7 +39,8 @@ test('listServerCodes returns the real response shape for a timed single-use cod
   const { codes } = await api.listServerCodes(admin.token, server.id)
   assert.equal(codes.length, 1)
   const c = codes[0]
-  assert.deepEqual(Object.keys(c).sort(), ['code', 'createdAt', 'expiresAt', 'guestsNow', 'id', 'persistent', 'scope', 'singleUse', 'used'])
+  assert.deepEqual(Object.keys(c).sort(), ['code', 'createdAt', 'e2ee', 'expiresAt', 'guestsNow', 'id', 'persistent', 'scope', 'singleUse', 'used'])
+  assert.equal(c.e2ee, null, 'an ordinary server has no keys in its invites')
   assert.equal(c.code, made.code)
   assert.equal(c.singleUse, true)
   assert.equal(c.persistent, false)

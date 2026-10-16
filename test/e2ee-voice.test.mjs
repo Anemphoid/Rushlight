@@ -124,9 +124,9 @@ test('only the newest 8 epochs are loaded', async () => {
   const store = memoryStore()
   const mk = createKeyManager({ api, store, scope: 'many' })
   for (let e = 1; e <= 11; e++) await store.putServerKey('many', 5, e, newServerKey())
-  const keys = await mk.voiceKeys(5, { type: 'room', spaceId: 2 })
+  const keys = await mk.voiceKeys(5, { type: 'room', spaceId: 2, channelId: 1 })
   assert.deepEqual(keys.map((k) => k.epoch), [4, 5, 6, 7, 8, 9, 10, 11])
   // and they are the real derived keys
-  const direct = await deriveVoiceKey((await store.getServerKeys('many', 5)).get(11), { serverId: 5, type: 'room', spaceId: 2, epoch: 11 })
+  const direct = await deriveVoiceKey((await store.getServerKeys('many', 5)).get(11), { serverId: 5, type: 'room', spaceId: 2, channelId: 1, epoch: 11 })
   assert.deepEqual(new Uint8Array(keys.at(-1).bytes), new Uint8Array(direct))
 })

@@ -13,8 +13,11 @@ import {
   openPayload,
   sealPicture,
   messageEpoch,
-  deriveVoiceKey
+  deriveVoiceKey,
+  openCodePackage
 } from './crypto.js'
+import { makeInvite, refreshedInvite, secretOfInvite } from './invites.js'
+import { joinFullCode } from './crypto.js'
 
 const CHUNK = 400 // the server takes up to 500 envelopes a call
 
@@ -180,6 +183,53 @@ export function createKeyManager({ api, store, scope, label = 'This computer' })
     return out
   }
 
+  // --- invites that carry keys (invites.js) ---
+  // A new invite for an encrypted server, from the keys this computer holds: { secret, body } (the body goes to the
+  // server with the other options; the secret goes in the shared code).
+  async function createInvite(serverId, scope) {
+    return makeInvite(serverId, await heldKeys(serverId), scope)
+  }
+
+  // For an admin: brings every invite of the server up to the newest key epoch this computer holds, by adding that
+  // epoch's keys to its package. Returns how many it updated. Losing a race to another admin is fine.
+  async function refreshInvites(token, serverId, rows) {
+    const have = await heldKeys(serverId)
+    let updated = 0
+    for (const row of rows) {
+      const next = await refreshedInvite(serverId, have, row)
+      if (!next) continue
+      try {
+        await api.putCodePackage(token, serverId, row.id, next)
+        updated++
+      } catch (err) {
+        if (err.reason !== 'package_changed' && err.reason !== 'bad_epoch') throw err
+      }
+    }
+    return updated
+  }
+
+  // The full shareable invite for a row of the server's list, or null if this computer cannot open its secret.
+  async function fullInvite(serverId, row) {
+    const secret = await secretOfInvite(serverId, await heldKeys(serverId), row)
+    return secret ? joinFullCode(row.code, secret) : null
+  }
+
+  // A member joined with an invite: take the server keys it carries so they can read at once, without waiting for
+  // another member's app. Returns how many epochs were new.
+  async function takeInvite(serverId, secret, packageText) {
+    const pkg = await openCodePackage(secret, serverId, packageText)
+    if (pkg.kind !== 'server') return 0
+    const have = await heldKeys(serverId)
+    let added = 0
+    for (const [epoch, bytes] of pkg.keys) {
+      if (!have.has(epoch)) {
+        await remember(serverId, epoch, bytes)
+        added++
+      }
+    }
+    return added
+  }
+
   // Everything this computer knows about a server, for screens to decide what to show.
   async function epochsHeld(serverId) {
     return [...(await heldKeys(serverId)).keys()].sort((a, b) => a - b)
@@ -192,5 +242,5 @@ export function createKeyManager({ api, store, scope, label = 'This computer' })
     await store.clear(scope)
   }
 
-  return { ensureDevice, syncKeys, startEpoch, shareKeys, seal, open, openBody, sealImage, voiceKeys, epochsHeld, forgetAll }
+  return { ensureDevice, syncKeys, startEpoch, shareKeys, seal, open, openBody, sealImage, voiceKeys, createInvite, refreshInvites, fullInvite, takeInvite, epochsHeld, forgetAll }
 }

@@ -187,6 +187,19 @@ a server change has to wait for a server release.
   `setVoiceKeys` loads it at once but keeps sending with the old key for 7 s (everyone learns of an epoch within one 5 s check), so
   nobody is unheard while it spreads. `VoicePanel` shows an `encrypted` label and, when someone's audio cannot be opened, that their key
   differs. Jellybox is off in encrypted servers until the per-room switch (a later step).
+  Invites that carry keys (needs server v0.16.0, migration 15): in an encrypted server every invite is the visible code plus a secret half
+  the server never sees, shared whole as `word-word-1234.ABCDE-FGHIJ-KLMNO-PQRST-UVWXY` (`crypto.js`: `joinFullCode`, `splitFullCode`,
+  `normalizeCodeSecret`; the secret is 25 Crockford base32 characters, O read as 0 and I or L as 1). `e2ee/invites.js` makes the sealed
+  package (`server` kind: the server keys; `channel`: the channel's voice BASE key per epoch; `room`: that room's voice key per epoch;
+  the newest 8 epochs) and the secret sealed to the server key, so any admin's app can show the full invite (`withFullCodes`) and add
+  a newer epoch (`refreshInvites`, run by an admin's `e2eeSession.refresh` whenever the epoch changes, with a compare-and-swap on the
+  server). Voice keys are therefore hierarchical: a room's voice key derives from its channel's base (`deriveChannelVoiceBase`,
+  `deriveVoiceKeyFromBase`), so a channel invite covers the rooms in it, now and later; a voice space is always `{ type, id, channelId }`.
+  A member who joins with one takes the server keys at once (`takeInviteKeys`, no waiting for another member); a guest keeps the package
+  in memory (`setGuestInvite`, `guestVoiceKeys`, which counts the keys as none unless it holds the room's current epoch) and asks the
+  server again every 5 s (`refreshGuest`) to follow a key change. `ScreenNamePrompt` calls `checkCode` first, so an invite pasted without
+  its secret half, or with a typo in it, is refused BEFORE a single-use code is spent. An invite made before encryption still lets a
+  member in (the keys then come from another member) but not a guest.
   Checked by hand-run scripts that need Playwright's Chromium: `scripts/e2ee-store-check.mjs` (the IndexedDB store, run in
   Chromium 141; Electron 33 ships 130) and `scripts/e2ee-chat-check.mjs` (the production build with real people in separate
   browser profiles on an encrypted server: first key, reading, ciphertext on disk, commands, the waiting state, a removal and
@@ -194,7 +207,9 @@ a server change has to wait for a server release.
   in Chromium with fake microphones that play a tone, a real LiveKit server (`LIVEKIT_SERVER_BIN`, built from
   github.com/livekit/livekit with Go) and a real Rushlight server; measures the audio energy on each incoming stream: two members hear
   each other, a wrong key hears nobody, a newcomer with no key does not connect and then does by itself, and after a removal the call
-  carries on and a newcomer sending with the new key is heard. `xvfb-run -a env E2EE_ELECTRON=1 node scripts/e2ee-voice-check.mjs`
+  carries on and a newcomer sending with the new key is heard; invites made in Admin Tools: a guest pastes one on the login screen and is in
+  the encrypted call, the visible half alone and a typo are refused without spending it, the guest follows a key change, and a member who
+  joins with an invite connects at once). `xvfb-run -a env E2EE_ELECTRON=1 node scripts/e2ee-voice-check.mjs`
   runs Mia as the real Electron app from its built files). The screenshot harness' `newPage` takes `fixedClock: false`
   (a frozen clock stops timers that read `Date.now()`) and `version` (encrypted servers refuse old ones).
 - `sounds.js` loads sounds by base name from `assets/sounds/` (missing = silent).

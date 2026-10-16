@@ -7,7 +7,7 @@
 //     the key arrives;
 //   - after someone is removed and the server moves to a new key, the call carries on and a newcomer who sends with
 //     the new key is heard by those who were already in the call.
-// Needs `npm run build`, Playwright's Chromium, RUSHLIGHT_SERVER_DIR (v0.15.0 or later) and a LiveKit server binary
+// Needs `npm run build`, Playwright's Chromium, RUSHLIGHT_SERVER_DIR (v0.16.0 or later) and a LiveKit server binary
 // (LIVEKIT_SERVER_BIN, e.g. built from github.com/livekit/livekit). Not part of `npm test`.
 // Run: node scripts/e2ee-voice-check.mjs [outDir]
 // With E2EE_ELECTRON=1 (and a display, e.g. `xvfb-run -a env E2EE_ELECTRON=1 node scripts/e2ee-voice-check.mjs`) Mia is the
@@ -305,17 +305,101 @@ try {
   assert.equal(await growing(olive), 2, 'Olive hears Mia and Zed (so Olive moved to the new key)')
   assert.equal(await growing(miaPage), 2, 'Mia hears Olive and Zed')
 
+  // 5. invites that carry keys, through the real screens. Olive makes a guest invite for Lounge in Admin Tools.
+  const inviteViaUi = async (page, optionLabel, shotName = null) => {
+    await page.click('.admin-tools-btn')
+    await page.click('.rl-nav-item:has-text("Join codes")')
+    if (optionLabel) await page.selectOption('select[aria-label="What the code covers"]', { label: optionLabel })
+    await page.click('button:has-text("Generate join code")')
+    const text = await until(async () => page.$eval('.code-box code', (e) => e.textContent).catch(() => null), 'the new invite')
+    if (shotName) await h.shot(page, shotName)
+    await page.keyboard.press('Escape')
+    await page.waitForSelector('.channel-row:has-text("Lounge")')
+    return text.trim()
+  }
+  const guestInvite = await inviteViaUi(olive, 'Guests only: Lounge (and its rooms)', 'admin-invite-encrypted')
+  assert.match(guestInvite, /^[a-z]+-[a-z]+-\d{4}\.(\w{5}-){4}\w{5}$/, 'the invite shown is the code, a dot and the secret half')
+  const visibleOnly = guestInvite.split('.')[0]
+  const guestPage = async (name, invite) => {
+    const p = await h.newPage({ width: 1100, height: 700, fixedClock: false, version: '0.26.0', init: INIT })
+    pages[name] = p
+    await p.fill('#auth-join', invite)
+    await p.click('.auth-joinrow button')
+    await p.fill('#auth-screen-name', name)
+    await p.click('button:has-text("Continue")')
+    return p
+  }
+  // the visible half alone is refused, and says why
+  const bare = await guestPage('Bare', visibleOnly)
+  const refusal = await until(async () => bare.$eval('.auth-error', (e) => e.textContent).catch(() => null), 'the refusal of a code without its second half', 10000)
+  assert.match(refusal, /whole invite, including the part after the dot/)
+  assert.equal((await bare.$$('.channel-row')).length, 0, 'nothing opened')
+  await bare.close()
+
+  // a mistyped secret half is refused too, and neither attempt used the single-use invite up
+  const last = guestInvite.slice(-1)
+  const typo = await guestPage('Typo', guestInvite.slice(0, -1) + (last === 'A' ? 'B' : 'A'))
+  const typoRefusal = await until(async () => typo.$eval('.auth-error', (e) => e.textContent).catch(() => null), 'the refusal of a mistyped second half', 10000)
+  assert.match(typoRefusal, /second half of that invite isn't right/)
+  await typo.close()
+  assert.equal(rows('SELECT used FROM join_codes WHERE code = ?', visibleOnly)[0].used, 0, 'the invite was not spent by the refused attempts')
+
+  // the whole invite brings a guest into the encrypted call
+  const gus = await guestPage('Gus', guestInvite)
+  await gus.waitForSelector('.channel-row:has-text("Lounge")')
+  await gus.click('.channel-row:has-text("Lounge")')
+  await connected(gus, 'Gus (a guest) in the encrypted call')
+  assert.ok(await gus.$('.voice-encrypted'), 'the guest sees that the room is encrypted')
+  await until(async () => (await inbound(gus)).length >= 3 && (await inbound(olive)).length >= 3, 'the guest in the room')
+  assert.equal(await growing(gus), 3, 'Gus hears Olive, Mia and Zed')
+  assert.equal(await growing(olive), 3, 'and Olive hears Mia, Zed and Gus')
+  await h.shot(gus, 'voice-guest-encrypted')
+
+  // 6. the guest follows a key change: Zed is removed, a new key starts, the invite is brought up to it, and a newcomer
+  //    who sends with the new key is heard by the guest
+  await w.call('POST', `/api/servers/${server.id}/members/${zed.id}/kick`, undefined, owner.token)
+  await until(() => rows('SELECT e2ee_epoch AS e FROM servers WHERE id = ?', server.id)[0].e === 3, 'the third key', 40000)
+  await until(() => rows('SELECT key_epoch AS e FROM join_codes WHERE key_package IS NOT NULL ORDER BY id DESC LIMIT 1')[0].e === 3, "the guest's invite brought up to the third key", 40000)
+  const yan = await reg('Yan')
+  await w.call('POST', '/api/servers/join', { code: code.code }, yan.token)
+  const yanPage = await open(yan, 'yan')
+  await enterServer(yanPage)
+  await joinLounge(yanPage)
+  await connected(yanPage, 'Yan connected on the third key')
+  // the switch to the new key takes about ten seconds in the call; then the guest hears all three (and Zed, gone, is silent)
+  await until(async () => (await growing(gus, 2500)) === 3, 'the guest, on the new key, hearing Olive, Mia and Yan', 60000)
+  await until(async () => (await growing(olive, 2500)) === 3, 'Olive hearing Mia, Yan and Gus', 60000)
+
+  // 7. a new member who joins with an invite connects at once: the keys came in it, so they never wait for another member
+  const memberInvite = await inviteViaUi(olive, null)
+  const nia = await reg('Nia')
+  const niaPage = await open(nia, 'nia')
+  await niaPage.click('.rail-add')
+  await niaPage.fill('#server-code-input', memberInvite)
+  await niaPage.click('button:has-text("Join server")')
+  await niaPage.waitForSelector('.channel-row:has-text("Lounge")')
+  await niaPage.click('.channel-row:has-text("Lounge")')
+  let waited = false
+  await until(async () => {
+    const t = await niaPage.$eval('.voice-panel', (e) => e.innerText).catch(() => '')
+    if (/doesn't have the server's key yet/.test(t)) waited = true
+    return (await niaPage.$('.voice-status.connected')) !== null
+  }, 'Nia connected with the keys from her invite', 20000)
+  assert.equal(waited, false, 'a member who joins with an invite never waits for the key')
+  await until(async () => (await inbound(niaPage)).length >= 3, 'streams for Nia')
+  assert.ok((await growing(niaPage)) >= 3, 'Nia hears the room')
+
   // Dad's wrong key is the only reason for "InvalidKey". "MissingKey" would mean someone sent with a key another could not
   // yet open: the moment of switching to the new key must not cost anyone's audio.
   const missing = h.log.filter((l) => /MissingKey/.test(l))
   assert.deepEqual(missing, [], 'nobody was ever sent audio with a key they did not yet have:\n' + missing.slice(0, 3).join('\n'))
-  const bad = h.log.filter((l) => !/Failed to load resource|401|403|426|409|InvalidKey|Failed to fetch/.test(l)) // (the last is the key hand-over this script blocks on purpose)
+  const bad = h.log.filter((l) => !/Failed to load resource|401|403|426|409|InvalidKey|Failed to fetch|User-Initiated Abort|closed unexpectedly/.test(l)) // (Failed to fetch: the key hand-over this script blocks on purpose; the aborts are a kicked person's connection being closed)
   assert.deepEqual(bad, [], 'no unexpected console errors:\n' + bad.join('\n'))
   console.log('encrypted calls with a real LiveKit server: ok')
 } catch (err) {
   failed = true
   console.error('encrypted voice check: FAILED\n', err)
-  for (const [who, page] of Object.entries(pages)) console.error(`--- ${who}:`, await page.$eval('.voice-panel', (e) => e.innerText.replace(/\n+/g, ' | ')).catch(() => '(no voice panel)'))
+  for (const [who, page] of Object.entries(pages)) console.error(`--- ${who}:`, await page.$eval('.voice-panel', (e) => e.innerText.replace(/\n+/g, ' | ')).catch(async () => '(no voice panel) page says: ' + (await page.evaluate(() => document.body.innerText.replace(/\n+/g, ' | ').slice(0, 300)).catch(() => '?'))))
   console.error(h.log.join('\n'))
   console.error('--- livekit:\n' + lkLog.slice(-1500))
 } finally {

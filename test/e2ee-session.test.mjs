@@ -162,10 +162,12 @@ test('signing out clears what is held in memory, and another account on the same
 
 test('after a removal only an admin starts the new key, and everyone else picks it up', async () => {
   const w = await world()
-  const code = await api.createServerCode(w.owner.token, w.server.id, { singleUse: false, expiresInMinutes: null })
+  await w.refresh(w.owner, true)
+  // an invite to an encrypted server carries its keys (server v0.16.0 requires them)
+  const invite = await session.createInvite(w.owner.id, w.server.id, null)
+  const code = await api.createServerCode(w.owner.token, w.server.id, { singleUse: false, expiresInMinutes: null, e2ee: invite.body })
   const bystander = await person('bystander')
   await api.joinServerWithCode(bystander.token, code.code)
-  await w.refresh(w.owner, true)
   await w.refresh(bystander, false)
   await sleep(4300)
   await w.refresh(w.owner, true) // hands the key to the bystander's computer
@@ -223,4 +225,14 @@ test('a picture notification says a picture was sent and nothing more', async ()
   unread.observe({ key, title: 'S', messages: base, isOpen: false, selfId: 1 })
   unread.observe({ key, title: 'S', messages: [...base, { id: 2, authorId: 2, author: 'Mia', text: 'rl1.1.AAAAAAAAAAAAAAAA.BBBBBBBBBBBBBBBBBBBBBB', encrypted: true, image: { id: 3, sealed: true } }], isOpen: false, selfId: 1 })
   assert.equal(sent.at(-1), 'Mia: sent a picture')
+})
+
+test('a call is only joined with the key of the room\'s current epoch: an older key alone counts as none', async () => {
+  const w = await world()
+  await w.refresh(w.owner, true) // epoch 1
+  const space = { type: 'channel', id: w.channel.id, channelId: w.channel.id }
+  const ask = (epoch) => session.prepareVoiceKeys({ token: w.owner.token, accountId: w.owner.id, serverId: w.server.id, space, epoch })
+  assert.deepEqual((await ask(1)).map((k) => k.epoch), [1])
+  // the room says it is on epoch 2, which this computer does not hold: nothing, so the call does not start
+  assert.deepEqual(await ask(2), [])
 })
