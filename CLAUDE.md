@@ -151,6 +151,18 @@ a server change has to wait for a server release.
   `look-fade` class on `<html>`; new chat messages, voice-room rows, queue rows and cards ease in. Reduced motion removes all of
   it (last rule in `motion.css`, guarded by `test/motion.test.mjs`). The screenshot tool turns animation off; `UI_SHOTS_MOTION=1`
   leaves it on and checks the crossfade, the overlay and the Jellybox slide part-way through.
+- End-to-end encryption, client side so far (`src/renderer/src/e2ee/`, needs server v0.13.0; nothing in the screens uses
+  it yet, so no behaviour changes): `crypto.js` is pure WebCrypto (P-256 ECDH, HKDF-SHA256, AES-256-GCM; the same code in
+  Electron and in the Node tests): a device key (private half non-extractable), a 32 byte server key per epoch wrapped to each
+  member device (ECIES, bound to server, epoch and recipient), chat and voice keys derived from it per space, and
+  `rl1.<epoch>.<nonce>.<ciphertext>` messages whose AAD binds server, space, epoch and author. `keystore.js` keeps the device
+  key (a CryptoKey structured-cloned into IndexedDB, never readable as bytes) and the server keys (bytes, so they can be wrapped
+  again) per account and server address; `keys.js` (`createKeyManager`) is what screens will call: `ensureDevice`, `syncKeys`,
+  `startEpoch` (admins: first key, and after a removal), `shareKeys`, `seal`, `open`, `voiceKey`. Never log keys, never put
+  one in React state or localStorage. `api.js` sends `X-Rushlight-Client` (dev builds say 999.0.0), which encrypted servers
+  require. `scripts/e2ee-store-check.mjs` checks the IndexedDB store in real Chromium (not part of `npm test`; it was run
+  in Chromium 141, Electron 33 ships 130). Messages are limited to 8000 bytes of UTF-8 so the sealed text fits the server's
+  12000 character limit.
 - `sounds.js` loads sounds by base name from `assets/sounds/` (missing = silent).
 
 ## Gotchas learned the hard way

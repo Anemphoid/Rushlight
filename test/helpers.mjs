@@ -9,6 +9,7 @@ import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -73,6 +74,7 @@ export async function startServer(env = {}) {
   }
   return {
     url,
+    dbPath: join(tmp, 'test.db'),
     log: () => log,
     stop: async () => {
       child.kill()
@@ -84,8 +86,16 @@ export async function startServer(env = {}) {
 
 // api.js reads the server address through the Electron preload bridge. In a test
 // there is no Electron, so provide the same one-function bridge.
-export function installBridge(url) {
-  globalThis.window = { api: { getServerConfig: async () => ({ serverUrl: url }) } }
+export function installBridge(url, { version } = {}) {
+  globalThis.window = { api: { getServerConfig: async () => ({ serverUrl: url }), ...(version ? { getVersion: async () => version } : {}) } }
+}
+
+// The server's own database library, for the few tests that have to write to the database the way a later
+// server release will (switching a server to encrypted, which has no route yet).
+export function openServerDb(path) {
+  const req = createRequire(join(serverDir(), 'package.json'))
+  const Database = req('better-sqlite3')
+  return new Database(path)
 }
 
 export async function rejection(promise) {

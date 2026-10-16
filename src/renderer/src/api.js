@@ -32,6 +32,27 @@ export function setSessionEndedHandler(fn) {
   sessionEndedHandler = fn
 }
 
+// Encrypted servers refuse clients that don't say which version they are (and turn away old ones). The
+// version comes from the app; a development build has no real one, so it says it is new enough.
+let cachedClientVersion = null
+async function clientVersion() {
+  if (cachedClientVersion) return cachedClientVersion
+  let v = null
+  try {
+    if (typeof window !== 'undefined' && window.api && window.api.getVersion) v = await window.api.getVersion()
+  } catch {
+    // no version; the header is left off
+  }
+  if (import.meta.env && import.meta.env.DEV) v = '999.0.0'
+  if (v) cachedClientVersion = v
+  return v
+}
+
+const versionHeader = async () => {
+  const v = await clientVersion()
+  return v ? { 'X-Rushlight-Client': v } : {}
+}
+
 async function request(path, { method = 'GET', body, token } = {}) {
   let baseUrl
   try {
@@ -42,6 +63,8 @@ async function request(path, { method = 'GET', body, token } = {}) {
 
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers.Authorization = `Bearer ${token}`
+  const version = await clientVersion()
+  if (version) headers['X-Rushlight-Client'] = version
 
   let res
   try {
@@ -71,6 +94,10 @@ async function request(path, { method = 'GET', body, token } = {}) {
     }
     // Set when the server says why someone lost access: 'expired', 'removed' or 'banned'.
     if (data.reason) err.reason = data.reason
+    // A new key that left a member device out names who (rekey_incomplete); epoch_changed says the current one.
+    if (Array.isArray(data.missing)) err.missing = data.missing
+    if (Number.isInteger(data.epoch)) err.epoch = data.epoch
+    if (data.minClient) err.minClient = data.minClient
     // The servers an owner still has to hand over or delete before deleting their account.
     if (Array.isArray(data.servers)) err.servers = data.servers
     throw err
@@ -279,6 +306,20 @@ export async function postMessage(token, type, id, { text, avatarColor }) {
   return withTime(message)
 }
 
+// A slash command for the music bot. Encrypted servers can't read chat, so commands go on their own route
+// and are never stored as messages; the bot answers in the chat as before.
+export const postCommand = (token, type, id, text) =>
+  request(type === 'channel' ? `/api/channels/${id}/commands` : `/api/rooms/${id}/commands`, { method: 'POST', token, body: { text } })
+
+// --- Encryption: devices and wrapped keys (needs server v0.13.0; the crypto is in e2ee/) ---
+export const registerDevice = (token, publicKey, label) => request('/api/devices', { method: 'POST', token, body: { publicKey, label } })
+export const listMyDevices = (token) => request('/api/devices', { token })
+export const removeDevice = (token, deviceId) => request(`/api/devices/${deviceId}`, { method: 'DELETE', token })
+export const getServerDevices = (token, serverId) => request(`/api/servers/${serverId}/devices`, { token })
+export const getKeyEnvelopes = (token, serverId, deviceId) => request(`/api/servers/${serverId}/key-envelopes?deviceId=${deviceId}`, { token })
+export const postKeyEnvelopes = (token, serverId, body) => request(`/api/servers/${serverId}/key-envelopes`, { method: 'POST', token, body })
+export const rekeyServer = (token, serverId, body) => request(`/api/servers/${serverId}/rekey`, { method: 'POST', token, body })
+
 // Send a picture (a Blob already prepared by imagePrep.js) as its own message, with an optional caption.
 // The server checks and cleans it. Throws with the server's wording on failure.
 export async function postImage(token, type, id, blob, { text = '', avatarColor } = {}) {
@@ -296,7 +337,7 @@ export async function postImage(token, type, id, blob, { text = '', avatarColor 
   try {
     res = await fetch(`${baseUrl}${path}${query.size ? '?' + query : ''}`, {
       method: 'POST',
-      headers: { 'Content-Type': blob.type, Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': blob.type, Authorization: `Bearer ${token}`, ...(await versionHeader()) },
       body: blob
     })
   } catch (err) {
@@ -324,7 +365,7 @@ export async function postImage(token, type, id, blob, { text = '', avatarColor 
 export async function fetchChatImage(token, imageId) {
   try {
     const baseUrl = await getBaseUrl()
-    const res = await fetch(`${baseUrl}/api/images/${imageId}`, { headers: { Authorization: `Bearer ${token}` } })
+    const res = await fetch(`${baseUrl}/api/images/${imageId}`, { headers: { Authorization: `Bearer ${token}`, ...(await versionHeader()) } })
     if (!res.ok) return null
     return URL.createObjectURL(await res.blob())
   } catch {
