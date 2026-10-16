@@ -9,7 +9,8 @@
 //                  'problem'  something failed (status.message)
 import * as api from './api.js'
 import { createKeyManager } from './e2ee/keys.js'
-import { pictureInfo } from './e2ee/crypto.js'
+import { pictureInfo, openCodePackage } from './e2ee/crypto.js'
+import { voiceKeysFromPackage } from './e2ee/invites.js'
 import { defaultStore } from './e2ee/keystore.js'
 
 const store = defaultStore()
@@ -17,6 +18,7 @@ const managers = new Map() // scope -> manager
 let statuses = {} // serverId -> status
 const listeners = new Set()
 const inFlight = new Map() // serverId -> promise
+const invitesAt = new Map() // serverId -> the key epoch this admin last brought the invites up to
 const lastShare = new Map() // serverId -> time keys were last offered to other devices
 const plain = new Map() // "<accountId>:<serverId>:<messageId>" -> opened body ({ t, img? }); messages never change, but only their reader may see it
 const SHARE_EVERY_MS = 4000 // about every check of the server (5 s): a new member or computer should not wait long
@@ -64,6 +66,16 @@ export function refresh({ token, accountId, serverId, e2ee, isAdmin }) {
         await mgr.shareKeys(token, serverId)
       }
       setStatus(serverId, sync.hasCurrent && sync.epoch > 0 ? { state: 'ready', epoch: sync.epoch } : { state: 'waiting', epoch: sync.epoch })
+      // A new key epoch: bring the server's invites up to it, so people who join (or guests already in) get it too.
+      if (isAdmin && sync.hasCurrent && sync.epoch > 0 && invitesAt.get(serverId) !== sync.epoch) {
+        invitesAt.set(serverId, sync.epoch)
+        try {
+          const { codes } = await api.listServerCodes(token, serverId)
+          await mgr.refreshInvites(token, serverId, codes)
+        } catch {
+          invitesAt.delete(serverId) // try again on the next check
+        }
+      }
     } catch (err) {
       // an old client being turned away is reported by the server's own words
       setStatus(serverId, { state: 'problem', epoch: e2ee.epoch, message: err.message })
@@ -114,8 +126,11 @@ export async function openMessages(accountId, serverId, space, messages) {
 // Seals text for sending. Throws a CryptoProblem with code 'no_key' if this computer has no key yet.
 export const seal = (accountId, serverId, space, authorId, text) => manager(accountId).seal(serverId, { type: space.type, spaceId: space.id, authorId }, text)
 
+// A voice space as the key code wants it: a room also says which channel it is in (a channel is its own).
+const voiceCtx = (space) => ({ type: space.type, spaceId: space.id, channelId: space.type === 'channel' ? space.id : space.channelId })
+
 // The voice keys for a space, oldest epoch first: [{ epoch, bytes }] (empty when this computer holds none yet).
-export const voiceKeysFor = (accountId, serverId, space) => manager(accountId).voiceKeys(serverId, { type: space.type, spaceId: space.id })
+export const voiceKeysFor = (accountId, serverId, space) => manager(accountId).voiceKeys(serverId, voiceCtx(space))
 
 // The keys to join an encrypted call with: this computer's keys brought up to date first, and only if it holds the key of
 // the room's current epoch (`epoch`, from the voice token). An older key alone would send audio the others cannot open,
@@ -123,7 +138,7 @@ export const voiceKeysFor = (accountId, serverId, space) => manager(accountId).v
 export async function prepareVoiceKeys({ token, accountId, serverId, space, epoch }) {
   const mgr = manager(accountId)
   await mgr.syncKeys(token, serverId)
-  const keys = await mgr.voiceKeys(serverId, { type: space.type, spaceId: space.id })
+  const keys = await mgr.voiceKeys(serverId, voiceCtx(space))
   const newest = keys.length ? keys[keys.length - 1].epoch : 0
   return newest >= epoch ? keys : []
 }
@@ -132,6 +147,52 @@ export async function prepareVoiceKeys({ token, accountId, serverId, space, epoc
 export const sealPictureFor = (accountId, serverId, space, authorId, bytes, info, caption) =>
   manager(accountId).sealImage(serverId, { type: space.type, spaceId: space.id, authorId }, bytes, info, caption)
 
+// --- invites that carry keys ---
+
+// A new invite for an encrypted server: { secret, body }. scope: null, { type: 'channel', id } or { type: 'room', id, channelId }.
+export const createInvite = (accountId, serverId, scope) => manager(accountId).createInvite(serverId, scope)
+
+// The rows of the server's invite list with `fullCode` added: the shareable code with its secret half, or null if this
+// computer cannot open that invite's secret (it was made before encryption, or this computer lacks that epoch's key).
+export async function withFullCodes(accountId, serverId, rows) {
+  const mgr = manager(accountId)
+  const out = []
+  for (const row of rows) out.push({ ...row, fullCode: row.e2ee ? await mgr.fullInvite(serverId, row) : null })
+  return out
+}
+
+// A member joined with an invite: take the server keys it carries.
+export const takeInviteKeys = (accountId, serverId, secret, packageText) => manager(accountId).takeInvite(serverId, secret, packageText)
+
+// A guest holds no account and no device; what they hold is the package of the invite they came in with, kept in
+// memory for the session. { serverId, secret, pkg }.
+let guest = null
+
+// Opens a guest's invite package. Throws CryptoProblem('cannot_open') if the secret half is wrong.
+export async function setGuestInvite({ serverId, secret, packageText }) {
+  guest = { serverId, secret, pkg: await openCodePackage(secret, serverId, packageText) }
+}
+
+// The voice keys a guest holds for a space ({ type, id, channelId }), but only if they hold the key of the room's
+// current epoch (anything older alone would send audio the others cannot open): [{ epoch, bytes }] or [].
+export async function guestVoiceKeys(space, epoch) {
+  if (!guest) return []
+  const keys = await voiceKeysFromPackage(guest.serverId, guest.pkg, space)
+  const newest = keys.length ? keys[keys.length - 1].epoch : 0
+  return newest >= epoch ? keys : []
+}
+
+// Asks the server again for the guest's invite package, to pick up a newer key epoch (admins' apps add them).
+// Returns true if the guest now holds keys it did not before.
+export async function refreshGuest(guestToken) {
+  if (!guest) return false
+  const answer = await api.getGuestKeyPackage(guestToken)
+  const have = guest.pkg.keys.size ? Math.max(...guest.pkg.keys.keys()) : 0
+  if (!answer.package || answer.packageEpoch <= have) return false
+  guest = { ...guest, pkg: await openCodePackage(guest.secret, guest.serverId, answer.package) }
+  return true
+}
+
 // Signing out: forget everything held in memory (opened text, key status). The keys on disk stay, so signing
 // back in picks up where it left off.
 export function lock() {
@@ -139,6 +200,8 @@ export function lock() {
   managers.clear() // their keys held in memory go with them; the manager reloads from the store on next use
   statuses = {}
   lastShare.clear()
+  invitesAt.clear()
+  guest = null
   listeners.forEach((l) => l())
 }
 

@@ -161,11 +161,11 @@ test('empty text and text over the limit are refused before anything is sealed',
 
 test('the voice key is 32 bytes, repeatable, and different per space, server and epoch', async () => {
   const key = newServerKey()
-  const base = { serverId: 7, type: 'room', spaceId: 3, epoch: 1 }
+  const base = { serverId: 7, type: 'room', spaceId: 3, channelId: 2, epoch: 1 }
   const a = new Uint8Array(await deriveVoiceKey(key, base))
   assert.equal(a.length, 32)
   assert.deepEqual(new Uint8Array(await deriveVoiceKey(key, base)), a)
-  for (const change of [{ spaceId: 4 }, { type: 'channel' }, { serverId: 8 }, { epoch: 2 }]) {
+  for (const change of [{ spaceId: 4 }, { channelId: 9 }, { type: 'channel', spaceId: 2 }, { serverId: 8 }, { epoch: 2 }]) {
     assert.notDeepEqual(new Uint8Array(await deriveVoiceKey(key, { ...base, ...change })), a)
   }
   assert.notDeepEqual(new Uint8Array(await deriveVoiceKey(newServerKey(), base)), a)

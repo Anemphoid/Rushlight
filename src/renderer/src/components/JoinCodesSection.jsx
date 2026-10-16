@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import * as api from '../api'
+import * as e2eeSession from '../e2eeSession'
+import { joinFullCode } from '../e2ee/crypto'
 import { formatExpiry, formatAge } from '../time'
 
 const EXPIRY_OPTIONS = [
@@ -12,7 +14,7 @@ const EXPIRY_OPTIONS = [
 // Admin Tools: make join codes and manage the ones that are out there. The
 // list is exactly what the server returns: codes that can still bring someone
 // in. A code that has been used up, has expired or was revoked drops off it.
-function JoinCodesSection({ serverId, serverName, sessionToken }) {
+function JoinCodesSection({ serverId, serverName, sessionToken, accountId }) {
   const [singleUse, setSingleUse] = useState(true)
   const [expiryMinutes, setExpiryMinutes] = useState(1440)
   const [code, setCode] = useState(null) // the code just generated, shown large
@@ -21,6 +23,8 @@ function JoinCodesSection({ serverId, serverName, sessionToken }) {
   const [copiedKey, setCopiedKey] = useState(null)
   const [scopeValue, setScopeValue] = useState('') // '' = whole server, else 'channel:3' / 'room:7'
   const [spaces, setSpaces] = useState([]) // voice spaces a code can be limited to
+  // An encrypted server's invites carry keys: made here, and shown whole (the code, a dot, and a secret half).
+  const [encrypted, setEncrypted] = useState(false)
 
   const [codes, setCodes] = useState(null) // null = still loading
   const [listError, setListError] = useState('')
@@ -31,12 +35,12 @@ function JoinCodesSection({ serverId, serverName, sessionToken }) {
   const loadCodes = useCallback(async () => {
     try {
       const result = await api.listServerCodes(sessionToken, serverId)
-      setCodes(result.codes)
+      setCodes(encrypted ? await e2eeSession.withFullCodes(accountId, serverId, result.codes) : result.codes)
       setListError('')
     } catch (err) {
       setListError(err.message)
     }
-  }, [sessionToken, serverId])
+  }, [sessionToken, serverId, accountId, encrypted])
 
   useEffect(() => {
     loadCodes()
@@ -53,9 +57,11 @@ function JoinCodesSection({ serverId, serverName, sessionToken }) {
         for (const ch of s.channels || []) {
           if (ch.mode !== 'text') list.push({ value: `channel:${ch.id}`, label: `${ch.name} (and its rooms)` })
           for (const r of ch.rooms || []) {
-            if (r.mode !== 'text') list.push({ value: `room:${r.id}`, label: `${ch.name} / ${r.name}` })
+            // a room's value also says which channel it is in: its voice key comes from that channel's
+            if (r.mode !== 'text') list.push({ value: `room:${r.id}:${ch.id}`, label: `${ch.name} / ${r.name}` })
           }
         }
+        setEncrypted(!!(s.e2ee && s.e2ee.enabled))
         setSpaces(list)
         setScopeValue((cur) => (list.some((o) => o.value === cur) ? cur : ''))
       })
@@ -68,12 +74,25 @@ function JoinCodesSection({ serverId, serverName, sessionToken }) {
     setGenerating(true)
     try {
       const options = { singleUse, expiresInMinutes: expiryMinutes }
+      let keyScope = null
       if (scopeValue) {
-        const [type, id] = scopeValue.split(':')
+        const [type, id, channelId] = scopeValue.split(':')
         options.scope = { type, id: Number(id) }
+        keyScope = type === 'room' ? { type, id: Number(id), channelId: Number(channelId) } : { type, id: Number(id) }
+      }
+      let invite = null
+      if (encrypted) {
+        // The keys are sealed here, under a secret half that only goes into the shared code, never to the server.
+        try {
+          invite = await e2eeSession.createInvite(accountId, serverId, keyScope)
+        } catch (err) {
+          if (err.code === 'no_key') throw new Error("This computer doesn't have this server's key yet, so it can't make an invite. It arrives when another member opens Rushlight.")
+          throw err
+        }
+        options.e2ee = invite.body
       }
       const result = await api.createServerCode(sessionToken, serverId, options)
-      setCode(result.code)
+      setCode(invite ? joinFullCode(result.code, invite.secret) : result.code)
       await loadCodes()
     } catch (err) {
       setCodeError(err.message)
@@ -98,7 +117,7 @@ function JoinCodesSection({ serverId, serverName, sessionToken }) {
     try {
       await api.revokeServerCode(sessionToken, serverId, row.id)
       setConfirmRevoke(null)
-      if (code === row.code) setCode(null)
+      if (code && code.split('.')[0] === row.code) setCode(null)
       await loadCodes()
     } catch (err) {
       setRevokeError(err.message)
@@ -160,6 +179,12 @@ function JoinCodesSection({ serverId, serverName, sessionToken }) {
                 {copiedKey === 'new' ? 'Copied' : 'Copy'}
               </button>
             </div>
+            {encrypted && (
+              <p className="settings-note">
+                This invite carries the server's key. Share it whole, including the part after the dot: without it, a guest
+                can't join and a new member waits for another member to be online.
+              </p>
+            )}
             <p className="settings-note">
               {scopeValue
                 ? 'This code is for guests only: enter it in the login screen\'s join box. It can\'t make someone a member.'
@@ -186,6 +211,8 @@ function JoinCodesSection({ serverId, serverName, sessionToken }) {
                     <div className="member-row-main">
                       <div className="member-row-name">
                         <code className="code-row-code">{c.code}</code>
+                        {encrypted && !c.e2ee && <span className="member-badge" title="Made before this server was encrypted: it still brings a member in, but guests can't use it">old invite</span>}
+                        {encrypted && c.e2ee && !c.fullCode && <span className="member-badge" title="This computer does not hold the key needed to show this invite's secret half">key missing</span>}
                         <span className="member-badge">{c.singleUse ? 'single use' : 'reusable'}</span>
                         {c.scope && (
                           <span className="member-badge">
@@ -208,9 +235,11 @@ function JoinCodesSection({ serverId, serverName, sessionToken }) {
                       </div>
                     </div>
                     <div className="member-row-actions">
-                      <button type="button" className="link-btn" onClick={() => copy(c.code, c.id)}>
-                        {copiedKey === c.id ? 'Copied' : 'Copy'}
-                      </button>
+                      {(!encrypted || !c.e2ee || c.fullCode) && (
+                        <button type="button" className="link-btn" onClick={() => copy(c.fullCode || c.code, c.id)}>
+                          {copiedKey === c.id ? 'Copied' : 'Copy'}
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="link-btn danger"

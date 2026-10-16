@@ -294,14 +294,37 @@ function ChannelTreeScreen({
   useEffect(() => {
     if (!voiceState.encrypted || e2eeStatus.state !== 'ready' || !voiceState.key) return
     const [type, id] = voiceState.key.split(':')
+    const space = { type, id: Number(id), channelId: openSpace ? openSpace.channelId : undefined }
     let cancelled = false
-    e2eeSession.voiceKeysFor(accountId, serverId, { type, id: Number(id) }).then((keys) => {
+    e2eeSession.voiceKeysFor(accountId, serverId, space).then((keys) => {
       if (!cancelled) voice.setVoiceKeys(keys)
     })
     return () => {
       cancelled = true
     }
   }, [e2eeStatus.epoch, voiceState.encrypted, voiceState.key])
+
+  // A guest in an encrypted call holds only what their invite carried, so they ask the server again every few seconds
+  // for the keys of a newer epoch (admins' apps add them) and switch to them, so the call goes on after a key change.
+  useEffect(() => {
+    if (sessionToken || !guestToken || !voiceState.encrypted || !voiceState.key) return
+    const [type, id] = voiceState.key.split(':')
+    const space = { type, id: Number(id), channelId: openSpace ? openSpace.channelId : undefined }
+    let cancelled = false
+    const timer = setInterval(async () => {
+      try {
+        if (!(await e2eeSession.refreshGuest(guestToken)) || cancelled) return
+        const keys = await e2eeSession.guestVoiceKeys(space, 0)
+        if (!cancelled && keys.length) voice.setVoiceKeys(keys)
+      } catch {
+        // the next check tries again
+      }
+    }, 5000)
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
+  }, [sessionToken, guestToken, voiceState.encrypted, voiceState.key])
 
   // Pick up this server's keys as soon as it opens, not five seconds later.
   useEffect(() => {
