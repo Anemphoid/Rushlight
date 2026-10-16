@@ -45,19 +45,6 @@
 .rl-back:hover {
   background: var(--bg-raised);
 }
-.rl-page-hint {
-  margin-left: auto;
-  white-space: nowrap;
-  font-size: 0.75rem;
-  color: var(--text-dim);
-}
-.rl-page-hint kbd {
-  font-family: var(--font-mono);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  padding: 1px 6px;
-  color: var(--text);
-}
 .rl-page-main {
   flex: 1;
   display: flex;

@@ -74,7 +74,7 @@ and Jellybox layouts as drawn in the mockups, the icon set, motion, and the unre
 
 ## Page layout (Settings first)
 
-Full-screen pages use `components/PageShell.jsx`: header (Back, title, "Esc to go back"), a section list on the left, the chosen
+Full-screen pages use `components/PageShell.jsx`: header (Back and the title; Esc also goes back, but the page does not say so), a section list on the left, the chosen
 section on the right, the body scrolling under the header. Esc goes back unless a field or dialog has the keyboard.
 The layout names a skin sets are `--page-header-h`, `--page-title-size`, `--nav-w`, `--nav-gutter`, `--nav-item-radius`,
 `--nav-bar-w` (Lantern: rounded soft items; Slate: full-width items with an inset bar). Shared styles are in
