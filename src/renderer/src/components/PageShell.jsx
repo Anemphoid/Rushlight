@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import Icon from './Icon'
 
 // The layout of every full-screen page (Settings now; Profile and Admin Tools next): a header under the title bar
-// with Back at the top left, the title beside it and "Esc to go back" at the right, then an optional list of
+// with Back at the top left, the title beside it (Esc also goes back; it is not spelled out on the page), then an optional list of
 // sections on the left with the chosen section on the right. The body scrolls under the header, so nothing can sit
 // on top of the content (the old sticky Back bar did). Esc does what Back does, except while a dialog or a text
 // field has the keyboard, or when the page asks for it to wait (escDisabled).
@@ -33,9 +33,6 @@ function PageShell({ title, onBack, sections, activeSection, onSelectSection, es
           Back
         </button>
         <h1>{title}</h1>
-        <span className="rl-page-hint">
-          <kbd>Esc</kbd> to go back
-        </span>
       </header>
       <div className="rl-page-main">
         {sections && (

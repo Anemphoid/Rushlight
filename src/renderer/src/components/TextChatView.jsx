@@ -241,7 +241,7 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, onS
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onPaste={onPaste}
-          placeholder={pending ? 'Add a caption' : `Message ${roomName}`}
+          placeholder={pending ? 'Add a caption' : `Message in ${roomName}`}
         />
         <button type="submit" className="btn-primary composer-send">
           <span className="composer-btn-text">Send</span>
