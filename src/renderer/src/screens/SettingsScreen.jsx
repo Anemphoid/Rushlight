@@ -3,6 +3,7 @@ import { useState, useEffect, useSyncExternalStore } from 'react'
 import * as voice from '../voice'
 import MicSpeakerCheck from '../components/MicSpeakerCheck'
 import AccountSecuritySection from '../components/AccountSecuritySection'
+import DevicesSection from '../components/DevicesSection'
 import RecoveryKeyScreen from '../components/RecoveryKeyScreen'
 import * as api from '../api'
 import { formatKeyLabel } from '../keys'
@@ -52,6 +53,7 @@ function SettingsScreen({
   mode,
   onChangeMode,
   sessionToken,
+  accountId,
   onSessionChanged,
   onAccountDeleted,
   onOpenOwnerTools,
@@ -254,6 +256,7 @@ function SettingsScreen({
             onAccountDeleted={onAccountDeleted}
             onOpenOwnerTools={onOpenOwnerTools}
           />
+          <DevicesSection sessionToken={sessionToken} accountId={accountId} />
         </>
       )}
 

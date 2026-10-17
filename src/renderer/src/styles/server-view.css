@@ -994,3 +994,75 @@
   gap: 8px;
   margin-top: 8px;
 }
+
+/* ---- Devices, safety numbers and new-device notices ---- */
+.device-notices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px 0;
+}
+.device-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+  color: var(--text);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+}
+.device-notice.own {
+  border-color: var(--warning);
+}
+.device-notice-text {
+  flex: 1 1 16rem;
+}
+.safety-number {
+  font-size: 1.25rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin: 8px 0;
+  user-select: all;
+}
+.safety-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.safety-verified {
+  color: var(--success);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+.safety-devices-title {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin: 8px 0 4px;
+}
+.safety-device {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 0.8125rem;
+  padding: 6px 0;
+  border-top: 1px solid var(--divider);
+}
+.safety-device-when,
+.safety-device-print {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+}
+.occupant-verified {
+  color: var(--success);
+  margin-left: 4px;
+  flex: none;
+}
