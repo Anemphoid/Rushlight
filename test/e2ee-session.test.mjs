@@ -236,3 +236,21 @@ test('a call is only joined with the key of the room\'s current epoch: an older 
   // the room says it is on epoch 2, which this computer does not hold: nothing, so the call does not start
   assert.deepEqual(await ask(2), [])
 })
+
+test('an admin can allow Jellybox in one room: the tree and the voice token say so, a member cannot, and turning it off restores encryption', async () => {
+  const w = await world()
+  const talk = await api.createChannel(w.owner.token, w.server.id, { name: 'talk', mode: 'voice', persistent: true })
+  const tree = async (who) => (await api.getServer(who.token, w.server.id)).channels.find((c) => c.id === talk.id)
+  assert.equal((await tree(w.member)).jellyboxOpen, false)
+  assert.equal((await api.getVoiceToken(w.member.token, 'channel', talk.id)).encrypted, true)
+  await assert.rejects(() => api.setJellyboxAllowed(w.member.token, 'channel', talk.id, true), /Admin only/)
+  await api.setJellyboxAllowed(w.owner.token, 'channel', talk.id, true)
+  assert.equal((await tree(w.member)).jellyboxOpen, true)
+  const open = await api.getVoiceToken(w.member.token, 'channel', talk.id)
+  assert.equal(open.encrypted, false)
+  assert.equal(open.jellyboxOpen, true)
+  await api.setJellyboxAllowed(w.owner.token, 'channel', talk.id, false)
+  const closed = await api.getVoiceToken(w.member.token, 'channel', talk.id)
+  assert.equal(closed.encrypted, true)
+  assert.equal(closed.jellyboxOpen, undefined)
+})

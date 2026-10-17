@@ -85,6 +85,8 @@ let state = {
   participants: [],
   encrypted: false, // this call is end-to-end encrypted
   needsKey: false, // an encrypted call could not start because this computer has no key yet; it retries once one arrives
+  jellyboxOpen: false, // an admin has allowed Jellybox in this room, so its voice is not end-to-end encrypted
+  roomNote: '', // one line about why this call just reconnected (Jellybox allowed or stopped)
   e2eeProblem: '', // set when someone's audio could not be opened (their key and ours differ)
   botAudioId: null // changes when Jellybox's audio track arrives or goes, so the visualizer can re-tap it
 }
@@ -352,6 +354,8 @@ export async function leave() {
       pingMs: null,
       participants: [],
       encrypted: false,
+      jellyboxOpen: false,
+      roomNote: '',
       e2eeProblem: ''
     })
   }
@@ -391,7 +395,7 @@ export function fail(message) {
 // `encryption` is null for an ordinary call, or { keys: [{ epoch, bytes }] } for an end-to-end encrypted one (the keys
 // from e2eeSession.voiceKeysFor). An encrypted call fails closed: if this computer cannot encrypt, or holds no key,
 // it does not connect at all, so audio is never sent in the clear into a room that is meant to be encrypted.
-export async function join({ url, token, key, encryption = null }) {
+export async function join({ url, token, key, encryption = null, jellyboxOpen = false, note = '' }) {
   const seq = ++joinSeq
   await teardown()
   if (seq !== joinSeq) return
@@ -399,6 +403,8 @@ export async function join({ url, token, key, encryption = null }) {
     status: 'connecting',
     error: '',
     needsKey: false,
+    jellyboxOpen,
+    roomNote: note,
     key,
     micOn: false,
     pttHeld: false,

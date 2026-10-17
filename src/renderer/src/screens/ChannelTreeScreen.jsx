@@ -629,6 +629,32 @@ function ChannelTreeScreen({
   }
 
   // Throws on failure so the chat composer can keep the draft and say why.
+  // Admins of an encrypted server can allow Jellybox in a voice room. It takes that room's voice out of the
+  // end-to-end layer, so the app asks first and everyone in the call reconnects when it changes.
+  let jellyboxSwitch = null
+  if (isAdmin && sessionToken && e2ee && e2ee.enabled && openSpace && openSpace.mode !== 'text') {
+    const ch = channels.find((c) => c.id === openSpace.channelId)
+    const node = ch && (openSpace.type === 'channel' ? ch : ch.rooms.find((r) => r.id === openSpace.roomId))
+    if (node) {
+      jellyboxSwitch = {
+        open: !!node.jellyboxOpen,
+        onSet: async (open) => {
+          const id = openSpace.type === 'channel' ? openSpace.channelId : openSpace.roomId
+          await api.setJellyboxAllowed(sessionToken, openSpace.type, id, open)
+          setChannels((prev) =>
+            prev.map((c) =>
+              c.id !== openSpace.channelId
+                ? c
+                : openSpace.type === 'channel'
+                  ? { ...c, jellyboxOpen: open }
+                  : { ...c, rooms: c.rooms.map((r) => (r.id === openSpace.roomId ? { ...r, jellyboxOpen: open } : r)) }
+            )
+          )
+        }
+      }
+    }
+  }
+
   async function sendMessageToOpenSpace(message) {
     if (!openSpace) return
     const space = openSpace
@@ -1061,6 +1087,7 @@ function ChannelTreeScreen({
                   pttKey={pttKey}
                   pttHookOk={pttHookOk}
                   onRetry={onRetryVoice}
+                  jellybox={jellyboxSwitch}
                 />
               )}
             {openSpace.mode !== 'voice' && (

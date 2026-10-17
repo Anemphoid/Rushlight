@@ -192,6 +192,15 @@ function App() {
     ? `${voiceSpace.type}:${voiceSpace.type === 'channel' ? voiceSpace.channelId : voiceSpace.roomId}`
     : null
   const voiceAuth = sessionToken || guestToken
+  // Whether an admin has allowed Jellybox in the open voice space (the tree's 5 s check keeps this fresh). When it
+  // changes, the call reconnects at once with a token that says whether to encrypt, and says why.
+  const jellyboxFlag = (() => {
+    if (!voiceSpace) return false
+    const ch = channels.find((c) => c.id === voiceSpace.channelId)
+    if (!ch) return false
+    return voiceSpace.type === 'channel' ? !!ch.jellyboxOpen : !!ch.rooms.find((r) => r.id === voiceSpace.roomId)?.jellyboxOpen
+  })()
+  const lastJellyboxFlag = useRef(null)
   useEffect(() => {
     if (!voiceKey || !voiceAuth) {
       voice.leave()
@@ -199,9 +208,17 @@ function App() {
     }
     let cancelled = false
     const [type, id] = voiceKey.split(':')
+    const last = lastJellyboxFlag.current
+    const flipped = !!last && last.key === voiceKey && last.flag !== jellyboxFlag
+    lastJellyboxFlag.current = { key: voiceKey, flag: jellyboxFlag }
+    const note = flipped
+      ? jellyboxFlag
+        ? 'Jellybox was just allowed in this room, so everyone reconnected. Voice here is no longer end-to-end encrypted. Chat is still private.'
+        : 'Jellybox was turned off in this room, so everyone reconnected. Voice here is end-to-end encrypted again.'
+      : ''
     ;(async () => {
       try {
-        const { token, livekitUrl, encrypted, epoch } = await api.getVoiceToken(voiceAuth, type, Number(id))
+        const { token, livekitUrl, encrypted, epoch, jellyboxOpen } = await api.getVoiceToken(voiceAuth, type, Number(id))
         if (cancelled) return
         // An encrypted server's calls are encrypted by this app. The server says so with the token, so a stale idea of
         // the server cannot make this connect in the clear; with no key the call does not start (see voice.join).
@@ -217,7 +234,7 @@ function App() {
           if (cancelled) return
           encryption = { keys }
         }
-        await voice.join({ url: livekitUrl, token, key: voiceKey, encryption })
+        await voice.join({ url: livekitUrl, token, key: voiceKey, encryption, jellyboxOpen: !!jellyboxOpen, note })
       } catch (err) {
         if (!cancelled) voice.fail(err.message)
       }
@@ -225,7 +242,7 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [voiceKey, voiceAuth, voiceRetry])
+  }, [voiceKey, voiceAuth, voiceRetry, jellyboxFlag])
 
   // ---- Push-to-talk key ----
   // Register the saved key with the global hook at startup, and find out
