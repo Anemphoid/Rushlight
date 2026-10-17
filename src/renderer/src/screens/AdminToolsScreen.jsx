@@ -5,6 +5,7 @@ import { avatarUrl } from '../api'
 import JoinCodesSection from '../components/JoinCodesSection'
 import MusicSection from '../components/MusicSection'
 import RetentionSection from '../components/RetentionSection'
+import EncryptionSection from '../components/EncryptionSection'
 import { formatExpiry, formatAge } from '../time'
 import { spaceNameFor } from '../spaces'
 import PageShell from '../components/PageShell'
@@ -16,7 +17,7 @@ const TIMED_ACCESS_OPTIONS = [
   { label: 'No limit', minutes: null }
 ]
 
-function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onServerDeleted, onBack }) {
+function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onServerDeleted, onEncryptionEnabled, onBack }) {
   const [section, setSection] = useState('members')
   const [members, setMembers] = useState(null) // null = still loading
   const [membersError, setMembersError] = useState('')
@@ -228,6 +229,7 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onSer
       ? [
           { id: 'music', label: 'Music', icon: 'music' },
           { id: 'history', label: 'History', icon: 'info' },
+          { id: 'encryption', label: 'Encryption', icon: 'shield' },
           { id: 'ownership', label: 'Ownership', icon: 'shield' }
         ]
       : [])
@@ -557,6 +559,14 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onSer
           <h2 className="rl-section-title">History</h2>
           <p className="rl-section-sub">How long persistent chat is kept.</p>
           <RetentionSection serverId={serverId} sessionToken={sessionToken} />
+        </div>
+      )}
+
+      {isOwner && shown === 'encryption' && (
+        <div className="rl-embed">
+          <h2 className="rl-section-title">Encryption</h2>
+          <p className="rl-section-sub">Keep this server private from everyone but its members.</p>
+          <EncryptionSection serverId={serverId} sessionToken={sessionToken} accountId={accountId} onEnabled={onEncryptionEnabled} />
         </div>
       )}
 
