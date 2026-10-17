@@ -242,5 +242,10 @@ export function createKeyManager({ api, store, scope, label = 'This computer' })
     await store.clear(scope)
   }
 
-  return { ensureDevice, syncKeys, startEpoch, shareKeys, seal, open, openBody, sealImage, voiceKeys, createInvite, refreshInvites, fullInvite, takeInvite, epochsHeld, forgetAll }
+  async function storedDeviceId() {
+    const stored = await store.getDevice(scope)
+    return stored ? stored.deviceId : null
+  }
+
+  return { ensureDevice, storedDeviceId, syncKeys, startEpoch, shareKeys, seal, open, openBody, sealImage, voiceKeys, createInvite, refreshInvites, fullInvite, takeInvite, epochsHeld, forgetAll }
 }

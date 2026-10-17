@@ -12,6 +12,8 @@ import { createKeyManager } from './e2ee/keys.js'
 import { pictureInfo, openCodePackage } from './e2ee/crypto.js'
 import { voiceKeysFromPackage } from './e2ee/invites.js'
 import { defaultStore } from './e2ee/keystore.js'
+import { peopleFromDevices } from './e2ee/safety.js'
+import { createTrust, findNotices } from './e2ee/trust.js'
 
 const store = defaultStore()
 const managers = new Map() // scope -> manager
@@ -21,6 +23,7 @@ const inFlight = new Map() // serverId -> promise
 const invitesAt = new Map() // serverId -> the key epoch this admin last brought the invites up to
 const lastShare = new Map() // serverId -> time keys were last offered to other devices
 const plain = new Map() // "<accountId>:<serverId>:<messageId>" -> opened body ({ t, img? }); messages never change, but only their reader may see it
+const WATCH_EVERY_MS = 10000 // how often the member list's devices are looked at for a new one
 const SHARE_EVERY_MS = 4000 // about every check of the server (5 s): a new member or computer should not wait long
 
 export function subscribe(l) {
@@ -36,6 +39,76 @@ function setStatus(serverId, status) {
   statuses = { ...statuses, [serverId]: status }
   listeners.forEach((l) => l())
 }
+
+// ---- Who has which devices: safety numbers, verified ticks, and a notice when someone adds a computer ----
+// People are matched by account id; the numbers come from the public keys the server lists. What this computer has
+// seen and verified is remembered per account (e2ee/trust.js). A first look at a person only sets the baseline.
+let trustStorage = null
+const memoryTrustMap = new Map() // only when there is no localStorage (tests)
+const memoryTrust = { getItem: (k) => memoryTrustMap.get(k) ?? null, setItem: (k, v) => memoryTrustMap.set(k, v), removeItem: (k) => memoryTrustMap.delete(k) }
+export function setTrustStorage(s) {
+  trustStorage = s
+}
+function trustFor(accountId) {
+  const storage = trustStorage || (typeof localStorage !== 'undefined' ? localStorage : memoryTrust)
+  return createTrust(storage, `${api.getCachedBaseUrl()}|${accountId}`)
+}
+let trustView = {} // serverId -> { people, notices, myDeviceId, accountId }
+const trustListeners = new Set()
+const lastWatch = new Map()
+export function subscribeTrust(l) {
+  trustListeners.add(l)
+  return () => trustListeners.delete(l)
+}
+export const getTrustSnapshot = () => trustView
+export const trustOf = (snapshot, serverId) => snapshot[serverId] || { people: {}, notices: [], myDeviceId: null, accountId: null }
+
+async function watchDevices({ token, accountId, serverId, force = false }) {
+  if (!force && Date.now() - (lastWatch.get(serverId) || 0) < WATCH_EVERY_MS) return
+  lastWatch.set(serverId, Date.now())
+  const mgr = manager(accountId)
+  const mine = await mgr.ensureDevice(token)
+  const { devices } = await api.getServerDevices(token, serverId)
+  const people = await peopleFromDevices(devices)
+  const trust = trustFor(accountId)
+  const { notices, baseline } = findNotices({ people, myAccountId: accountId, myDeviceId: mine.deviceId, trust, serverId })
+  for (const [id, ids] of baseline) trust.setSeen(serverId, id, ids)
+  const old = trustView[serverId]
+  const same = old && JSON.stringify(old.notices) === JSON.stringify(notices) && JSON.stringify(Object.values(old.people).map((p) => [p.accountId, p.number])) === JSON.stringify(Object.values(people).map((p) => [p.accountId, p.number]))
+  if (same && old.verifiedSig === verifiedSig(trust, people)) return
+  trustView = { ...trustView, [serverId]: { people, notices, myDeviceId: mine.deviceId, accountId, verifiedSig: verifiedSig(trust, people) } }
+  trustListeners.forEach((l) => l())
+}
+const verifiedSig = (trust, people) => Object.values(people).map((p) => `${p.accountId}:${trust.verified(p.accountId) === p.number}`).join(',')
+
+// "Yes, I know about it": the devices now listed count as seen. A verified tick that no longer matches is dropped,
+// so it only comes back after the person has been checked again.
+export async function dismissNotice({ token, accountId, serverId, noticeId }) {
+  const view = trustView[serverId]
+  const notice = view && view.notices.find((n) => n.id === noticeId)
+  if (!notice) return
+  const trust = trustFor(accountId)
+  const person = view.people[notice.accountId]
+  if (person) {
+    trust.setSeen(serverId, person.accountId, person.devices.map((d) => d.id))
+    if (notice.verifiedChanged) trust.setVerified(person.accountId, null)
+  }
+  await watchDevices({ token, accountId, serverId, force: true })
+}
+
+// Marks a person as checked against the number they read out, or takes the mark away.
+export async function setVerified({ token, accountId, serverId, personId, verified }) {
+  const view = trustView[serverId]
+  const person = view && view.people[personId]
+  if (!person) return
+  trustFor(accountId).setVerified(personId, verified ? person.number : null)
+  await watchDevices({ token, accountId, serverId, force: true })
+}
+
+// The id of this computer's device, or null if it has none (it never opened an encrypted server). Never makes one.
+export const thisDeviceId = (accountId) => manager(accountId).storedDeviceId()
+export const checkDevices = (args) => watchDevices({ ...args, force: true })
+export const isVerified = (accountId, person) => !!person && trustFor(accountId).verified(person.accountId) === person.number
 
 function manager(accountId) {
   const scope = `${api.getCachedBaseUrl()}|${accountId}`
@@ -66,6 +139,7 @@ export function refresh({ token, accountId, serverId, e2ee, isAdmin }) {
         await mgr.shareKeys(token, serverId)
       }
       setStatus(serverId, sync.hasCurrent && sync.epoch > 0 ? { state: 'ready', epoch: sync.epoch } : { state: 'waiting', epoch: sync.epoch })
+      watchDevices({ token, accountId, serverId }).catch(() => {}) // a missed look is made up for on the next check
       // A new key epoch: bring the server's invites up to it, so people who join (or guests already in) get it too.
       if (isAdmin && sync.hasCurrent && sync.epoch > 0 && invitesAt.get(serverId) !== sync.epoch) {
         invitesAt.set(serverId, sync.epoch)
@@ -199,6 +273,8 @@ export function lock() {
   plain.clear()
   managers.clear() // their keys held in memory go with them; the manager reloads from the store on next use
   statuses = {}
+  trustView = {}
+  lastWatch.clear()
   lastShare.clear()
   invitesAt.clear()
   guest = null

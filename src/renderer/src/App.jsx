@@ -561,6 +561,7 @@ function App() {
           mode={mode}
           onChangeMode={setMode}
           sessionToken={sessionToken}
+          accountId={accountId}
           onSessionChanged={handleSessionChanged}
           onAccountDeleted={handleAccountDeleted}
           onOpenOwnerTools={handleOpenOwnerTools}

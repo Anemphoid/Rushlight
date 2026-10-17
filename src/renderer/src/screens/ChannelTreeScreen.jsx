@@ -9,6 +9,8 @@ import VoicePanel from '../components/VoicePanel'
 import NowPlayingPanel from '../components/NowPlayingPanel'
 import jellyboxImage from '../assets/images/jellybox.png'
 import UserVolumeMenu from '../components/UserVolumeMenu'
+import SafetyNumberDialog from '../components/SafetyNumberDialog'
+import DeviceNotices from '../components/DeviceNotices'
 import Avatar from '../components/Avatar'
 import Icon from '../components/Icon'
 import * as api from '../api'
@@ -43,7 +45,7 @@ function spaceKey(space) {
 // One person listed under a channel or room. In the space you're connected to
 // by voice it also shows who is talking and who is muted, and right-clicking
 // someone else there opens their personal volume.
-function Occupant({ p, channelLevel, vp, onContextMenu }) {
+function Occupant({ p, channelLevel, vp, verified, onContextMenu }) {
   return (
     <div
       className={
@@ -55,6 +57,12 @@ function Occupant({ p, channelLevel, vp, onContextMenu }) {
     >
       <Avatar color={p.avatarColor} name={p.name} imageUrl={p.bot ? jellyboxImage : avatarUrl(p.id, p.avatarUpdatedAt)} size={16} />
       <span className="occupant-name">{p.name}</span>
+      {verified && (
+        <svg className="occupant-verified" width="12" height="12" viewBox="0 0 12 12" aria-label="Verified" role="img">
+          <title>Verified: you checked their safety number</title>
+          <path d="M2 6.5l2.5 2.5L10 3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
       {p.bot && <span className="member-badge">bot</span>}
       {vp && vp.isMuted && <span className="occupant-muted">muted</span>}
     </div>
@@ -182,9 +190,11 @@ function ChannelTreeScreen({
   const [proposals, setProposals] = useState([]) // persistence votes this person started or is asked about
   const [, refreshAcknowledged] = useState(0)
   const [actionError, setActionError] = useState('')
-  const [volumeMenu, setVolumeMenu] = useState(null) // { x, y, name }
+  const [volumeMenu, setVolumeMenu] = useState(null) // { x, y, name, accountId, showVolume }
+  const [safetyFor, setSafetyFor] = useState(null) // an account id whose safety number is open
   const unreadCounts = useSyncExternalStore(unread.subscribe, unread.getSnapshot)
   const voiceState = useSyncExternalStore(voice.subscribe, voice.getSnapshot)
+  const trust = e2eeSession.trustOf(useSyncExternalStore(e2eeSession.subscribeTrust, e2eeSession.getTrustSnapshot), serverId)
   const e2eeStatus = e2eeSession.statusOf(useSyncExternalStore(e2eeSession.subscribe, e2eeSession.getSnapshot), serverId)
 
   // Polling bookkeeping. The version counters let a poll that started before
@@ -492,10 +502,16 @@ function ChannelTreeScreen({
     return new Map(voiceState.participants.map((p) => [p.name, p]))
   }
 
-  function openVolumeMenu(e, name, vp) {
-    if (!vp || vp.isLocal) return
+  const isVerifiedPerson = (p) =>
+    !!(e2ee && e2ee.enabled && typeof p.id === 'number' && p.id !== accountId && trust.people[p.id] && e2eeSession.isVerified(accountId, trust.people[p.id]))
+
+  // Right-click someone: their personal volume when they are in your call, and in an encrypted server their safety number.
+  function openVolumeMenu(e, p, vp) {
+    const showVolume = !!vp && !vp.isLocal
+    const canCheck = !!(e2ee && e2ee.enabled && sessionToken && typeof p.id === 'number' && trust.people[p.id])
+    if (!showVolume && !canCheck) return
     e.preventDefault()
-    setVolumeMenu({ x: e.clientX, y: e.clientY, name })
+    setVolumeMenu({ x: e.clientX, y: e.clientY, name: p.name, accountId: canCheck ? p.id : null, showVolume })
   }
 
   async function runMutation(fn) {
@@ -914,7 +930,8 @@ function ChannelTreeScreen({
                       p={p}
                       channelLevel
                       vp={vp}
-                      onContextMenu={(e) => openVolumeMenu(e, p.name, vp)}
+                      verified={isVerifiedPerson(p)}
+                      onContextMenu={(e) => openVolumeMenu(e, p, vp)}
                     />
                   )
                 })
@@ -1023,7 +1040,8 @@ function ChannelTreeScreen({
                           key={p.id}
                           p={p}
                           vp={vp}
-                          onContextMenu={(e) => openVolumeMenu(e, p.name, vp)}
+                          verified={isVerifiedPerson(p)}
+                      onContextMenu={(e) => openVolumeMenu(e, p, vp)}
                         />
                       )
                     })
@@ -1078,6 +1096,16 @@ function ChannelTreeScreen({
       />
 
       <div className="tree-main">
+        {e2ee && e2ee.enabled && sessionToken && (
+          <DeviceNotices
+            notices={trust.notices}
+            token={sessionToken}
+            accountId={accountId}
+            serverId={serverId}
+            onCheck={(id) => setSafetyFor(id)}
+            onOpenSettings={onOpenSettings}
+          />
+        )}
         {openSpace ? (
           <div className="space-view">
             <div className="space-main">
@@ -1148,7 +1176,20 @@ function ChannelTreeScreen({
           x={volumeMenu.x}
           y={volumeMenu.y}
           name={volumeMenu.name}
+          showVolume={volumeMenu.showVolume}
+          verified={volumeMenu.accountId != null && e2eeSession.isVerified(accountId, trust.people[volumeMenu.accountId])}
+          onSafety={volumeMenu.accountId != null ? () => setSafetyFor(volumeMenu.accountId) : null}
           onClose={() => setVolumeMenu(null)}
+        />
+      )}
+
+      {safetyFor != null && trust.people[safetyFor] && (
+        <SafetyNumberDialog
+          person={trust.people[safetyFor]}
+          isYou={safetyFor === accountId}
+          verified={e2eeSession.isVerified(accountId, trust.people[safetyFor])}
+          onVerify={(value) => e2eeSession.setVerified({ token: sessionToken, accountId, serverId, personId: safetyFor, verified: value })}
+          onClose={() => setSafetyFor(null)}
         />
       )}
 
