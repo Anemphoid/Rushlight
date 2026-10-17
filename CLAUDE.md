@@ -186,7 +186,7 @@ a server change has to wait for a server release.
   by itself once the key arrives), so audio is never sent in the clear into an encrypted room. When a new epoch arrives mid-call
   `setVoiceKeys` loads it at once but keeps sending with the old key for 7 s (everyone learns of an epoch within one 5 s check), so
   nobody is unheard while it spreads. `VoicePanel` shows an `encrypted` label and, when someone's audio cannot be opened, that their key
-  differs. Jellybox is off in encrypted servers until the per-room switch (a later step).
+  differs. Jellybox is off in encrypted servers until an admin allows it in a room (server v0.17.0, `setJellyboxAllowed`; the switch is in `VoicePanel`, with a confirm that says voice there stops being end-to-end encrypted): the tree carries `jellyboxOpen` per space, the voice token then answers `encrypted: false, jellyboxOpen: true`, `App`'s join effect depends on that tree flag so everyone reconnects (with a one-line `roomNote` saying why), and `VoicePanel` tells anyone in such a room, calmly, that voice there isn't end-to-end encrypted and chat still is. Untested with real audio or in a real window.
   Invites that carry keys (needs server v0.16.0, migration 15): in an encrypted server every invite is the visible code plus a secret half
   the server never sees, shared whole as `word-word-1234.ABCDE-FGHIJ-KLMNO-PQRST-UVWXY` (`crypto.js`: `joinFullCode`, `splitFullCode`,
   `normalizeCodeSecret`; the secret is 25 Crockford base32 characters, O read as 0 and I or L as 1). `e2ee/invites.js` makes the sealed

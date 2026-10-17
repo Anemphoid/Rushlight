@@ -428,6 +428,10 @@ export const linkMusic = (token, serverId, details) =>
 export const testMusic = (token, serverId) => request(`/api/servers/${serverId}/music/test`, { method: 'POST', token, body: {} })
 export const unlinkMusic = (token, serverId) => request(`/api/servers/${serverId}/music`, { method: 'DELETE', token })
 export const getMusicState = (token, type, spaceId) => request(`/api/music/${type}/${spaceId}/state`, { token })
+// An admin allows or stops Jellybox in one room of an encrypted server (the room's voice then runs without the
+// end-to-end layer, because the bot's audio comes from the server).
+export const setJellyboxAllowed = (token, type, spaceId, open) =>
+  request(`/api/music/${type}/${spaceId}/allowed`, { method: 'PUT', token, body: { open } })
 export const musicControl = (token, type, spaceId, body) =>
   request(`/api/music/${type}/${spaceId}/control`, { method: 'POST', token, body })
 export const searchMusic = (token, serverId, q) =>
