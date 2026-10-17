@@ -105,6 +105,9 @@ export async function setVerified({ token, accountId, serverId, personId, verifi
   await watchDevices({ token, accountId, serverId, force: true })
 }
 
+// The owner's own computer needs a device before encryption can be switched on, so the first key can be wrapped to it.
+export const ensureThisDevice = (token, accountId) => manager(accountId).ensureDevice(token).then((d) => d.deviceId)
+
 // The id of this computer's device, or null if it has none (it never opened an encrypted server). Never makes one.
 export const thisDeviceId = (accountId) => manager(accountId).storedDeviceId()
 export const checkDevices = (args) => watchDevices({ ...args, force: true })

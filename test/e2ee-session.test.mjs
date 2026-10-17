@@ -254,3 +254,31 @@ test('an admin can allow Jellybox in one room: the tree and the voice token say 
   assert.equal(closed.encrypted, true)
   assert.equal(closed.jellyboxOpen, undefined)
 })
+
+test('the owner switches an existing server on: the old history is wiped, the first key follows, and the next message is sealed', async () => {
+  const w = await world({ encrypted: false })
+  await api.postMessage(w.owner.token, 'channel', w.channel.id, { text: 'said before encryption' })
+  const preview = await api.getEncryptionPreview(w.owner.token, w.server.id)
+  assert.equal(preview.enabled, false)
+  assert.equal(preview.plainMessages, 1)
+  await assert.rejects(() => api.getEncryptionPreview(w.member.token, w.server.id), /owner/i)
+
+  // the app asks for the password and a device first; without the wipe confirmed nothing happens
+  await session.ensureThisDevice(w.owner.token, w.owner.id)
+  await assert.rejects(() => api.enableEncryption(w.owner.token, w.server.id, { password: 'password123', wipe: false }), /wipes the old messages/)
+  await assert.rejects(() => api.enableEncryption(w.owner.token, w.server.id, { password: 'nope-nope', wipe: true }), /Incorrect password/)
+  const out = await api.enableEncryption(w.owner.token, w.server.id, { password: 'password123', wipe: true })
+  assert.deepEqual(out.wiped, { messages: 1, pictures: 0 })
+
+  assert.deepEqual(await api.getMessages(w.owner.token, 'channel', w.channel.id), [])
+  const e2ee = await w.info(w.owner)
+  assert.equal(e2ee.enabled, true)
+  assert.equal(e2ee.epoch, 0)
+  await w.refresh(w.owner, true)
+  assert.equal(w.status().state, 'ready')
+  assert.equal(w.status().epoch, 1)
+  const sealed = await session.seal(w.owner.id, w.server.id, w.space, w.owner.id, 'first words')
+  await api.postMessage(w.owner.token, 'channel', w.channel.id, { text: sealed })
+  const [opened] = await session.openMessages(w.owner.id, w.server.id, w.space, (await api.getMessages(w.owner.token, 'channel', w.channel.id)))
+  assert.equal(opened.text, 'first words')
+})

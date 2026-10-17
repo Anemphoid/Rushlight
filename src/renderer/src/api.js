@@ -167,6 +167,12 @@ export const getServer = (token, serverId) => request(`/api/servers/${serverId}`
 export const setRetention = (token, serverId, months, { dryRun = false } = {}) =>
   request(`/api/servers/${serverId}/retention`, { method: 'PUT', token, body: dryRun ? { months, dryRun: true } : { months } })
 
+// Owner only. The preview says what switching on would wipe and how many members are ready; enabling needs the owner's
+// password and, when there is anything to wipe, wipe: true. It cannot be switched back off.
+export const getEncryptionPreview = (token, serverId) => request(`/api/servers/${serverId}/encryption`, { token })
+export const enableEncryption = (token, serverId, { password, wipe }) =>
+  request(`/api/servers/${serverId}/encryption/enable`, { method: 'POST', token, body: { password, wipe } })
+
 export const renameServer = (token, serverId, name) =>
   request(`/api/servers/${serverId}`, { method: 'PATCH', token, body: { name } })
 

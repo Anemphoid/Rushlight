@@ -182,6 +182,13 @@ function App() {
     setView('connected')
   }
 
+  // The owner just switched encryption on: pick up the server's new state at once, and start the first key.
+  async function handleEncryptionEnabled() {
+    const data = await api.getServer(sessionToken, currentServer.id)
+    setCurrentServer((s) => (s ? { ...s, e2ee: data.e2ee || null } : s))
+    e2eeSession.refresh({ token: sessionToken, accountId, serverId: currentServer.id, e2ee: data.e2ee, isAdmin: true })
+  }
+
   // ---- Voice ----
   // The voice connection follows whichever space is open: opening a voice or
   // both-mode space joins it, and anything that clears the open space (going
@@ -192,6 +199,8 @@ function App() {
     ? `${voiceSpace.type}:${voiceSpace.type === 'channel' ? voiceSpace.channelId : voiceSpace.roomId}`
     : null
   const voiceAuth = sessionToken || guestToken
+  // A server becoming encrypted while a call is on: everyone in it reconnects, now with encryption.
+  const serverEncrypted = !!(currentServer && currentServer.e2ee && currentServer.e2ee.enabled)
   // Whether an admin has allowed Jellybox in the open voice space (the tree's 5 s check keeps this fresh). When it
   // changes, the call reconnects at once with a token that says whether to encrypt, and says why.
   const jellyboxFlag = (() => {
@@ -242,7 +251,7 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [voiceKey, voiceAuth, voiceRetry, jellyboxFlag])
+  }, [voiceKey, voiceAuth, voiceRetry, jellyboxFlag, serverEncrypted])
 
   // ---- Push-to-talk key ----
   // Register the saved key with the global hook at startup, and find out
@@ -593,6 +602,7 @@ function App() {
           sessionToken={sessionToken}
           accountId={accountId}
           onServerDeleted={handleServerDeleted}
+          onEncryptionEnabled={handleEncryptionEnabled}
           onBack={closeOverlay}
         />
       )
