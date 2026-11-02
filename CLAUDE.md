@@ -11,7 +11,7 @@ a server change has to wait for a server release.
 ## Commands
 
 - `npm install`, `npm run dev` (dev defaults to a localhost server)
-- `npm run build` (check this before committing; there is no lint script)
+- `npm run build` (check this before committing; there is no lint script, but `test/raw-colours.test.mjs` holds the count of hard-coded colours (from `npm run ui:audit`) to `test/raw-colours.baseline.json`: it may go down, never up, so use a variable from `styles/contract.js`; lower the baseline when you remove some)
 - `npm test` runs the api tests (`test/`) against a real Rushlight server process.
   It needs a checkout of Anemphoid/Rushlight-Server with `npm ci` run, found at
   `../rushlight-server` or `RUSHLIGHT_SERVER_DIR`. CI checks out a pinned release
@@ -101,7 +101,7 @@ a server change has to wait for a server release.
   position. Everyone sees it; the buttons (prev, pause, skip, stop, shuffle all), volume, seek-by-click, search box and
   library browsing (`BrowseSection`: artists, albums or songs A to Z by letter, 50 at a time, open an artist or album)
   need `canControl` (admins and the owner). `SongToast` pops up bottom right when the song changes (not for the
-  song already playing on arrival) and is drawn inside the full screen element while one is up. Slash commands are typed in chat and answered by the server as a `bot: true` message (shown with
+  song already playing on arrival, decided by `songToastRule.js`: a song first seen more than 8 s in was already playing, however late Jellybox's presence turns up) and is drawn inside the full screen element while one is up. Slash commands are typed in chat and answered by the server as a `bot: true` message (shown with
   a "bot" badge). Cover art needs the token, so `fetchMusicCover` returns a blob URL (revoked on change). A
   voice-only space has no chat, so there only admins can start music, from the panel.
 - Visualizer (`src/renderer/src/visualizer/`, client only): a button in the Now Playing panel, off until clicked,

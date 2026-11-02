@@ -12,7 +12,7 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
 export async function startFakeJellyfin() {
   const server = createServer((req, res) => {
     const url = new URL(req.url, 'http://x')
-    const token = (/Token="([^"]*)"/.exec(req.headers['x-emby-authorization'] || '') || [])[1]
+    const token = (/Token="([^"]*)"/.exec(req.headers['authorization'] || req.headers['x-emby-authorization'] || '') || [])[1]
     const json = (code, body) => {
       res.writeHead(code, { 'content-type': 'application/json' })
       res.end(JSON.stringify(body))
