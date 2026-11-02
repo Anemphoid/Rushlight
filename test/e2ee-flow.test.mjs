@@ -169,6 +169,12 @@ test("a second computer of the same person gets the keys from the first, and the
   const second = computer(w.member.account) // same account, new computer, empty store
   await second.keys.ensureDevice(second.token)
   assert.equal((await second.keys.syncKeys(second.token, w.server.id)).hasCurrent, false)
+  // not handed over while it waits for approval (the gate itself is tested in e2ee-gate.test.mjs)
+  await w.member.keys.shareKeys(w.member.token, w.server.id)
+  assert.equal((await second.keys.syncKeys(second.token, w.server.id)).hasCurrent, false)
+  const status = await second.keys.deviceStatus(second.token)
+  const asked = await w.member.keys.beginApproval(w.member.token, status.pairing.code)
+  await w.member.keys.confirmApproval(w.member.token, asked.approvalId, 'password123')
   await w.member.keys.shareKeys(w.member.token, w.server.id)
   assert.equal((await second.keys.syncKeys(second.token, w.server.id)).hasCurrent, true)
   assert.deepEqual(await read(w, second), [{ from: w.member.account.username, text: 'one' }])

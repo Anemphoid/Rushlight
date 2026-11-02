@@ -24,7 +24,7 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, onS
   // In an encrypted server a picture is sealed on this computer, which needs the server's key.
   const canSendImages = !localOnly && !!onSendImage && !!sessionToken && (!encrypted || keyState === 'ready')
   // This computer cannot write here until it holds the server's key (it arrives from another member's Rushlight).
-  const noKey = !!encrypted && (keyState === 'waiting' || keyState === 'problem')
+  const noKey = !!encrypted && (keyState === 'waiting' || keyState === 'problem' || keyState === 'unapproved')
   // True while the person is at (or near) the bottom. The list is replaced on every poll, so only
   // follow new messages when they were already reading the latest; scrolling up must stay put.
   const stickRef = useRef(true)
@@ -151,9 +151,11 @@ function TextChatView({ roomName, screenName, avatarColor, messages, onSend, onS
 
       {noKey && (
         <div className="key-notice" role="status">
-          {keyState === 'problem'
-            ? "Couldn't get this server's key. Check your connection; Rushlight keeps trying."
-            : "This computer doesn't have this server's key yet. It arrives when another member opens Rushlight, so messages stay hidden until then."}
+          {keyState === 'unapproved'
+            ? 'This computer has not been approved yet, so messages stay hidden. The code to approve it is at the top of the window.'
+            : keyState === 'problem'
+              ? "Couldn't get this server's key. Check your connection; Rushlight keeps trying."
+              : "This computer doesn't have this server's key yet. It arrives when another member opens Rushlight, so messages stay hidden until then."}
         </div>
       )}
       <div className="text-chat-list" ref={listRef} onScroll={onListScroll}>

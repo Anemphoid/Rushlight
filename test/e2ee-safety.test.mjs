@@ -64,6 +64,12 @@ test('the first look at a person is a baseline; a new device after that is a not
 })
 
 let srv, api, session, counter = 0
+// A computer that has been through the approval (its own flow is tested in e2ee-gate.test.mjs; here it is about what it changes).
+const approved = (device) => {
+  const db = openServerDb(srv.dbPath)
+  db.prepare('UPDATE device_keys SET approved_at = created_at WHERE id = ?').run(device.id)
+  db.close()
+}
 before(async () => {
   srv = await startServer({ ACCOUNT_LIMIT: '1000', DEVICE_LIMIT: '1000' })
   installBridge(srv.url, { version: '0.22.0' })
@@ -102,7 +108,7 @@ test('against a real server: a new computer for someone is noticed, a verified t
   await session.setVerified({ ...args(owner), personId: member.id, verified: true })
   assert.equal(session.isVerified(owner.id, view().people[member.id]), true)
 
-  await api.registerDevice(member.token, pub(), 'laptop')
+  await approved(await api.registerDevice(member.token, pub(), 'laptop'))
   await session.checkDevices(args(owner))
   const n = view().notices
   assert.equal(n.length, 1)
@@ -117,7 +123,7 @@ test('against a real server: a new computer for someone is noticed, a verified t
   assert.equal(session.isVerified(owner.id, view().people[member.id]), false, 'a tick has to be earned again')
 
   // your own account: another computer shows up on the first one
-  await api.registerDevice(owner.token, pub(), 'old desktop')
+  await approved(await api.registerDevice(owner.token, pub(), 'old desktop'))
   await session.checkDevices(args(owner))
   assert.equal(view().notices.length, 1)
   assert.equal(view().notices[0].own, true)

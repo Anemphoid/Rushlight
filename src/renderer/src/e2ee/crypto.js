@@ -103,6 +103,31 @@ export async function unwrapServerKey(envelope, privateKey, ctx) {
   }
 }
 
+// --- approving a new computer ---
+// The server seals a random challenge to this device's public key (ECIES: ephemeral ECDH, HKDF-SHA256 with an empty
+// salt, AES-256-GCM; `info` is both the HKDF info and the AAD) when an approved computer begins an approval. Only the
+// holder of the private key can open it, and the opened challenge is the proof that goes back with the password.
+export async function openApprovalChallenge(sealed, privateKey, { approvalId, deviceId }) {
+  try {
+    const bytes = fromB64u(sealed)
+    if (bytes.length !== 65 + 12 + 32 + 16) throw new Error('size')
+    const ephPublic = bytes.subarray(0, 65)
+    const iv = bytes.subarray(65, 77)
+    const shared = await subtle.deriveBits(
+      { name: 'ECDH', public: await subtle.importKey('raw', ephPublic, { name: 'ECDH', namedCurve: 'P-256' }, false, []) },
+      privateKey,
+      256
+    )
+    const info = `rushlight-approval-v1|${approvalId}|${deviceId}`
+    const base = await subtle.importKey('raw', shared, 'HKDF', false, ['deriveKey'])
+    const key = await subtle.deriveKey({ name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(0), info: enc.encode(info) }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt'])
+    const challenge = new Uint8Array(await subtle.decrypt({ name: 'AES-GCM', iv, additionalData: enc.encode(info) }, key, bytes.subarray(77)))
+    return toB64u(challenge)
+  } catch {
+    throw new CryptoProblem('cannot_open', 'This computer cannot open that approval: it is not the computer it was made for')
+  }
+}
+
 // --- keys derived from a server key ---
 
 async function derive(serverKey, info, usage) {

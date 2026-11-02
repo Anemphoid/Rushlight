@@ -20,8 +20,9 @@ function DevicesSection({ sessionToken, accountId }) {
     try {
       const { devices: list } = await api.listMyDevices(sessionToken)
       const withKeys = list.map((d) => ({ ...d, accountId }))
-      const people = await peopleFromDevices(withKeys)
-      setDevices(people[accountId] ? people[accountId].devices : [])
+      const people = await peopleFromDevices(withKeys.filter((d) => d.approved !== false)) // the number is of approved computers only
+      const waiting = await peopleFromDevices(withKeys.filter((d) => d.approved === false))
+      setDevices([...(people[accountId] ? people[accountId].devices : []), ...(waiting[accountId] ? waiting[accountId].devices : [])])
       setNumber(people[accountId] ? people[accountId].number : '')
       setThisDevice(await e2eeSession.thisDeviceId(accountId))
     } catch (err) {
@@ -61,6 +62,7 @@ function DevicesSection({ sessionToken, accountId }) {
             <span>
               {d.label || 'Computer'}
               {d.id === thisDevice && <span className="member-badge">this one</span>}
+              {d.approved === false && <span className="member-badge">waiting for approval</span>}
             </span>
             <span className="safety-device-when">added {when(d.createdAt)}</span>
             <span className="safety-device-print mono">{d.fingerprint}</span>

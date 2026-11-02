@@ -5,11 +5,24 @@ const kinds = (n) => (n.newDevices.length === 1 ? `a new device (${n.newDevices[
 // Calm banners at the top of an encrypted server: someone added a computer, or a person you verified now has a
 // different number. Your own account gets a firmer line, since a computer you do not know about is the one thing
 // worth stopping for.
-function DeviceNotices({ notices, token, accountId, serverId, onCheck, onOpenSettings }) {
-  if (!notices || notices.length === 0) return null
+function DeviceNotices({ notices, waiting = [], token, accountId, serverId, onCheck, onOpenSettings, onRemoveWaiting }) {
+  if ((!notices || notices.length === 0) && waiting.length === 0) return null
   return (
     <div className="device-notices" role="status">
-      {notices.map((n) => (
+      {waiting.map((d) => (
+        <div key={'w' + d.id} className="device-notice own">
+          <span className="device-notice-text">
+            A new computer is asking to join your account: {d.label || 'a computer'}. If that is you, approve it under Settings, Account, Add a computer. If it is not, remove it and change your password.
+          </span>
+          <button type="button" className="link-btn" onClick={onOpenSettings}>
+            Open settings
+          </button>
+          <button type="button" className="link-btn" onClick={() => onRemoveWaiting(d.id)}>
+            Remove it
+          </button>
+        </div>
+      ))}
+      {(notices || []).map((n) => (
         <div key={n.id} className={'device-notice' + (n.own ? ' own' : '')}>
           <span className="device-notice-text">
             {n.own
