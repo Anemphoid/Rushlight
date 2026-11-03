@@ -1092,3 +1092,25 @@
   letter-spacing: 0;
   color: var(--text-dim);
 }
+.pairing-recover {
+  margin-top: 8px;
+}
+.pairing-recover textarea,
+.settings-block textarea {
+  width: 100%;
+  font-family: var(--font-mono);
+  background: var(--bg-sunken);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  margin: 6px 0;
+}
+.key-warning {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+.key-warning p {
+  margin: 0 0 10px;
+}

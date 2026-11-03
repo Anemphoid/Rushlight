@@ -9,6 +9,7 @@
 export function memoryStore() {
   const devices = new Map()
   const keys = new Map()
+  const keyring = new Map() // scope -> { kek, proofHash, version }: what lets this computer keep the backup up to date
   return {
     kind: 'memory',
     async getDevice(scope) {
@@ -25,8 +26,18 @@ export function memoryStore() {
       if (!keys.has(id)) keys.set(id, new Map())
       keys.get(id).set(epoch, new Uint8Array(bytes))
     },
+    async listServerIds(scope) {
+      return [...new Set([...keys.keys()].filter((id) => id.startsWith(scope + '|')).map((id) => id.slice(scope.length + 1)))]
+    },
+    async getKeyring(scope) {
+      return keyring.get(scope) || null
+    },
+    async putKeyring(scope, value) {
+      keyring.set(scope, value)
+    },
     async clear(scope) {
       devices.delete(scope)
+      keyring.delete(scope)
       for (const id of [...keys.keys()]) if (id.startsWith(scope + '|')) keys.delete(id)
     }
   }
@@ -35,14 +46,14 @@ export function memoryStore() {
 const DB_NAME = 'rushlight-e2ee'
 const DEVICE = 'device'
 const KEYS = 'serverKeys'
+const KEYRING = 'keyring'
 
 function open(idb) {
   return new Promise((resolve, reject) => {
-    const req = idb.open(DB_NAME, 1)
+    const req = idb.open(DB_NAME, 2)
     req.onupgradeneeded = () => {
       const db = req.result
-      db.createObjectStore(DEVICE)
-      db.createObjectStore(KEYS)
+      for (const name of [DEVICE, KEYS, KEYRING]) if (!db.objectStoreNames.contains(name)) db.createObjectStore(name)
     }
     req.onsuccess = () => resolve(req.result)
     req.onerror = () => reject(req.error)
@@ -80,9 +91,22 @@ export function indexedDbStore(idb = globalThis.indexedDB) {
     async putServerKey(scope, serverId, epoch, bytes) {
       await done((await tx(KEYS, 'readwrite')).put(new Uint8Array(bytes), `${scope}|${serverId}|${epoch}`))
     },
+    async listServerIds(scope) {
+      const store = await tx(KEYS, 'readonly')
+      const prefix = `${scope}|`
+      const keys = await done(store.getAllKeys(IDBKeyRange.bound(prefix, prefix + '￿')))
+      return [...new Set(keys.map((k) => String(k).slice(prefix.length).split('|')[0]))]
+    },
+    async getKeyring(scope) {
+      return (await done((await tx(KEYRING, 'readonly')).get(scope))) || null
+    },
+    async putKeyring(scope, value) {
+      await done((await tx(KEYRING, 'readwrite')).put(value, scope))
+    },
     async clear(scope) {
       const d = await db()
-      const t = d.transaction([DEVICE, KEYS], 'readwrite')
+      const t = d.transaction([DEVICE, KEYS, KEYRING], 'readwrite')
+      t.objectStore(KEYRING).delete(scope)
       t.objectStore(DEVICE).delete(scope)
       t.objectStore(KEYS).delete(IDBKeyRange.bound(scope + '|', scope + '|￿'))
       await new Promise((resolve, reject) => {

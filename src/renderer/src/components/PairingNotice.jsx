@@ -7,10 +7,13 @@ const clock = (ms) => {
 
 // Shown on a computer that has not been approved yet. It holds no keys and is handed none until a computer of the same
 // account that is already signed in approves it with this code.
-function PairingNotice({ pairing, onNewCode }) {
+function PairingNotice({ pairing, onNewCode, onRecover }) {
   const [now, setNow] = useState(Date.now())
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [useKey, setUseKey] = useState(false)
+  const [words, setWords] = useState('')
+  const [recovering, setRecovering] = useState(false)
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(t)
@@ -28,6 +31,19 @@ function PairingNotice({ pairing, onNewCode }) {
       setError(err.message)
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function recover(e) {
+    e.preventDefault()
+    setRecovering(true)
+    setError('')
+    try {
+      await onRecover(words)
+    } catch (err) {
+      setError(err.reason === 'bad_proof' ? "That recovery key doesn't match, or no backup of the keys was ever made for this account." : err.message)
+    } finally {
+      setRecovering(false)
     }
   }
 
@@ -49,9 +65,26 @@ function PairingNotice({ pairing, onNewCode }) {
         {live ? 'Show a new code' : 'Show a code'}
       </button>
       {error && <div className="error-text">{error}</div>}
-      <p className="settings-note">
-        If you have no other computer signed in, your recovery key will bring the keys back. That is not in this version yet.
-      </p>
+      {!useKey ? (
+        <p className="settings-note">
+          No other computer signed in?{' '}
+          <button type="button" className="link-btn" onClick={() => setUseKey(true)}>
+            Use your recovery key instead
+          </button>
+        </p>
+      ) : (
+        <form onSubmit={recover} className="pairing-recover">
+          <label htmlFor="pair-words">Your 12 word recovery key</label>
+          <textarea id="pair-words" rows={2} value={words} onChange={(e) => setWords(e.target.value)} autoComplete="off" spellCheck={false} />
+          <button type="submit" className="btn-primary" disabled={recovering || !words.trim()}>
+            {recovering ? 'Checking…' : 'Use this recovery key'}
+          </button>{' '}
+          <button type="button" className="btn-secondary" disabled={recovering} onClick={() => setUseKey(false)}>
+            Cancel
+          </button>
+          <p className="settings-note">The key itself is not sent anywhere: only proof that you know it. It brings your keys back from your backup.</p>
+        </form>
+      )}
     </div>
   )
 }

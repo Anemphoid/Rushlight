@@ -5,7 +5,9 @@ import MicSpeakerCheck from '../components/MicSpeakerCheck'
 import AccountSecuritySection from '../components/AccountSecuritySection'
 import DevicesSection from '../components/DevicesSection'
 import AddComputerSection from '../components/AddComputerSection'
+import KeyBackupSection from '../components/KeyBackupSection'
 import RecoveryKeyScreen from '../components/RecoveryKeyScreen'
+import * as e2eeSession from '../e2eeSession'
 import * as api from '../api'
 import { formatKeyLabel } from '../keys'
 import * as unread from '../unread'
@@ -97,7 +99,7 @@ function SettingsScreen({
         cancelLabel="Cancel, keep my old key"
         onCancel={() => setNewKey(null)}
         onConfirm={async () => {
-          await api.ackRecoveryKey(sessionToken)
+          await e2eeSession.confirmRecoveryKey({ token: sessionToken, accountId, recoveryKey: newKey })
           setNewKey(null)
         }}
       />
@@ -257,6 +259,7 @@ function SettingsScreen({
             onAccountDeleted={onAccountDeleted}
             onOpenOwnerTools={onOpenOwnerTools}
           />
+          <KeyBackupSection sessionToken={sessionToken} accountId={accountId} />
           <AddComputerSection sessionToken={sessionToken} accountId={accountId} />
           <DevicesSection sessionToken={sessionToken} accountId={accountId} />
         </>

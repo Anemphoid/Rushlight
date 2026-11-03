@@ -128,6 +128,62 @@ export async function openApprovalChallenge(sealed, privateKey, { approvalId, de
   }
 }
 
+// --- the keyring backup ---
+// Two independent secrets are made from a person's 12 recovery words with different labels: a key that seals their server
+// keys into one blob the server stores but cannot open, and a "proof" the server keeps only a hash of, so a waiting computer
+// can show it knows the words without sending them. Neither can be got from the other or from the hash. The words are
+// normalised exactly as the server does (lower case, split on spaces, commas, dashes and dots, joined by one space).
+const KEYRING_SALT = enc.encode('rushlight-keyring-v1')
+
+export function normalizeRecoveryWords(text) {
+  if (typeof text !== 'string' || text.length > 400) return null
+  const words = text.toLowerCase().split(/[\s,.\-_]+/).filter(Boolean)
+  return words.length === 12 ? words.join(' ') : null
+}
+
+export async function deriveKeyringSecrets(wordsText) {
+  const words = normalizeRecoveryWords(wordsText)
+  if (!words) throw new CryptoProblem('bad_words', 'A recovery key is 12 words')
+  const base = await subtle.importKey('raw', enc.encode(words), 'HKDF', false, ['deriveKey', 'deriveBits'])
+  const params = (label) => ({ name: 'HKDF', hash: 'SHA-256', salt: KEYRING_SALT, info: enc.encode(`rushlight-keyring-v1|${label}`) })
+  // not extractable: it can be kept on this computer to update the backup, and never read back out
+  const kek = await subtle.deriveKey(params('key'), base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt'])
+  const proofBytes = new Uint8Array(await subtle.deriveBits(params('proof'), base, 256))
+  const hash = new Uint8Array(await subtle.digest('SHA-256', proofBytes))
+  return { kek, proof: toB64u(proofBytes), proofHash: [...hash].map((b) => b.toString(16).padStart(2, '0')).join('') }
+}
+
+// keyring: { v: 1, servers: { [serverId]: { [epoch]: 32 bytes as base64url } } }
+export async function sealKeyring(kek, keyring, accountId) {
+  const nonce = randomBytes(12)
+  const sealed = new Uint8Array(
+    await subtle.encrypt({ name: 'AES-GCM', iv: nonce, additionalData: enc.encode(`rushlight-keyring-v1|${accountId}`) }, kek, enc.encode(JSON.stringify(keyring)))
+  )
+  return `rlk1.${toB64u(nonce)}.${toB64u(sealed)}`
+}
+
+export async function openKeyring(kek, blob, accountId) {
+  try {
+    const m = /^rlk1\.([A-Za-z0-9_-]{16})\.([A-Za-z0-9_-]+)$/.exec(blob)
+    if (!m) throw new Error('shape')
+    const plain = await subtle.decrypt({ name: 'AES-GCM', iv: fromB64u(m[1]), additionalData: enc.encode(`rushlight-keyring-v1|${accountId}`) }, kek, fromB64u(m[2]))
+    const keyring = JSON.parse(new TextDecoder().decode(plain))
+    if (!keyring || keyring.v !== 1 || typeof keyring.servers !== 'object' || !keyring.servers) throw new Error('content')
+    const out = {}
+    for (const [serverId, epochs] of Object.entries(keyring.servers)) {
+      out[serverId] = {}
+      for (const [epoch, key] of Object.entries(epochs || {})) {
+        const bytes = fromB64u(key)
+        if (!/^\d{1,9}$/.test(epoch) || bytes.length !== 32) throw new Error('content')
+        out[serverId][epoch] = bytes
+      }
+    }
+    return out // { [serverId]: { [epoch]: Uint8Array(32) } }
+  } catch {
+    throw new CryptoProblem('cannot_open', 'That recovery key does not open this backup')
+  }
+}
+
 // --- keys derived from a server key ---
 
 async function derive(serverKey, info, usage) {

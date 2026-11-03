@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import * as api from '../api'
 import RecoveryKeyScreen from '../components/RecoveryKeyScreen'
+import * as e2eeSession from '../e2eeSession'
 import AuthLayout from '../components/AuthLayout'
 
 // Forgot password: username, the recovery key and a new password. Using the key spends it,
@@ -22,7 +23,11 @@ function RecoverScreen({ onBack, onRecovered }) {
     setError('')
     setBusy(true)
     try {
-      setResult(await api.recoverAccount(username.trim(), key, password))
+      const reset = await api.recoverAccount(username.trim(), key, password)
+      // A reset on a computer that does not hold the keys: the words just typed open the backup, so the history comes
+      // back, and the new key's backup (made when it is confirmed) then carries it on. Best effort: the reset stands.
+      await e2eeSession.restoreKeyring({ token: reset.token, accountId: reset.id, words: key }).catch(() => {})
+      setResult(reset)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -36,7 +41,7 @@ function RecoverScreen({ onBack, onRecovered }) {
         title="Save your new recovery key"
         recoveryKey={result.recoveryKey}
         onConfirm={async () => {
-          await api.ackRecoveryKey(result.token)
+          await e2eeSession.confirmRecoveryKey({ token: result.token, accountId: result.id, recoveryKey: result.recoveryKey })
           onRecovered({
             screenName: result.username,
             sessionToken: result.token,

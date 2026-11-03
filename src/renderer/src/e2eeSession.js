@@ -56,6 +56,7 @@ function trustFor(accountId) {
 let trustView = {} // serverId -> { people, notices, myDeviceId, accountId }
 const trustListeners = new Set()
 const lastWatch = new Map()
+const lastBackupCheck = new Map()
 export function subscribeTrust(l) {
   trustListeners.add(l)
   return () => trustListeners.delete(l)
@@ -76,9 +77,15 @@ async function watchDevices({ token, accountId, serverId, force = false }) {
   for (const [id, ids] of baseline) trust.setSeen(serverId, id, ids)
   const old = trustView[serverId]
   const waiting = ds.waiting
-  const same = old && JSON.stringify(old.waiting) === JSON.stringify(waiting) && JSON.stringify(old.notices) === JSON.stringify(notices) && JSON.stringify(Object.values(old.people).map((p) => [p.accountId, p.number])) === JSON.stringify(Object.values(people).map((p) => [p.accountId, p.number]))
+  // whether a backup of the keys exists, looked at about once a minute (it is a small question, not an urgent one)
+  let backup = old ? old.backup : undefined
+  if (force || !backup || Date.now() - (lastBackupCheck.get(serverId) || 0) > 60000) {
+    lastBackupCheck.set(serverId, Date.now())
+    backup = await mgr.backupStatus(token).then((b) => ({ exists: b.exists }), () => backup)
+  }
+  const same = old && JSON.stringify(old.backup) === JSON.stringify(backup) && JSON.stringify(old.waiting) === JSON.stringify(waiting) && JSON.stringify(old.notices) === JSON.stringify(notices) && JSON.stringify(Object.values(old.people).map((p) => [p.accountId, p.number])) === JSON.stringify(Object.values(people).map((p) => [p.accountId, p.number]))
   if (same && old.verifiedSig === verifiedSig(trust, people)) return
-  trustView = { ...trustView, [serverId]: { people, notices, waiting, myDeviceId: mine.deviceId, accountId, verifiedSig: verifiedSig(trust, people) } }
+  trustView = { ...trustView, [serverId]: { people, notices, waiting, backup, myDeviceId: mine.deviceId, accountId, verifiedSig: verifiedSig(trust, people) } }
   trustListeners.forEach((l) => l())
 }
 const verifiedSig = (trust, people) => Object.values(people).map((p) => `${p.accountId}:${trust.verified(p.accountId) === p.number}`).join(',')
@@ -148,9 +155,33 @@ export function computerLabel() {
   return 'This computer'
 }
 
+// ---- The keyring backup ----
+// Confirming a recovery key (sign-up, a reset, the one-time prompt, Settings) also makes the backup under the new words.
+// The key counts either way: if the backup could not be made, the result says so and Settings shows it is missing.
+export async function confirmRecoveryKey({ token, accountId, recoveryKey }) {
+  await api.ackRecoveryKey(token)
+  try {
+    await manager(accountId).createBackup(token, recoveryKey)
+    return { backedUp: true }
+  } catch (err) {
+    return { backedUp: false, error: err.message }
+  }
+}
+export const keyringStatus = ({ token, accountId }) => manager(accountId).backupStatus(token)
+// One-time step for an account that has a recovery key but no backup: asks for the key, checks it with the server, makes the backup.
+export const createKeyringBackup = ({ token, accountId, words }) => manager(accountId).createBackup(token, words)
+// Takes the keys out of the backup with the words (after a reset on a new computer, or a lost computer).
+export const restoreKeyring = ({ token, accountId, words }) => manager(accountId).restoreBackup(token, words)
+// A waiting computer with no other computer to ask: the words approve it and bring the history back.
+export async function recoverThisComputer({ token, accountId, words }) {
+  const out = await manager(accountId).recoverComputer(token, words)
+  lastShare.clear()
+  return out
+}
+
 function manager(accountId) {
   const scope = `${api.getCachedBaseUrl()}|${accountId}`
-  if (!managers.has(scope)) managers.set(scope, createKeyManager({ api, store, scope, label: computerLabel() }))
+  if (!managers.has(scope)) managers.set(scope, createKeyManager({ api, store, scope, label: computerLabel(), accountId }))
   return managers.get(scope)
 }
 
@@ -182,6 +213,8 @@ export function refresh({ token, accountId, serverId, e2ee, isAdmin }) {
         lastShare.set(serverId, Date.now())
         await mgr.shareKeys(token, serverId)
       }
+      // keep the backup up to date when this computer holds the means to (it was given the words once)
+      mgr.updateBackup(token).catch(() => {}) // tried again at the next check
       setStatus(serverId, sync.hasCurrent && sync.epoch > 0 ? { state: 'ready', epoch: sync.epoch } : { state: 'waiting', epoch: sync.epoch })
       watchDevices({ token, accountId, serverId }).catch(() => {}) // a missed look is made up for on the next check
       // A new key epoch: bring the server's invites up to it, so people who join (or guests already in) get it too.
@@ -319,6 +352,7 @@ export function lock() {
   statuses = {}
   trustView = {}
   lastWatch.clear()
+  lastBackupCheck.clear()
   lastShare.clear()
   invitesAt.clear()
   guest = null

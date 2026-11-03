@@ -15,6 +15,7 @@ function RecoveryKeyScreen({ title = 'Save your recovery key', recoveryKey, onCo
   const [copied, setCopied] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [warned, setWarned] = useState(false) // the plain warning comes before the key
 
   const ready = understood && checkAnswers(recoveryKey, positions, answers)
 
@@ -37,6 +38,42 @@ function RecoveryKeyScreen({ title = 'Save your recovery key', recoveryKey, onCo
       setError(err.message)
       setBusy(false)
     }
+  }
+
+  // Before the key appears: what it is for, and that nobody can get it back. No scare, no jargon.
+  if (!warned) {
+    return (
+      <AuthLayout heading="Before you see your recovery key" sub="Please read this once. It is short." wide>
+        <div className="key-warning">
+          <p>
+            Rushlight keeps your messages private with keys that live on your own computers, not on the server. Your recovery key is the
+            one thing that brings them back if you lose every computer you are signed in on.
+          </p>
+          <p>
+            <strong>Nobody can recover it for you or reset it.</strong> Not the server admin, not the person who runs the server, not the
+            developer. That is on purpose: it is what stops someone who pretends to be you, or who is pressured to help, from getting in.
+          </p>
+          <p>
+            If you lose it and lose your computers, your messages are gone for good. Think of it like the recovery phrase of a crypto
+            wallet.
+          </p>
+          <p>
+            So write it on paper or save it in a password manager, and keep a copy somewhere other than this computer. The next screen
+            makes you check that you did.
+          </p>
+        </div>
+        <button type="button" className="auth-primary" onClick={() => setWarned(true)}>
+          I understand, show my key
+        </button>
+        {onCancel && (
+          <p className="auth-alt">
+            <button type="button" className="auth-link strong" onClick={onCancel}>
+              {cancelLabel}
+            </button>
+          </p>
+        )}
+      </AuthLayout>
+    )
   }
 
   return (

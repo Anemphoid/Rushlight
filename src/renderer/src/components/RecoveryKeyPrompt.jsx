@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import * as api from '../api'
 import RecoveryKeyScreen from './RecoveryKeyScreen'
+import * as e2eeSession from '../e2eeSession'
 import AuthLayout from './AuthLayout'
 
 // The one-time prompt for an account that has no confirmed recovery key yet: every account
 // made before keys existed, and any whose sign-up was closed before the key was saved. The
 // password is asked for again before a key is made, so a stolen session can't mint one.
-function RecoveryKeyPrompt({ sessionToken, onDone, onLogout }) {
+function RecoveryKeyPrompt({ sessionToken, accountId, onDone, onLogout }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -32,7 +33,7 @@ function RecoveryKeyPrompt({ sessionToken, onDone, onLogout }) {
       <RecoveryKeyScreen
         recoveryKey={recoveryKey}
         onConfirm={async () => {
-          await api.ackRecoveryKey(sessionToken)
+          await e2eeSession.confirmRecoveryKey({ token: sessionToken, accountId, recoveryKey })
           onDone()
         }}
       />
