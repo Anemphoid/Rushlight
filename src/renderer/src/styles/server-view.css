@@ -1066,3 +1066,29 @@
   margin-left: 4px;
   flex: none;
 }
+
+/* ---- A computer waiting for approval ---- */
+.pairing-notice {
+  margin: 12px 12px 0;
+  padding: 14px 16px;
+  background: var(--bg-raised);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 0.875rem;
+}
+.pairing-notice p {
+  margin: 6px 0;
+}
+.pairing-code {
+  font-size: 1.75rem;
+  letter-spacing: 0.12em;
+  margin: 8px 0;
+  color: var(--text);
+  user-select: all;
+}
+.pairing-left {
+  font-size: 0.8125rem;
+  letter-spacing: 0;
+  color: var(--text-dim);
+}

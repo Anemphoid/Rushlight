@@ -17,7 +17,7 @@ import {
   openCodePackage
 } from './crypto.js'
 import { makeInvite, refreshedInvite, secretOfInvite } from './invites.js'
-import { joinFullCode } from './crypto.js'
+import { joinFullCode, openApprovalChallenge } from './crypto.js'
 
 const CHUNK = 400 // the server takes up to 500 envelopes a call
 
@@ -47,13 +47,66 @@ export function createKeyManager({ api, store, scope, label = 'This computer' })
       const { privateKey, publicKey } = await generateDeviceKeys()
       const made = await api.registerDevice(token, publicKey, label)
       const device = { privateKey, publicKey, deviceId: made.id, label }
-      await store.putDevice(scope, device)
-      return device
+      await store.putDevice(scope, device) // the pairing code is not part of what is kept
+      return made.pairing ? { ...device, pairing: made.pairing } : device
     })().catch((err) => {
       devicePromise = null // a failure must not stick
       throw err
     })
     return devicePromise
+  }
+
+  // Whether this computer has been approved, and for a waiting one when its code runs out. The code itself is only
+  // ever known from the moment it was made (registration or renewal) and is kept in memory, never stored.
+  // Times here are on THIS computer's clock: the server says how long a code has left, not when it ends by its own clock,
+  // so a computer whose clock is a few minutes off still shows the right countdown.
+  let pairing = null // { code, expiresAt }
+  const fromNow = (ms) => Date.now() + Math.max(0, Number(ms) || 0)
+  async function deviceStatus(token) {
+    const device = await ensureDevice(token)
+    if (device.pairing && !pairing) pairing = { code: device.pairing.code, expiresAt: fromNow(device.pairing.expiresInMs) }
+    const { devices } = await api.listMyDevices(token)
+    const mine = devices.find((d) => d.id === device.deviceId)
+    const approved = !!mine && mine.approved !== false
+    const left = mine && Number.isFinite(mine.pairingExpiresInMs) ? fromNow(mine.pairingExpiresInMs) : null
+    return {
+      deviceId: device.deviceId,
+      approved,
+      pairing: approved ? null : { code: pairing && left && pairing.expiresAt > Date.now() ? pairing.code : null, expiresAt: left },
+      waiting: devices.filter((d) => d.approved === false && d.id !== device.deviceId).map((d) => ({ id: d.id, label: d.label, createdAt: d.createdAt }))
+    }
+  }
+  async function renewPairingCode(token) {
+    const device = await ensureDevice(token)
+    const out = await api.renewPairingCode(token, device.deviceId)
+    pairing = { code: out.pairing.code, expiresAt: fromNow(out.pairing.expiresInMs) }
+    return pairing
+  }
+
+  // Approving another computer of this account, in two steps so the person sees what they are approving: begin looks up
+  // the code and opens the challenge (which only this device's private key can); confirm sends it with the password.
+  const approvals = new Map() // approvalId -> proof, held in memory until confirmed
+  async function beginApproval(token, code) {
+    const device = await ensureDevice(token)
+    const status = await deviceStatus(token)
+    if (!status.approved) throw new CryptoProblem('not_approved', 'This computer has not been approved yet, so it cannot approve another.')
+    const begin = await api.beginDeviceApproval(token, code, device.deviceId)
+    const proof = await openApprovalChallenge(begin.challenge, device.privateKey, { approvalId: begin.approvalId, deviceId: device.deviceId })
+    approvals.set(begin.approvalId, proof)
+    return { approvalId: begin.approvalId, device: begin.device }
+  }
+  async function confirmApproval(token, approvalId, password) {
+    const proof = approvals.get(approvalId)
+    if (!proof) throw new CryptoProblem('approval_expired', 'That approval has run out. Enter the code again.')
+    try {
+      const out = await api.confirmDeviceApproval(token, approvalId, password, proof)
+      approvals.delete(approvalId)
+      return out
+    } catch (err) {
+      // a wrong password can be tried again on the same approval (the server allows 3 tries); anything with a reason is over
+      if (err.reason) approvals.delete(approvalId)
+      throw err
+    }
   }
 
   // Picks up every server key wrapped to this device that it does not hold yet.
@@ -247,5 +300,5 @@ export function createKeyManager({ api, store, scope, label = 'This computer' })
     return stored ? stored.deviceId : null
   }
 
-  return { ensureDevice, storedDeviceId, syncKeys, startEpoch, shareKeys, seal, open, openBody, sealImage, voiceKeys, createInvite, refreshInvites, fullInvite, takeInvite, epochsHeld, forgetAll }
+  return { ensureDevice, deviceStatus, renewPairingCode, beginApproval, confirmApproval, storedDeviceId, syncKeys, startEpoch, shareKeys, seal, open, openBody, sealImage, voiceKeys, createInvite, refreshInvites, fullInvite, takeInvite, epochsHeld, forgetAll }
 }

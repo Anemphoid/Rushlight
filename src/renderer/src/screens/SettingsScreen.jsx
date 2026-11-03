@@ -4,6 +4,7 @@ import * as voice from '../voice'
 import MicSpeakerCheck from '../components/MicSpeakerCheck'
 import AccountSecuritySection from '../components/AccountSecuritySection'
 import DevicesSection from '../components/DevicesSection'
+import AddComputerSection from '../components/AddComputerSection'
 import RecoveryKeyScreen from '../components/RecoveryKeyScreen'
 import * as api from '../api'
 import { formatKeyLabel } from '../keys'
@@ -256,6 +257,7 @@ function SettingsScreen({
             onAccountDeleted={onAccountDeleted}
             onOpenOwnerTools={onOpenOwnerTools}
           />
+          <AddComputerSection sessionToken={sessionToken} accountId={accountId} />
           <DevicesSection sessionToken={sessionToken} accountId={accountId} />
         </>
       )}

@@ -320,6 +320,13 @@ export const postCommand = (token, type, id, text) =>
 // --- Encryption: devices and wrapped keys (needs server v0.13.0; the crypto is in e2ee/) ---
 export const registerDevice = (token, publicKey, label) => request('/api/devices', { method: 'POST', token, body: { publicKey, label } })
 export const listMyDevices = (token) => request('/api/devices', { token })
+// A new computer waits for approval (needs server v0.19.0): it shows a pairing code, and a computer that is already
+// approved enters it with the password. See e2ee/keys.js and the server's README.
+export const renewPairingCode = (token, deviceId) => request(`/api/devices/${deviceId}/pairing-code`, { method: 'POST', token, body: {} })
+export const beginDeviceApproval = (token, code, approverDeviceId) =>
+  request('/api/devices/approvals', { method: 'POST', token, body: { code, approverDeviceId } })
+export const confirmDeviceApproval = (token, approvalId, password, proof) =>
+  request(`/api/devices/approvals/${approvalId}/confirm`, { method: 'POST', token, body: { password, proof } })
 export const removeDevice = (token, deviceId) => request(`/api/devices/${deviceId}`, { method: 'DELETE', token })
 export const getServerDevices = (token, serverId) => request(`/api/servers/${serverId}/devices`, { token })
 export const getKeyEnvelopes = (token, serverId, deviceId) => request(`/api/servers/${serverId}/key-envelopes?deviceId=${deviceId}`, { token })

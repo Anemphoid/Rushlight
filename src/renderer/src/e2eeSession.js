@@ -35,7 +35,7 @@ export const statusOf = (snapshot, serverId) => snapshot[serverId] || { state: '
 
 function setStatus(serverId, status) {
   const old = statuses[serverId]
-  if (old && old.state === status.state && old.epoch === status.epoch && old.message === status.message) return
+  if (old && old.state === status.state && old.epoch === status.epoch && old.message === status.message && JSON.stringify(old.pairing) === JSON.stringify(status.pairing)) return
   statuses = { ...statuses, [serverId]: status }
   listeners.forEach((l) => l())
 }
@@ -61,22 +61,24 @@ export function subscribeTrust(l) {
   return () => trustListeners.delete(l)
 }
 export const getTrustSnapshot = () => trustView
-export const trustOf = (snapshot, serverId) => snapshot[serverId] || { people: {}, notices: [], myDeviceId: null, accountId: null }
+export const trustOf = (snapshot, serverId) => snapshot[serverId] || { people: {}, notices: [], waiting: [], myDeviceId: null, accountId: null }
 
 async function watchDevices({ token, accountId, serverId, force = false }) {
   if (!force && Date.now() - (lastWatch.get(serverId) || 0) < WATCH_EVERY_MS) return
   lastWatch.set(serverId, Date.now())
   const mgr = manager(accountId)
   const mine = await mgr.ensureDevice(token)
+  const ds = await mgr.deviceStatus(token)
   const { devices } = await api.getServerDevices(token, serverId)
   const people = await peopleFromDevices(devices)
   const trust = trustFor(accountId)
   const { notices, baseline } = findNotices({ people, myAccountId: accountId, myDeviceId: mine.deviceId, trust, serverId })
   for (const [id, ids] of baseline) trust.setSeen(serverId, id, ids)
   const old = trustView[serverId]
-  const same = old && JSON.stringify(old.notices) === JSON.stringify(notices) && JSON.stringify(Object.values(old.people).map((p) => [p.accountId, p.number])) === JSON.stringify(Object.values(people).map((p) => [p.accountId, p.number]))
+  const waiting = ds.waiting
+  const same = old && JSON.stringify(old.waiting) === JSON.stringify(waiting) && JSON.stringify(old.notices) === JSON.stringify(notices) && JSON.stringify(Object.values(old.people).map((p) => [p.accountId, p.number])) === JSON.stringify(Object.values(people).map((p) => [p.accountId, p.number]))
   if (same && old.verifiedSig === verifiedSig(trust, people)) return
-  trustView = { ...trustView, [serverId]: { people, notices, myDeviceId: mine.deviceId, accountId, verifiedSig: verifiedSig(trust, people) } }
+  trustView = { ...trustView, [serverId]: { people, notices, waiting, myDeviceId: mine.deviceId, accountId, verifiedSig: verifiedSig(trust, people) } }
   trustListeners.forEach((l) => l())
 }
 const verifiedSig = (trust, people) => Object.values(people).map((p) => `${p.accountId}:${trust.verified(p.accountId) === p.number}`).join(',')
@@ -105,6 +107,29 @@ export async function setVerified({ token, accountId, serverId, personId, verifi
   await watchDevices({ token, accountId, serverId, force: true })
 }
 
+// ---- Approving a new computer of this account ----
+// The new computer shows a code (status 'unapproved'); an approved one enters it here with the password. Once approved, this
+// computer hands its keys on straight away, so the new one does not wait for the next check.
+export const beginApproval = ({ token, accountId, code }) => manager(accountId).beginApproval(token, code)
+export async function confirmApproval({ token, accountId, approvalId, password }) {
+  const mgr = manager(accountId)
+  const out = await mgr.confirmApproval(token, approvalId, password)
+  lastShare.clear()
+  for (const [serverId, st] of Object.entries(statuses)) {
+    if (st.state === 'ready') await mgr.shareKeys(token, Number(serverId)).catch(() => {}) // the next check tries again
+  }
+  return out
+}
+export async function renewPairingCode({ token, accountId }) {
+  const pairing = await manager(accountId).renewPairingCode(token)
+  for (const [serverId, st] of Object.entries(statuses)) {
+    if (st.state === 'unapproved') setStatus(serverId, { ...st, pairing: { code: pairing.code, expiresAt: pairing.expiresAt } })
+  }
+  return pairing
+}
+// This computer's own status (approved or waiting, other computers waiting for it to approve), for Settings.
+export const deviceStatus = ({ token, accountId }) => manager(accountId).deviceStatus(token)
+
 // The owner's own computer needs a device before encryption can be switched on, so the first key can be wrapped to it.
 export const ensureThisDevice = (token, accountId) => manager(accountId).ensureDevice(token).then((d) => d.deviceId)
 
@@ -113,9 +138,19 @@ export const thisDeviceId = (accountId) => manager(accountId).storedDeviceId()
 export const checkDevices = (args) => watchDevices({ ...args, force: true })
 export const isVerified = (accountId, person) => !!person && trustFor(accountId).verified(person.accountId) === person.number
 
+// What a computer is called in the lists (its owner's Settings, the approval screen, and other members' safety numbers).
+// Deliberately generic: a host name or a user name would tell the whole server who owns the machine.
+export function computerLabel() {
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : ''
+  if (/Windows/i.test(ua)) return 'Windows computer'
+  if (/Macintosh|Mac OS/i.test(ua)) return 'Mac'
+  if (/Linux|X11/i.test(ua)) return 'Linux computer'
+  return 'This computer'
+}
+
 function manager(accountId) {
   const scope = `${api.getCachedBaseUrl()}|${accountId}`
-  if (!managers.has(scope)) managers.set(scope, createKeyManager({ api, store, scope }))
+  if (!managers.has(scope)) managers.set(scope, createKeyManager({ api, store, scope, label: computerLabel() }))
   return managers.get(scope)
 }
 
@@ -132,6 +167,12 @@ export function refresh({ token, accountId, serverId, e2ee, isAdmin }) {
     const mgr = manager(accountId)
     if (!statuses[serverId] || statuses[serverId].state === 'off') setStatus(serverId, { state: 'checking', epoch: e2ee.epoch })
     try {
+      // A computer that has not been approved holds no keys and is handed none: it shows its pairing code and waits.
+      const ds = await mgr.deviceStatus(token)
+      if (!ds.approved) {
+        setStatus(serverId, { state: 'unapproved', epoch: e2ee.epoch, pairing: ds.pairing })
+        return
+      }
       let sync = await mgr.syncKeys(token, serverId)
       if (isAdmin && (e2ee.epoch === 0 || e2ee.rekeyNeeded || sync.epoch === 0)) {
         await mgr.startEpoch(token, serverId)

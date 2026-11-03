@@ -11,6 +11,7 @@ import jellyboxImage from '../assets/images/jellybox.png'
 import UserVolumeMenu from '../components/UserVolumeMenu'
 import SafetyNumberDialog from '../components/SafetyNumberDialog'
 import DeviceNotices from '../components/DeviceNotices'
+import PairingNotice from '../components/PairingNotice'
 import Avatar from '../components/Avatar'
 import Icon from '../components/Icon'
 import * as api from '../api'
@@ -1095,10 +1096,18 @@ function ChannelTreeScreen({
         onMouseDown={handleResizeStart}
       />
 
-      <div className="tree-main">
+      <div className="tree-main-col">
+        {e2ee && e2ee.enabled && sessionToken && e2eeStatus.state === 'unapproved' && (
+          <PairingNotice
+            pairing={e2eeStatus.pairing}
+            onNewCode={() => e2eeSession.renewPairingCode({ token: sessionToken, accountId })}
+          />
+        )}
         {e2ee && e2ee.enabled && sessionToken && (
           <DeviceNotices
             notices={trust.notices}
+            waiting={trust.waiting}
+            onRemoveWaiting={(id) => api.removeDevice(sessionToken, id).then(() => e2eeSession.refresh({ token: sessionToken, accountId, serverId, e2ee, isAdmin }))}
             token={sessionToken}
             accountId={accountId}
             serverId={serverId}
@@ -1106,6 +1115,7 @@ function ChannelTreeScreen({
             onOpenSettings={onOpenSettings}
           />
         )}
+      <div className="tree-main">
         {openSpace ? (
           <div className="space-view">
             <div className="space-main">
@@ -1169,6 +1179,7 @@ function ChannelTreeScreen({
             </button>
           </div>
         )}
+      </div>
       </div>
 
       {volumeMenu && (
