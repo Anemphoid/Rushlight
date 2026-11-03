@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import * as api from '../api'
+import { toastDecision } from '../songToastRule'
 
 const SHOW_MS = 10000 // how long it stays before it fades out
 const FADE_MS = 600
@@ -17,7 +18,7 @@ function useHost() {
 }
 
 // A small notice in the bottom right that fades in when the song changes (cover, artist, title) and fades out after
-// about ten seconds. It does not show for the song already playing when someone arrives, only for changes.
+// about ten seconds. It does not show for a song already playing when someone arrives (see songToastRule.js).
 // track: undefined while loading, null when nothing is playing, else { id, title, artist, album }.
 function SongToast({ track, sessionToken, serverId, enabled }) {
   const [shown, setShown] = useState(null) // the track on show, or null
@@ -28,15 +29,10 @@ function SongToast({ track, sessionToken, serverId, enabled }) {
   const trackId = track ? track.id : null
 
   useEffect(() => {
-    if (track === undefined) return undefined // the first answer has not arrived yet
-    if (seen.current === undefined) {
-      seen.current = trackId // first look: remember it, say nothing
-      return undefined
-    }
-    if (trackId === seen.current) return undefined
-    seen.current = trackId
-    if (!trackId || !enabled) {
-      setVisible(false)
+    const d = toastDecision(seen.current, track, enabled)
+    seen.current = d.seen
+    if (!d.show) {
+      if (track !== undefined && (!trackId || !enabled)) setVisible(false)
       return undefined
     }
     setShown(track)
