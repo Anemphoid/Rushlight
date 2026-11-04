@@ -173,6 +173,14 @@ export const getEncryptionPreview = (token, serverId) => request(`/api/servers/$
 export const enableEncryption = (token, serverId, { password, wipe }) =>
   request(`/api/servers/${serverId}/encryption/enable`, { method: 'POST', token, body: { password, wipe } })
 
+// An owner who has vanished (needs server v0.21.0): any other admin can start a claim once the owner has not been seen for a long
+// time, every member sees it, the owner signing in ends it, and a majority of the other admins decides when the notice is over.
+export const startSuccessionClaim = (token, serverId, password) =>
+  request(`/api/servers/${serverId}/succession`, { method: 'POST', token, body: { password } })
+export const voteSuccession = (token, serverId, vote) =>
+  request(`/api/servers/${serverId}/succession/vote`, { method: 'POST', token, body: { vote } })
+export const withdrawSuccession = (token, serverId) => request(`/api/servers/${serverId}/succession/cancel`, { method: 'POST', token, body: {} })
+
 export const renameServer = (token, serverId, name) =>
   request(`/api/servers/${serverId}`, { method: 'PATCH', token, body: { name } })
 

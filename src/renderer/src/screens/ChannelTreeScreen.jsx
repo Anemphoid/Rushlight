@@ -12,6 +12,7 @@ import UserVolumeMenu from '../components/UserVolumeMenu'
 import SafetyNumberDialog from '../components/SafetyNumberDialog'
 import DeviceNotices from '../components/DeviceNotices'
 import PairingNotice from '../components/PairingNotice'
+import OwnershipBanners from '../components/OwnershipBanners'
 import Avatar from '../components/Avatar'
 import Icon from '../components/Icon'
 import * as api from '../api'
@@ -192,6 +193,7 @@ function ChannelTreeScreen({
   const [, refreshAcknowledged] = useState(0)
   const [actionError, setActionError] = useState('')
   const [volumeMenu, setVolumeMenu] = useState(null) // { x, y, name, accountId, showVolume }
+  const [ownership, setOwnership] = useState({ succession: null, notices: [] }) // a claim on the server, and ownership notices
   const [safetyFor, setSafetyFor] = useState(null) // an account id whose safety number is open
   const unreadCounts = useSyncExternalStore(unread.subscribe, unread.getSnapshot)
   const voiceState = useSyncExternalStore(voice.subscribe, voice.getSnapshot)
@@ -258,6 +260,10 @@ function ChannelTreeScreen({
         setChannels((prev) => mergeTree(prev, data.channels))
         setPresence(data.presence || {})
         setProposals(data.proposals || [])
+        setOwnership((prev) => {
+          const next = { succession: data.succession || null, notices: data.notices || [] }
+          return JSON.stringify(prev) === JSON.stringify(next) ? prev : next
+        })
         checkUnread(data)
         if (data.name !== live.current.serverName) live.current.onServerRenamed(data.name)
         if (data.retentionMonths && data.retentionMonths !== live.current.retentionMonths && live.current.onRetentionChanged) {
@@ -1097,6 +1103,22 @@ function ChannelTreeScreen({
       />
 
       <div className="tree-main-col">
+        {sessionToken && (
+          <OwnershipBanners
+            ownership={ownership}
+            serverId={serverId}
+            sessionToken={sessionToken}
+            accountId={accountId}
+            onChanged={async () => {
+              try {
+                const data = await api.getServer(sessionToken, serverId)
+                setOwnership({ succession: data.succession || null, notices: data.notices || [] })
+              } catch {
+                // the next check will try again
+              }
+            }}
+          />
+        )}
         {e2ee && e2ee.enabled && sessionToken && e2eeStatus.state === 'unapproved' && (
           <PairingNotice
             pairing={e2eeStatus.pairing}

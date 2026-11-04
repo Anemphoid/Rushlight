@@ -6,6 +6,7 @@ import JoinCodesSection from '../components/JoinCodesSection'
 import MusicSection from '../components/MusicSection'
 import RetentionSection from '../components/RetentionSection'
 import EncryptionSection from '../components/EncryptionSection'
+import SuccessionSection from '../components/SuccessionSection'
 import { formatExpiry, formatAge } from '../time'
 import { spaceNameFor } from '../spaces'
 import PageShell from '../components/PageShell'
@@ -232,7 +233,7 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onSer
           { id: 'encryption', label: 'Encryption', icon: 'shield' },
           { id: 'ownership', label: 'Ownership', icon: 'shield' }
         ]
-      : [])
+      : [{ id: 'away', label: 'Owner away?', icon: 'shield' }])
   ]
   // an owner-only section stays open only while the person is still the owner (a handover can end that)
   const shown = sections.some((x) => x.id === section) ? section : 'members'
@@ -559,6 +560,14 @@ function AdminToolsScreen({ serverId, serverName, sessionToken, accountId, onSer
           <h2 className="rl-section-title">History</h2>
           <p className="rl-section-sub">How long persistent chat is kept.</p>
           <RetentionSection serverId={serverId} sessionToken={sessionToken} />
+        </div>
+      )}
+
+      {!isOwner && shown === 'away' && (
+        <div className="rl-embed">
+          <h2 className="rl-section-title">Owner away?</h2>
+          <p className="rl-section-sub">What happens if the owner has disappeared.</p>
+          <SuccessionSection serverId={serverId} sessionToken={sessionToken} accountId={accountId} />
         </div>
       )}
 

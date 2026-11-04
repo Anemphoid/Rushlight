@@ -40,3 +40,15 @@ export function dayLabel(ts, now = Date.now(), locale = undefined) {
   return new Date(ts).toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric', ...(sameYear ? {} : { year: 'numeric' }) })
 }
 
+
+// A length of time in words: "90 days", "1 day", "5 hours", "20 minutes", "3 seconds".
+export function spanLabel(ms) {
+  const n = (v, unit) => `${v} ${unit}${v === 1 ? '' : 's'}`
+  const s = Math.max(0, Math.round(ms / 1000))
+  if (s < 90) return n(s, 'second')
+  const m = Math.round(s / 60)
+  if (m < 90) return n(m, 'minute')
+  const h = Math.round(m / 60)
+  if (h < 48) return n(h, 'hour')
+  return n(Math.round(h / 24), 'day')
+}
