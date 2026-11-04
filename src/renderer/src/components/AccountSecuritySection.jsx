@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import * as api from '../api'
+import * as e2eeSession from '../e2eeSession'
 
 // Settings: change the password, and make a new recovery key. Both need the current
 // password. A password change ends every other session of the account; this one carries
@@ -15,6 +16,14 @@ function AccountSecuritySection({ sessionToken, onSessionChanged, onKeyIssued, o
   const [keyPassword, setKeyPassword] = useState('')
   const [keyError, setKeyError] = useState('')
   const [keyBusy, setKeyBusy] = useState(false)
+  const [keyMadeBy, setKeyMadeBy] = useState(null) // 'app', 'server' (an older server made it, and saw it once) or null
+  useEffect(() => {
+    let cancelled = false
+    api.getMe(sessionToken).then((me) => !cancelled && setKeyMadeBy(me.recoveryKeyBy || null)).catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [sessionToken])
 
   // Deleting the account: password, then a plain last question. An owner is told which servers to
   // hand over or delete first, with a way to get to each.
@@ -67,9 +76,10 @@ function AccountSecuritySection({ sessionToken, onSessionChanged, onKeyIssued, o
     setKeyError('')
     setKeyBusy(true)
     try {
-      const { recoveryKey } = await api.createRecoveryKey(sessionToken, keyPassword)
+      const key = await e2eeSession.newRecoveryKey()
+      const result = await api.createRecoveryKey(sessionToken, keyPassword, key.proofHash)
       setKeyPassword('')
-      onKeyIssued(recoveryKey)
+      onKeyIssued(key.adopt(result.recoveryKey))
     } catch (err) {
       setKeyError(err.message)
     } finally {
@@ -106,8 +116,15 @@ function AccountSecuritySection({ sessionToken, onSessionChanged, onKeyIssued, o
         <h2>recovery key</h2>
         <p className="settings-note">
           Make a new key if you lost the old one or think someone saw it. The old key keeps working
-          until you confirm the new one, and stops the moment you do.
+          until you confirm the new one, and stops the moment you do. Rushlight makes the words on this
+          computer; the server is never sent them.
         </p>
+        {keyMadeBy === 'server' && (
+          <p className="settings-note">
+            Your current key was made by the server when it was set up, so the server saw it once. Make a new one here
+            and that stops being true.
+          </p>
+        )}
         <form onSubmit={makeKey}>
           <div className="field">
             <label>Your password</label>

@@ -9,7 +9,8 @@
 //                  'problem'  something failed (status.message)
 import * as api from './api.js'
 import { createKeyManager } from './e2ee/keys.js'
-import { pictureInfo, openCodePackage } from './e2ee/crypto.js'
+import { pictureInfo, openCodePackage, deriveKeyringSecrets } from './e2ee/crypto.js'
+import { generateRecoveryWords } from './recoveryKey.js'
 import { voiceKeysFromPackage } from './e2ee/invites.js'
 import { defaultStore } from './e2ee/keystore.js'
 import { peopleFromDevices } from './e2ee/safety.js'
@@ -153,6 +154,32 @@ export function computerLabel() {
   if (/Macintosh|Mac OS/i.test(ua)) return 'Mac'
   if (/Linux|X11/i.test(ua)) return 'Linux computer'
   return 'This computer'
+}
+
+// ---- Recovery keys made by the app (server v0.22.0) ----
+// The words are made here, and the server is sent only a hash of a proof derived from them. `words` is shown to the person
+// once and never sent; `proofHash` is what the server keeps. Older servers ignore the hash and answer with words of their own,
+// which `adopt` then prefers, so a new app works against an old server.
+export async function newRecoveryKey() {
+  const words = generateRecoveryWords()
+  const { proofHash } = await deriveKeyringSecrets(words)
+  return { words, proofHash, adopt: (serverWords) => serverWords || words }
+}
+
+// A password reset with the words the person typed: their proof is sent, never the words, unless the account's key was made
+// by an older server (the server says so), in which case the words are sent for that one account. Returns the server's answer
+// and the new key's words.
+export async function resetWithWords(username, wordsTyped, newPassword) {
+  const { proof } = await deriveKeyringSecrets(wordsTyped)
+  const next = await newRecoveryKey()
+  let reset
+  try {
+    reset = await api.recoverAccount(username, { proof }, newPassword, next.proofHash)
+  } catch (err) {
+    if (err.reason !== 'legacy_key') throw err
+    reset = await api.recoverAccount(username, { key: wordsTyped }, newPassword, next.proofHash)
+  }
+  return { reset, words: next.adopt(reset.recoveryKey) }
 }
 
 // ---- The keyring backup ----

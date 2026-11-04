@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import RushlightLogo from './RushlightLogo'
+import { useAvatarSrc } from '../avatarImage'
 
 // imageUrl takes priority when present; falls back to exactly the previous
 // color-and-initial (or logo) behavior otherwise. A load failure (a stale
@@ -7,10 +8,12 @@ import RushlightLogo from './RushlightLogo'
 // rendering rather than showing a broken-image icon or an empty circle.
 function Avatar({ color, name, imageUrl, size = 28, className = '' }) {
   const [failed, setFailed] = useState(false)
-  useEffect(() => setFailed(false), [imageUrl]) // a new URL deserves a fresh attempt
+  const [src, setSrc] = useState(null) // the picture to draw: fetched with the token (see avatarImage.js), null until it arrives
+  useAvatarSrc(imageUrl, setSrc)
+  useEffect(() => setFailed(false), [imageUrl, src]) // a new URL deserves a fresh attempt
 
   const fontSize = Math.max(9, Math.round(size * 0.42))
-  const showImage = imageUrl && !failed
+  const showImage = src && !failed
 
   return (
     <div
@@ -19,7 +22,7 @@ function Avatar({ color, name, imageUrl, size = 28, className = '' }) {
     >
       {showImage ? (
         <img
-          src={imageUrl}
+          src={src}
           alt=""
           width={size}
           height={size}

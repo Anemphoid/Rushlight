@@ -19,8 +19,9 @@ function RecoveryKeyPrompt({ sessionToken, accountId, onDone, onLogout }) {
     setError('')
     setBusy(true)
     try {
-      const result = await api.createRecoveryKey(sessionToken, password)
-      setRecoveryKey(result.recoveryKey)
+      const key = await e2eeSession.newRecoveryKey()
+      const result = await api.createRecoveryKey(sessionToken, password, key.proofHash)
+      setRecoveryKey(key.adopt(result.recoveryKey))
     } catch (err) {
       setError(err.message)
     } finally {

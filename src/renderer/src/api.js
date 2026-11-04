@@ -94,6 +94,7 @@ async function request(path, { method = 'GET', body, token } = {}) {
     }
     // Set when the server says why someone lost access: 'expired', 'removed' or 'banned'.
     if (data.reason) err.reason = data.reason
+    if (data.legacy) err.legacy = true // the account's recovery key was made by an older server: only its words can be checked
     // A new key that left a member device out names who (rekey_incomplete); epoch_changed says the current one.
     if (Array.isArray(data.missing)) err.missing = data.missing
     if (Number.isInteger(data.epoch)) err.epoch = data.epoch
@@ -115,8 +116,10 @@ function withTime(m) {
 
 // --- Accounts ---
 
-export const register = (username, password) =>
-  request('/api/register', { method: 'POST', body: { username, password } })
+// recoveryProofHash (server v0.22.0): the app made the recovery words itself; the server keeps only this hash and answers with
+// `recoveryKey: null`. An older server ignores it and answers with words of its own.
+export const register = (username, password, recoveryProofHash) =>
+  request('/api/register', { method: 'POST', body: { username, password, ...(recoveryProofHash ? { recoveryProofHash } : {}) } })
 
 export const login = (username, password) =>
   request('/api/login', { method: 'POST', body: { username, password } })
@@ -128,8 +131,8 @@ export const getMe = (token) => request('/api/me', { token })
 // shown once. Nothing but a hash is kept, so it cannot be fetched again. It only counts
 // once ackRecoveryKey confirms the person saved it. login and getMe say whether they have
 // confirmed one (`recoveryKeyAcked`).
-export const createRecoveryKey = (token, password) =>
-  request('/api/me/recovery-key', { method: 'POST', token, body: { password } })
+export const createRecoveryKey = (token, password, recoveryProofHash) =>
+  request('/api/me/recovery-key', { method: 'POST', token, body: { password, ...(recoveryProofHash ? { recoveryProofHash } : {}) } })
 
 // Permanent and immediate. Refused (409, reason 'owns_servers', err.servers) while the account owns a
 // server. Their messages stay but are wiped and redacted, and the username becomes free.
@@ -144,8 +147,10 @@ export const changePassword = (token, currentPassword, newPassword) =>
 
 // Forgot the password: username + recovery key + new password. Answers like a login, plus
 // the next `recoveryKey` to confirm.
-export const recoverAccount = (username, key, newPassword) =>
-  request('/api/recover', { method: 'POST', body: { username, key, newPassword } })
+// `secret` is { proof } (made from the words, which are never sent) or, for an account whose key an older server made
+// (the first answer says `reason: 'legacy_key'`), { key: words }. newRecoveryProofHash is the next key, made by the app.
+export const recoverAccount = (username, secret, newPassword, newRecoveryProofHash) =>
+  request('/api/recover', { method: 'POST', body: { username, ...secret, newPassword, ...(newRecoveryProofHash ? { newRecoveryProofHash } : {}) } })
 
 // image: base64 (no data: prefix), mime: one of image/jpeg, image/png, image/webp
 export const uploadAvatar = (token, image, mime) =>

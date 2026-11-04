@@ -3,6 +3,7 @@ import * as api from '../api'
 import RecoveryKeyScreen from '../components/RecoveryKeyScreen'
 import * as e2eeSession from '../e2eeSession'
 import AuthLayout from '../components/AuthLayout'
+import { wordsAreKnown } from '../recoveryKey'
 
 // Forgot password: username, the recovery key and a new password. Using the key spends it,
 // so the server hands back the next one, which has to be saved before going on.
@@ -23,7 +24,9 @@ function RecoverScreen({ onBack, onRecovered }) {
     setError('')
     setBusy(true)
     try {
-      const reset = await api.recoverAccount(username.trim(), key, password)
+      if (!wordsAreKnown(key)) throw new Error('A recovery key is 12 words from the list. Check the spelling of each word.')
+      const { reset, words } = await e2eeSession.resetWithWords(username.trim(), key, password)
+      reset.recoveryKey = words
       // A reset on a computer that does not hold the keys: the words just typed open the backup, so the history comes
       // back, and the new key's backup (made when it is confirmed) then carries it on. Best effort: the reset stands.
       await e2eeSession.restoreKeyring({ token: reset.token, accountId: reset.id, words: key }).catch(() => {})

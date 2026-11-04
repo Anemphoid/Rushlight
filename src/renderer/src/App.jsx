@@ -1,3 +1,4 @@
+import { setAvatarAuth } from './avatarImage'
 import { loadDensity, loadIconSize, saveDensity, saveIconSize } from './displayPrefs'
 import { useState, useEffect, useRef } from 'react'
 import '@livekit/components-styles'
@@ -150,6 +151,8 @@ function App() {
   // ones still in flight when this window changed its own password, are ignored.
   const currentToken = useRef(null)
   currentToken.current = sessionToken || guestToken
+  // avatars are fetched with the token (server v0.22.0 shows them only to people who share a server)
+  useEffect(() => setAvatarAuth(sessionToken || guestToken), [sessionToken, guestToken])
   const endSession = useRef(null)
   endSession.current = (message) => {
     resetToLogin()

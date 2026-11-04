@@ -326,10 +326,18 @@ export function createKeyManager({ api, store, scope, label = 'This computer', a
 
   // Makes (or replaces) the backup under these words. Throws if the server says the words are not the account's key.
   async function createBackup(token, words) {
-    const { kek, proofHash } = await deriveKeyringSecrets(words)
+    const { kek, proof, proofHash } = await deriveKeyringSecrets(words)
     const current = await api.getKeyring(token)
     const blob = await sealKeyring(kek, await currentKeyring(), accountId)
-    const out = await api.putKeyring(token, { blob, proofHash, baseVersion: current.version, recoveryKey: words })
+    // The proof (made from the words, which are not sent) is what a key made by the app is checked with. A key an older server
+    // made can only be checked against its words, and the server says so (`legacy`): then, and only then, they are sent.
+    let out
+    try {
+      out = await api.putKeyring(token, { blob, proofHash, baseVersion: current.version, recoveryProof: proof })
+    } catch (err) {
+      if (err.reason !== 'bad_recovery_key' || !err.legacy) throw err
+      out = await api.putKeyring(token, { blob, proofHash, baseVersion: current.version, recoveryKey: words })
+    }
     await store.putKeyring(scope, { kek, proofHash, version: out.version })
     lastBackup = await keyringDigest()
     return { version: out.version, updatedAt: out.updatedAt }

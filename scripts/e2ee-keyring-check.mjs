@@ -3,6 +3,8 @@
 //     ends up with a keyring backup;
 //   - an account on an encrypted server: Settings > Account > Key backup says "Not backed up" (and the tree says so), the
 //     recovery key makes the backup, wrong words are refused;
+//   - a reset with the app-made words through the real screens ("Use a recovery key"): the words are typed, a new key is shown, and
+//     no request the browser sent contains the words (only a proof);
 //   - the lost computer: the first computer is removed, a fresh profile waits with a pairing code and no history, "Use your
 //     recovery key instead" approves it with the words (a wrong key is refused first) and the old messages open.
 // Needs `npm run build`, Playwright's Chromium and RUSHLIGHT_SERVER_DIR. Not part of `npm test`.
@@ -38,9 +40,11 @@ const until = async (fn, what, ms = 30000) => {
 }
 let failed = false
 const pages = {}
+const posted = [] // every request body the browser sends, to prove the words never leave it
 try {
   // ---- sign-up through the real screens ----
-  const signup = (pages.signup = await h.newPage({ width: 1100, height: 760, fixedClock: false, version: '0.31.0' }))
+  const signup = (pages.signup = await h.newPage({ width: 1100, height: 760, fixedClock: false, version: '0.33.0' }))
+  signup.on('request', (r) => r.postData() && posted.push(r.postData()))
   await signup.click('button:has-text("Create an account")')
   await signup.waitForSelector('#auth-new-username')
   await signup.fill('#auth-new-username', 'Newcomer')
@@ -63,6 +67,32 @@ try {
   await signup.click('button.auth-primary:has-text("I saved it")')
   await until(() => rows("SELECT keyring_blob FROM accounts WHERE username = 'Newcomer'")[0]?.keyring_blob, 'the sign-up backup')
   assert.ok(rows("SELECT keyring_blob FROM accounts WHERE username = 'Newcomer'")[0].keyring_blob.startsWith('rlk1.'))
+  assert.ok(rows("SELECT recovery_key_hash FROM accounts WHERE username = 'Newcomer'")[0].recovery_key_hash.startsWith('p1:'), 'the key is app-made')
+  assert.equal(
+    posted.some((b) => words.every((w) => b.toLowerCase().includes(w))),
+    false,
+    'the browser sent the recovery words to the server'
+  )
+
+  // ---- a reset with the words, through the real screens ----
+  const reset = (pages.reset = await h.newPage({ width: 1100, height: 760, fixedClock: false, version: '0.33.0' }))
+  reset.on('request', (r) => r.postData() && posted.push(r.postData()))
+  await reset.click('button:has-text("Use a recovery key"), button:has-text("Forgot password?")')
+  await reset.fill('#auth-rec-username', 'Newcomer')
+  await reset.fill('#auth-rec-key', words.join(' '))
+  await reset.fill('#auth-rec-new', 'a-brand-new-password-9')
+  await reset.fill('#auth-rec-confirm', 'a-brand-new-password-9')
+  await reset.click('button.auth-primary')
+  await reset.waitForSelector('.key-warning')
+  await reset.click('button:has-text("I understand, show my key")')
+  await reset.waitForSelector('.key-word')
+  const nextWords = await reset.$$eval('.key-word', (els) => els.map((e) => e.textContent.replace(/^\d+/, '').trim()))
+  assert.equal(nextWords.length, 12)
+  assert.notDeepEqual(nextWords, words)
+  assert.equal(posted.some((b) => words.every((x) => b.toLowerCase().includes(x))), false, 'the old words were sent')
+  assert.equal(posted.some((b) => nextWords.every((x) => b.toLowerCase().includes(x))), false, 'the new words were sent')
+  assert.ok(rows("SELECT pending_recovery_key_hash FROM accounts WHERE username = 'Newcomer'")[0].pending_recovery_key_hash.startsWith('p1:'))
+  await h.shot(reset, 'keyring-reset-new-key')
 
   // ---- an account on an encrypted server ----
   const reg = async (name) => {
@@ -79,8 +109,12 @@ try {
     db.prepare('UPDATE servers SET e2ee_enabled = 1 WHERE id = ?').run(server.id)
     db.close()
   }
-  const one = (pages.one = await h.newPage({ session: olive.token, width: 1100, height: 760, fixedClock: false, version: '0.31.0' }))
+  // an avatar is fetched with the token and drawn from a blob (the server shows it only to people who share a server)
+  const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+  await w.call('POST', '/api/me/avatar', { image: png, mime: 'image/png' }, olive.token)
+  const one = (pages.one = await h.newPage({ session: olive.token, width: 1100, height: 760, fixedClock: false, version: '0.33.0' }))
   await one.click('.rail-btn[title="Vault"]')
+  await one.waitForSelector('.avatar-circle img[src^="blob:"]', { timeout: 20000 })
   await one.click('.channel-row:has-text("General")')
   await until(async () => (await one.$('.chat-encrypted')) && !(await one.$('.key-notice')), 'the first key')
   await one.fill('.text-chat-composer input:not([type=file])', 'written before the computer was lost')
@@ -105,7 +139,7 @@ try {
   // ---- the lost computer ----
   const dev = rows('SELECT id FROM device_keys WHERE account_id = ?', olive.id)[0]
   assert.equal((await w.call('DELETE', `/api/devices/${dev.id}`, undefined, olive.token)).removed, true)
-  const fresh = (pages.fresh = await h.newPage({ session: olive.token, width: 1100, height: 760, fixedClock: false, version: '0.31.0' }))
+  const fresh = (pages.fresh = await h.newPage({ session: olive.token, width: 1100, height: 760, fixedClock: false, version: '0.33.0' }))
   await fresh.click('.rail-btn[title="Vault"]')
   await fresh.waitForSelector('.pairing-notice', { timeout: 30000 })
   await h.shot(fresh, 'keyring-lost-waiting')
