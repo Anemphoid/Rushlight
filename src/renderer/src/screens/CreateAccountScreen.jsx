@@ -29,7 +29,10 @@ function CreateAccountScreen({ onBack, onAccountCreated }) {
     setError('')
     setCreating(true)
     try {
-      setCreated(await api.register(username.trim(), password))
+      // the words are made here and never sent: the server gets only a hash of a proof made from them
+      const key = await e2eeSession.newRecoveryKey()
+      const account = await api.register(username.trim(), password, key.proofHash)
+      setCreated({ ...account, recoveryKey: key.adopt(account.recoveryKey) })
     } catch (err) {
       setError(err.message)
     } finally {
