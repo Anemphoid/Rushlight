@@ -327,6 +327,10 @@ export const beginDeviceApproval = (token, code, approverDeviceId) =>
   request('/api/devices/approvals', { method: 'POST', token, body: { code, approverDeviceId } })
 export const confirmDeviceApproval = (token, approvalId, password, proof) =>
   request(`/api/devices/approvals/${approvalId}/confirm`, { method: 'POST', token, body: { password, proof } })
+// The keyring backup (needs server v0.20.0): the server keys sealed under a key made from the recovery words, stored blind.
+export const getKeyring = (token, { blob = false } = {}) => request(`/api/me/keyring${blob ? '?blob=1' : ''}`, { token })
+export const putKeyring = (token, body) => request('/api/me/keyring', { method: 'PUT', token, body })
+export const recoverDevice = (token, deviceId, proof) => request(`/api/devices/${deviceId}/recover`, { method: 'POST', token, body: { proof } })
 export const removeDevice = (token, deviceId) => request(`/api/devices/${deviceId}`, { method: 'DELETE', token })
 export const getServerDevices = (token, serverId) => request(`/api/servers/${serverId}/devices`, { token })
 export const getKeyEnvelopes = (token, serverId, deviceId) => request(`/api/servers/${serverId}/key-envelopes?deviceId=${deviceId}`, { token })

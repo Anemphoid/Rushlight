@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import * as api from '../api'
 import RecoveryKeyScreen from '../components/RecoveryKeyScreen'
+import * as e2eeSession from '../e2eeSession'
 import AuthLayout from '../components/AuthLayout'
 
 function CreateAccountScreen({ onBack, onAccountCreated }) {
@@ -44,7 +45,7 @@ function CreateAccountScreen({ onBack, onAccountCreated }) {
       <RecoveryKeyScreen
         recoveryKey={created.recoveryKey}
         onConfirm={async () => {
-          await api.ackRecoveryKey(created.token)
+          await e2eeSession.confirmRecoveryKey({ token: created.token, accountId: created.id, recoveryKey: created.recoveryKey })
           onAccountCreated({
             screenName: created.username,
             sessionToken: created.token,

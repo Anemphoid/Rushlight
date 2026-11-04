@@ -14,14 +14,18 @@ import {
   sealPicture,
   messageEpoch,
   deriveVoiceKey,
-  openCodePackage
+  openCodePackage,
+  deriveKeyringSecrets,
+  sealKeyring,
+  openKeyring,
+  toB64u
 } from './crypto.js'
 import { makeInvite, refreshedInvite, secretOfInvite } from './invites.js'
 import { joinFullCode, openApprovalChallenge } from './crypto.js'
 
 const CHUNK = 400 // the server takes up to 500 envelopes a call
 
-export function createKeyManager({ api, store, scope, label = 'This computer' }) {
+export function createKeyManager({ api, store, scope, label = 'This computer', accountId = scope }) {
   let devicePromise = null
   const held = new Map() // serverId -> Map(epoch -> bytes), filled from the store
   const offered = new Set() // "<serverId>|<epoch>|<deviceId>" already handed on in this run
@@ -288,6 +292,105 @@ export function createKeyManager({ api, store, scope, label = 'This computer' })
     return [...(await heldKeys(serverId)).keys()].sort((a, b) => a - b)
   }
 
+  // ---- The keyring backup ----
+  // Every server key this computer holds, sealed under a key made from the person's recovery words. The server keeps the blob
+  // and cannot open it. A computer that has been given the words once (sign-up, or the one-time step) keeps the derived key,
+  // not extractable, so it can keep the backup up to date by itself as new keys arrive; the words are never kept.
+  async function currentKeyring() {
+    const servers = {}
+    for (const id of await store.listServerIds(scope)) {
+      const serverId = Number(id) // the same type everywhere, or the held keys would be cached twice
+      const keys = await heldKeys(serverId)
+      if (keys.size) servers[serverId] = Object.fromEntries([...keys].map(([epoch, bytes]) => [epoch, toB64u(bytes)]))
+    }
+    return { v: 1, servers }
+  }
+  async function importKeyring(opened) {
+    let added = 0
+    for (const [id, epochs] of Object.entries(opened)) {
+      const serverId = Number(id)
+      const have = await heldKeys(serverId)
+      for (const [epoch, bytes] of Object.entries(epochs)) {
+        if (have.has(Number(epoch))) continue
+        await remember(serverId, Number(epoch), bytes)
+        added++
+      }
+    }
+    return added
+  }
+  const merged = (a, b) => {
+    const out = JSON.parse(JSON.stringify(a))
+    for (const [sid, epochs] of Object.entries(b)) out.servers[sid] = { ...(out.servers[sid] || {}), ...Object.fromEntries(Object.entries(epochs).map(([e, k]) => [e, toB64u(k)])) }
+    return out
+  }
+
+  // Makes (or replaces) the backup under these words. Throws if the server says the words are not the account's key.
+  async function createBackup(token, words) {
+    const { kek, proofHash } = await deriveKeyringSecrets(words)
+    const current = await api.getKeyring(token)
+    const blob = await sealKeyring(kek, await currentKeyring(), accountId)
+    const out = await api.putKeyring(token, { blob, proofHash, baseVersion: current.version, recoveryKey: words })
+    await store.putKeyring(scope, { kek, proofHash, version: out.version })
+    lastBackup = await keyringDigest()
+    return { version: out.version, updatedAt: out.updatedAt }
+  }
+  let lastBackup = null
+  async function keyringDigest() {
+    const k = await currentKeyring()
+    return JSON.stringify(Object.entries(k.servers).map(([s, e]) => [s, Object.keys(e).sort()]).sort())
+  }
+  // Brings the backup up to date with the keys held now, if this computer was given the words and something changed.
+  async function updateBackup(token) {
+    const kept = await store.getKeyring(scope)
+    if (!kept) return { skipped: 'no_key' }
+    const digest = await keyringDigest()
+    if (digest === lastBackup) return { skipped: 'unchanged' }
+    for (let attempt = 0; attempt < 2; attempt++) {
+      let keyring = await currentKeyring()
+      try {
+        const blob = await sealKeyring(kept.kek, keyring, accountId)
+        const out = await api.putKeyring(token, { blob, proofHash: kept.proofHash, baseVersion: kept.version })
+        await store.putKeyring(scope, { ...kept, version: out.version })
+        lastBackup = digest
+        return { version: out.version }
+      } catch (err) {
+        if (err.reason !== 'version_conflict') throw err
+        // another computer updated it first: read theirs, add what only this one has, and try again on its version
+        const theirs = await api.getKeyring(token, { blob: true })
+        if (theirs.blob) {
+          const opened = await openKeyring(kept.kek, theirs.blob, accountId)
+          await importKeyring(opened)
+        }
+        kept.version = theirs.version
+        keyring = null
+      }
+    }
+    throw new CryptoProblem('backup_conflict', 'The backup kept changing. It will be tried again.')
+  }
+  // Opens the backup with the words and takes every key in it that this computer lacks.
+  async function restoreBackup(token, words) {
+    const { kek, proofHash } = await deriveKeyringSecrets(words)
+    const got = await api.getKeyring(token, { blob: true })
+    if (!got.exists) return { exists: false, added: 0 }
+    const opened = await openKeyring(kek, got.blob, accountId)
+    const added = await importKeyring(opened)
+    await store.putKeyring(scope, { kek, proofHash, version: got.version })
+    lastBackup = null
+    return { exists: true, added }
+  }
+  // A waiting computer with no other computer to ask: prove the words, then take the backup.
+  async function recoverComputer(token, words) {
+    const device = await ensureDevice(token)
+    const { proof } = await deriveKeyringSecrets(words)
+    await api.recoverDevice(token, device.deviceId, proof)
+    const restored = await restoreBackup(token, words)
+    return { approved: true, ...restored }
+  }
+  async function backupStatus(token) {
+    const got = await api.getKeyring(token)
+    return { exists: got.exists, updatedAt: got.updatedAt, keptHere: !!(await store.getKeyring(scope)) }
+  }
+
   async function forgetAll() {
     held.clear()
     offered.clear()
@@ -300,5 +403,5 @@ export function createKeyManager({ api, store, scope, label = 'This computer' })
     return stored ? stored.deviceId : null
   }
 
-  return { ensureDevice, deviceStatus, renewPairingCode, beginApproval, confirmApproval, storedDeviceId, syncKeys, startEpoch, shareKeys, seal, open, openBody, sealImage, voiceKeys, createInvite, refreshInvites, fullInvite, takeInvite, epochsHeld, forgetAll }
+  return { createBackup, updateBackup, restoreBackup, recoverComputer, backupStatus, ensureDevice, deviceStatus, renewPairingCode, beginApproval, confirmApproval, storedDeviceId, syncKeys, startEpoch, shareKeys, seal, open, openBody, sealImage, voiceKeys, createInvite, refreshInvites, fullInvite, takeInvite, epochsHeld, forgetAll }
 }

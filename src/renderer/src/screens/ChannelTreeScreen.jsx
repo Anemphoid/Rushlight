@@ -1101,12 +1101,17 @@ function ChannelTreeScreen({
           <PairingNotice
             pairing={e2eeStatus.pairing}
             onNewCode={() => e2eeSession.renewPairingCode({ token: sessionToken, accountId })}
+            onRecover={async (words) => {
+              await e2eeSession.recoverThisComputer({ token: sessionToken, accountId, words })
+              await e2eeSession.refresh({ token: sessionToken, accountId, serverId, e2ee, isAdmin })
+            }}
           />
         )}
         {e2ee && e2ee.enabled && sessionToken && (
           <DeviceNotices
             notices={trust.notices}
             waiting={trust.waiting}
+            backup={trust.backup}
             onRemoveWaiting={(id) => api.removeDevice(sessionToken, id).then(() => e2eeSession.refresh({ token: sessionToken, accountId, serverId, e2ee, isAdmin }))}
             token={sessionToken}
             accountId={accountId}

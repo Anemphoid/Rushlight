@@ -539,6 +539,7 @@ function App() {
       return (
         <RecoveryKeyPrompt
           sessionToken={sessionToken}
+          accountId={accountId}
           onDone={() => setView('home')}
           onLogout={resetToLogin}
         />

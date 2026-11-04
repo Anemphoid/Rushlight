@@ -5,10 +5,22 @@ const kinds = (n) => (n.newDevices.length === 1 ? `a new device (${n.newDevices[
 // Calm banners at the top of an encrypted server: someone added a computer, or a person you verified now has a
 // different number. Your own account gets a firmer line, since a computer you do not know about is the one thing
 // worth stopping for.
-function DeviceNotices({ notices, waiting = [], token, accountId, serverId, onCheck, onOpenSettings, onRemoveWaiting }) {
-  if ((!notices || notices.length === 0) && waiting.length === 0) return null
+function DeviceNotices({ notices, waiting = [], backup, token, accountId, serverId, onCheck, onOpenSettings, onRemoveWaiting }) {
+  const noBackup = !!backup && backup.exists === false
+  if ((!notices || notices.length === 0) && waiting.length === 0 && !noBackup) return null
   return (
     <div className="device-notices" role="status">
+      {noBackup && (
+        <div className="device-notice">
+          <span className="device-notice-text">
+            Your keys are not backed up. If you lose every computer you are signed in on, your messages cannot be brought back. Set up the
+            backup with your recovery key under Settings, Account.
+          </span>
+          <button type="button" className="link-btn" onClick={onOpenSettings}>
+            Open settings
+          </button>
+        </div>
+      )}
       {waiting.map((d) => (
         <div key={'w' + d.id} className="device-notice own">
           <span className="device-notice-text">
