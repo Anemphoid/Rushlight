@@ -27,11 +27,15 @@ const types = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/htm
 // What Electron's preload gives the page, as stubs. `window.__cb` lets a script fire the callbacks.
 const stub = (serverUrl, version) => `
   window.__cb = {}
+  try { window.__serverConfig = JSON.parse(sessionStorage.getItem('__cfg')) } catch {}
+  if (!window.__serverConfig) window.__serverConfig = { serverUrl: ${JSON.stringify(serverUrl)} }
   const ok = (v) => () => Promise.resolve(v)
   window.api = {
     windowMinimize: ok(), windowMaximizeToggle: ok(), windowClose: ok(), windowIsMaximized: ok(false),
     windowSetLoginSize: (w, h) => (window.__setLoginSize ? window.__setLoginSize(w, h) : Promise.resolve()), windowRestoreNormalSize: ok(), windowWiden: ok(),
-    getServerConfig: ok({ serverUrl: ${JSON.stringify(serverUrl)} }), getVersion: ok(${JSON.stringify(version)}),
+    getServerConfig: () => Promise.resolve(window.__serverConfig),
+    setServerAddress: (a) => { window.__serverConfig = { ...window.__serverConfig, serverUrl: a, scopeId: window.__serverConfig.scopeId || window.__serverConfig.serverUrl }; sessionStorage.setItem('__cfg', JSON.stringify(window.__serverConfig)); return Promise.resolve(window.__serverConfig) },
+    getVersion: ok(${JSON.stringify(version)}),
     getPendingUpdate: ok(null), installUpdate: ok(),
     onUpdateReady: (cb) => { window.__cb.updateReady = cb; return () => {} },
     setPttKey: ok({ ok: true, hookOk: false }), getPttHookStatus: ok({ ok: false, error: 'stub' }),

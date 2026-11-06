@@ -13,6 +13,7 @@ import { formatKeyLabel } from '../keys'
 import * as unread from '../unread'
 import { SKINS, MODES } from '../skins'
 import PageShell from '../components/PageShell'
+import ConnectionSection from '../components/ConnectionSection'
 import Segmented from '../components/Segmented'
 import * as songPrefs from '../songPrefs'
 
@@ -28,6 +29,7 @@ const SECTIONS = [
   { id: 'music', label: 'Music', icon: 'music' },
   { id: 'notifications', label: 'Notifications', icon: 'bell' },
   { id: 'account', label: 'Account', icon: 'account' },
+  { id: 'connection', label: 'Connection', icon: 'voice' },
   { id: 'about', label: 'About', icon: 'info' }
 ]
 
@@ -264,6 +266,8 @@ function SettingsScreen({
           <DevicesSection sessionToken={sessionToken} accountId={accountId} />
         </>
       )}
+
+      {section === 'connection' && <ConnectionSection />}
 
       {section === 'about' && (
         <>
