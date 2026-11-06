@@ -12,6 +12,7 @@ const api = {
   windowRestoreNormalSize: () => ipcRenderer.invoke('window-restore-normal-size'),
   windowWiden: (extra, animate = true, immediate = false) => ipcRenderer.invoke('window-widen', extra, animate, immediate),
   getServerConfig: () => ipcRenderer.invoke('get-server-config'),
+  setServerAddress: (address) => ipcRenderer.invoke('set-server-address', address),
   getVersion: () => ipcRenderer.invoke('app-version'),
   getPendingUpdate: () => ipcRenderer.invoke('update-pending'),
   installUpdate: () => ipcRenderer.invoke('update-install'),

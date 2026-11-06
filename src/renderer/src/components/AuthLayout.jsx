@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import RushlightLogo from './RushlightLogo'
+import ServerAddress from './ServerAddress'
 import { authLayoutFor, DEFAULT_SKIN } from '../skins'
 
 // The skin the page is showing now, read from the data-skin attribute App keeps on <html>.
@@ -27,11 +28,9 @@ export const AUTH_TABS = [
 function AuthLayout({ heading, sub, tab, onTab, wide = false, children }) {
   const layout = useAuthLayout()
   const [version, setVersion] = useState('')
-  const [server, setServer] = useState('')
   useEffect(() => {
     try {
       window.api?.getVersion?.().then(setVersion)
-      window.api?.getServerConfig?.().then((c) => setServer(c && c.serverUrl ? c.serverUrl.replace(/^https?:\/\//, '') : ''))
     } catch {
       // no window API (tests)
     }
@@ -51,6 +50,7 @@ function AuthLayout({ heading, sub, tab, onTab, wide = false, children }) {
           <RushlightLogo size={200} title="Rushlight logo, a lit candle inside broken rings" />
           <h1>Rushlight</h1>
           <p>Voice and text chat for your own community, on a server you trust.</p>
+          <ServerAddress />
           {version && <div className="auth-version">Version {version}</div>}
         </aside>
         <main className="auth-main">
@@ -85,11 +85,7 @@ function AuthLayout({ heading, sub, tab, onTab, wide = false, children }) {
           <div className="auth-headbox">{head}</div>
         )}
         <div className="auth-body">{children}</div>
-        {server && (
-          <div className="auth-server">
-            Server <span>{server}</span>
-          </div>
-        )}
+        <ServerAddress />
       </main>
       {version && <div className="auth-version">Version {version}</div>}
     </div>

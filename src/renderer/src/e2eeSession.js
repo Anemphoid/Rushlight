@@ -52,7 +52,7 @@ export function setTrustStorage(s) {
 }
 function trustFor(accountId) {
   const storage = trustStorage || (typeof localStorage !== 'undefined' ? localStorage : memoryTrust)
-  return createTrust(storage, `${api.getCachedBaseUrl()}|${accountId}`)
+  return createTrust(storage, `${api.getServerScope()}|${accountId}`)
 }
 let trustView = {} // serverId -> { people, notices, myDeviceId, accountId }
 const trustListeners = new Set()
@@ -207,7 +207,7 @@ export async function recoverThisComputer({ token, accountId, words }) {
 }
 
 function manager(accountId) {
-  const scope = `${api.getCachedBaseUrl()}|${accountId}`
+  const scope = `${api.getServerScope()}|${accountId}`
   if (!managers.has(scope)) managers.set(scope, createKeyManager({ api, store, scope, label: computerLabel(), accountId }))
   return managers.get(scope)
 }

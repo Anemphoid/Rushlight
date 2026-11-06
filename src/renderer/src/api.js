@@ -19,7 +19,35 @@ async function getBaseUrl() {
   if (cachedBaseUrl) return cachedBaseUrl
   const config = await window.api.getServerConfig()
   cachedBaseUrl = config.serverUrl
+  cachedScopeId = config.scopeId || config.serverUrl
   return cachedBaseUrl
+}
+
+// What this computer's encryption keys are filed under. It is the server's address until the address is changed; then it
+// stays what it was, so the same server at its new address still finds them (see main/index.js, set-server-address).
+let cachedScopeId = null
+export function getServerScope() {
+  return cachedScopeId || cachedBaseUrl
+}
+
+// Saves a new address for the server (from the sign-in screen) and forgets the old one. Throws with a plain message if the
+// address is not usable. Returns the address now in use.
+export async function changeServerAddress(address) {
+  const config = await window.api.setServerAddress(address)
+  cachedBaseUrl = config.serverUrl
+  cachedScopeId = config.scopeId || config.serverUrl
+  return cachedBaseUrl
+}
+
+// Is there a Rushlight server at this address? Quick, and says why not.
+export async function checkServerAddress(url) {
+  try {
+    const res = await fetch(url + '/api/health', { signal: AbortSignal.timeout(6000) })
+    const data = await res.json().catch(() => null)
+    return res.ok && data && data.ok === true ? { ok: true } : { ok: false, reason: 'not_rushlight' }
+  } catch {
+    return { ok: false, reason: 'unreachable' }
+  }
 }
 
 // A 401 from the server that carries a `reason` of session_ended (the password was changed

@@ -4,6 +4,7 @@ import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { is } from '@electron-toolkit/utils'
 import { uiohookNameForCode } from './pttKeys'
 import { DEFAULT_SERVER_URL } from './defaults'
+import { withNewAddress } from '../shared/serverAddress'
 import { setupUpdater } from './updater'
 import icon from '../../resources/icon.png?asset'
 
@@ -27,6 +28,15 @@ function readServerConfig() {
 }
 
 ipcMain.handle('get-server-config', () => readServerConfig())
+
+// The person changed the server's address on the sign-in screen (its IP moved, say). `scopeId` is what this computer's
+// encryption keys, device and trust records are filed under; it stays what it was, so the same server at a new address
+// still finds them and this computer is not mistaken for a new one. Only an http(s) address is accepted.
+ipcMain.handle('set-server-address', (_event, input) => {
+  const next = withNewAddress(readServerConfig(), input)
+  writeFileSync(join(app.getPath('userData'), 'server-config.json'), JSON.stringify(next, null, 2))
+  return next
+})
 
 // ---- Global push-to-talk ----
 // Electron's own globalShortcut only fires on press — it has no "released"
