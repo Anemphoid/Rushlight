@@ -1,3 +1,5 @@
+import { candidateAddresses } from '../../shared/serverAddress.js'
+
 let cachedBaseUrl = null
 
 // Synchronous on purpose: an <img src> can't await anything. By the time
@@ -32,6 +34,21 @@ export function getServerScope() {
 
 // Saves a new address for the server (from the sign-in screen) and forgets the old one. Throws with a plain message if the
 // address is not usable. Returns the address now in use.
+// What the person typed, resolved to the address of a Rushlight server: a typed scheme is tried as meant, and with none https
+// is tried first and then http (the one that answers is the one to save). { ok, url } when one answers; otherwise
+// { ok: false, url, reason } with the address to offer "save anyway" for (http when no scheme was typed), or { error }.
+export async function findServer(input) {
+  const candidates = candidateAddresses(input)
+  if (candidates.error) return { error: candidates.error }
+  let reason = 'unreachable'
+  for (const url of candidates.urls) {
+    const found = await checkServerAddress(url)
+    if (found.ok) return { ok: true, url }
+    if (found.reason === 'not_rushlight') reason = 'not_rushlight'
+  }
+  return { ok: false, url: candidates.urls[candidates.urls.length - 1], reason }
+}
+
 export async function changeServerAddress(address) {
   const config = await window.api.setServerAddress(address)
   cachedBaseUrl = config.serverUrl
@@ -39,10 +56,25 @@ export async function changeServerAddress(address) {
   return cachedBaseUrl
 }
 
+// Set when a request could not reach the server at all (not when it answered with an error), cleared by the next request that
+// got an answer. The sign-in screens use it to offer "Change server address" at the moment it is needed.
+let connectionProblem = null
+const connectionListeners = new Set()
+function setConnectionProblem(address) {
+  if (connectionProblem === address) return
+  connectionProblem = address
+  for (const l of connectionListeners) l()
+}
+export const getConnectionProblem = () => connectionProblem
+export function subscribeConnection(listener) {
+  connectionListeners.add(listener)
+  return () => connectionListeners.delete(listener)
+}
+
 // Is there a Rushlight server at this address? Quick, and says why not.
-export async function checkServerAddress(url) {
+export async function checkServerAddress(url, timeoutMs = 4000) {
   try {
-    const res = await fetch(url + '/api/health', { signal: AbortSignal.timeout(6000) })
+    const res = await fetch(url + '/api/health', { signal: AbortSignal.timeout(timeoutMs) })
     const data = await res.json().catch(() => null)
     return res.ok && data && data.ok === true ? { ok: true } : { ok: false, reason: 'not_rushlight' }
   } catch {
@@ -103,11 +135,12 @@ async function request(path, { method = 'GET', body, token } = {}) {
     })
   } catch (err) {
     console.error('Rushlight server request failed:', err)
-    throw new Error(
-      `Couldn't reach ${baseUrl} — ${err.name}: ${err.message}. Check the server is ` +
-        'running and server-config.json has the right address.'
-    )
+    setConnectionProblem(baseUrl)
+    const failure = new Error(`Couldn't reach the server at ${baseUrl.replace(/^https?:\/\//, '')}. Check that it is on and that the address is right.`)
+    failure.network = true
+    throw failure
   }
+  setConnectionProblem(null)
 
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {

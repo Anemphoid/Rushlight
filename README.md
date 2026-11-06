@@ -119,6 +119,8 @@ Then tell the client where your server is:
 
 3. Start the app again and create an account.
 
+If the server's address changes later (a new IP after a network change), you do not need to edit the file again: on the sign-in screen choose **Change** next to the server address (or **Change server address** when the app says it can't reach the server), or open **Settings > Connection**. Type the new address, press **Test**, then **Save**; the app reloads on it. Type it without `http://` or `https://` and the app tries https and then http.
+
 A few things worth knowing:
 
 - Anyone who can reach your server can create an account, but nobody can see a
