@@ -257,15 +257,33 @@ ipcMain.handle('window-widen', (event, extra, animate = true, immediate = false)
   else if (want < widenedBy) giveBackTimer = setTimeout(apply, 100)
   else apply()
 })
-app.whenReady().then(() => {
-  createWindow()
-  startPttHook()
-  setupUpdater()
-
-  app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+// One Rushlight at a time. Two copies would share one data folder (the keys' database, the saved sign-in) and fight over it; on Windows
+// a double-click on the shortcut is all it takes. The second copy hands over to the first (bringing it to the front) and quits.
+const gotTheLock = app.requestSingleInstanceLock()
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    const win = BrowserWindow.getAllWindows()[0]
+    if (!win) return
+    if (win.isMinimized()) win.restore()
+    win.show()
+    win.focus()
   })
-})
+
+  // Windows files notifications and the taskbar button under this id; without it a toast is not shown under Rushlight's name.
+  if (process.platform === 'win32') app.setAppUserModelId('cc.rushlight.app')
+
+  app.whenReady().then(() => {
+    createWindow()
+    startPttHook()
+    setupUpdater()
+
+    app.on('activate', function () {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    })
+  })
+}
 
 app.on('will-quit', () => {
   try {
