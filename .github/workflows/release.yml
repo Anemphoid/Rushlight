@@ -1,5 +1,5 @@
 # Push a version tag (git tag v0.1.1 && git push origin v0.1.1) and this builds
-# the AppImage and publishes it as a GitHub Release. Installed copies of
+# the AppImage and the Windows installer and publishes them as a GitHub Release. Installed copies of
 # Rushlight find it on their own and offer to update.
 name: Release
 
@@ -33,3 +33,29 @@ jobs:
         run: npx electron-builder --linux AppImage --publish always -c.publish.provider=github -c.publish.releaseType=release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # The Windows installer, into the same release. Waits for the Linux job so the two never both try to create the release.
+  # Not signed yet (no certificate), so Windows shows its "unknown publisher" warning on first run; the download page explains it.
+  windows:
+    needs: linux
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set version from tag
+        shell: bash
+        run: npm pkg set version="${GITHUB_REF_NAME#v}"
+
+      - run: npm install
+
+      - run: npm run build
+
+      - name: Build and publish the Windows installer
+        run: npx electron-builder --win nsis --publish always -c.publish.provider=github -c.publish.releaseType=release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'

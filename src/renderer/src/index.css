@@ -33,6 +33,11 @@ body {
 .app-shell.maximized {
   border-radius: 0;
 }
+/* Windows draws a solid window (a transparent frameless one cannot be resized there) and Windows 11 rounds its corners itself,
+   so the page does not draw corners of its own: they would show the window's colour behind them. */
+html[data-platform="win32"] .app-shell {
+  border-radius: 0;
+}
 .app-content {
   flex: 1;
   min-height: 0;
