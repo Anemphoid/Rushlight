@@ -1,6 +1,6 @@
 # Checks every pull request and every push to main: installs from the lockfile,
 # lints if the project has a lint script, and runs the electron-vite build.
-# It does not package the AppImage. Publishing is the Release workflow's job
+# It does not package the AppImage. The `windows` job below builds the Windows program on a Windows machine and runs it. Publishing is the Release workflow's job
 # (on a v* tag) and this file does not touch it.
 name: CI
 
@@ -29,3 +29,54 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # The app on Windows itself, because what differs there (the window, the installer, the native key hook) cannot be seen from
+  # Linux. Builds the unpacked program and the installer, installs it for the current person and starts the real app each way
+  # (scripts/electron-smoke.mjs): the window shows and can be resized and maximized, the page matches the system, the push-to-talk
+  # hook loads, and sign-in says so plainly when there is no server. Screenshots are kept as an artifact.
+  windows:
+    runs-on: windows-latest
+    env:
+      # nothing here is signed (no certificate yet); do not go looking for one
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Package (unpacked)
+        run: npx electron-builder --win --dir
+
+      # Playwright drives the app; it is not a dependency of the app itself.
+      - name: Install Playwright
+        run: npm install --no-save playwright@1.63.0
+
+      - name: Run the unpacked app
+        run: node scripts/electron-smoke.mjs --exe dist/win-unpacked/Rushlight.exe --out smoke/unpacked
+
+      - name: Build the installer
+        run: npx electron-builder --win nsis
+
+      - name: Install it (for this person, no administrator step) and run what was installed
+        shell: pwsh
+        run: |
+          Start-Process -FilePath dist\Rushlight-Setup.exe -ArgumentList '/S' -Wait
+          $exe = Join-Path $env:LOCALAPPDATA 'Programs\Rushlight\Rushlight.exe'
+          if (-not (Test-Path $exe)) { throw "The installer did not put Rushlight in $exe" }
+          Write-Host "Installed at $exe"
+          node scripts/electron-smoke.mjs --exe $exe --out smoke/installed
+          if ($LASTEXITCODE -ne 0) { throw "The installed app failed its checks" }
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-smoke
+          path: smoke
+          if-no-files-found: ignore

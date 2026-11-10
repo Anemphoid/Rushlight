@@ -20,6 +20,18 @@ offers "Restart to update"; otherwise it installs the next time the app closes.
 Versions must go up (0.1.1, 0.2.0, ...). Installed apps only offer versions
 newer than the one they're running.
 
+## Windows
+
+The same tag also builds a Windows installer (the Release workflow's `windows` job, after the Linux one) and publishes
+`Rushlight-Setup.exe` and `latest.yml` into the same GitHub Release. It installs for the current person (no administrator
+step) and updates itself like the AppImage. Windows 10 and 11, 64-bit.
+
+**Not signed yet.** There is no code-signing certificate, so Windows shows "Windows protected your PC" (SmartScreen) the first
+time: **More info**, then **Run anyway**. The download page will say this with a picture. Buying a certificate removes it later.
+
+On every pull request the CI `windows` job builds the program and the installer, installs it and starts the real app
+(`scripts/electron-smoke.mjs`). `npm run dist:win` builds the installer on a Windows computer.
+
 ## Try the packaged app without publishing
 
     npm install

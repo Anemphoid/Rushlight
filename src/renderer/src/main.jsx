@@ -17,6 +17,13 @@ import App from './App'
 // production build drops this line and the whole dev/ folder with it.
 const DevGalleryHost = import.meta.env.DEV ? lazy(() => import('./dev/DevGalleryHost')) : null
 
+// Which system this is (Electron's `process.platform`, given by the preload), so the page can match it: see `data-platform` in index.css.
+try {
+  if (window.api && window.api.platform) document.documentElement.dataset.platform = window.api.platform
+} catch {
+  // a plain browser (the screenshot harness) has no preload
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />

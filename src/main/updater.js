@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
+import { canSelfUpdate } from './windowOptions'
 
 const CHECK_EVERY_MS = 4 * 60 * 60 * 1000
 
@@ -12,7 +13,7 @@ function broadcast(channel, payload) {
 }
 
 // Auto-update for the AppImage build (the only Linux format electron-updater
-// can replace in place). Everything here is best-effort: a failure to check or
+// can replace in place) and for the installed Windows program. Everything here is best-effort: a failure to check or
 // download is logged and never affects the app.
 export function setupUpdater() {
   ipcMain.handle('app-version', () => app.getVersion())
@@ -21,8 +22,8 @@ export function setupUpdater() {
     if (installNow) installNow()
   })
 
-  // Dev runs and non-AppImage installs have nothing to update in place.
-  if (!app.isPackaged || !process.env.APPIMAGE) return
+  // Dev runs and other Linux installs have nothing to update in place.
+  if (!canSelfUpdate({ platform: process.platform, packaged: app.isPackaged, appImage: process.env.APPIMAGE })) return
 
   ;(async () => {
     try {

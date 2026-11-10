@@ -29,6 +29,20 @@ linux:
 # breaks any fixed-path desktop launcher on the very first auto-update.
 appImage:
   artifactName: ${productName}.${ext}
+# Windows: an installer that puts the program in the person's own folder, so it asks for no administrator rights. The same
+# name every time, so a download link (and the website's button) never changes, like the AppImage. Built only on a
+# Windows machine (GitHub's), where the release workflow's `windows` job publishes it with `latest.yml` for updates.
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  oneClick: true
+  perMachine: false
+  allowElevation: false
+  deleteAppDataOnUninstall: false
+  artifactName: ${productName}-Setup.${ext}
 # No publish block on purpose: a local `npm run dist` just builds the AppImage.
 # The release workflow adds the GitHub update feed on the command line, where
 # the repo is known from the git remote.

@@ -3,6 +3,7 @@ import { electronAPI } from '@electron-toolkit/preload'
 
 // Custom APIs for renderer
 const api = {
+  platform: process.platform,
   windowMinimize: () => ipcRenderer.invoke('window-minimize'),
   windowMaximizeToggle: () => ipcRenderer.invoke('window-maximize-toggle'),
   windowClose: () => ipcRenderer.invoke('window-close'),

@@ -6,6 +6,7 @@ import { uiohookNameForCode } from './pttKeys'
 import { DEFAULT_SERVER_URL } from './defaults'
 import { withNewAddress } from '../shared/serverAddress'
 import { setupUpdater } from './updater'
+import { windowFrame } from './windowOptions'
 import icon from '../../resources/icon.png?asset'
 
 const NORMAL_WIDTH = 900
@@ -108,10 +109,10 @@ function createWindow() {
     minWidth: NORMAL_MIN_WIDTH,
     minHeight: NORMAL_MIN_HEIGHT,
     show: false,
-    frame: false,
-    transparent: true,
+    ...windowFrame(process.platform),
     title: 'Rushlight',
-    ...(process.platform === 'linux' ? { icon } : {}),
+    // Windows takes the program's icon from the installer; this is for a run from source and for Linux
+    ...(process.platform !== 'darwin' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
