@@ -11,6 +11,7 @@
 // On Windows every check must pass. Elsewhere the checks that need a window manager or the key hook are reported, not required
 // (a virtual display has neither). Needs Playwright (PLAYWRIGHT_DIR, node_modules/playwright, or a global install).
 import assert from 'node:assert/strict'
+import { spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -115,6 +116,21 @@ try {
   assert.doesNotMatch(sentence, /Failed to fetch/, 'never the raw browser message')
   ok('with no server, sign-in says so plainly and names the address')
   await page.screenshot({ path: join(outDir, 'cannot-reach.png') })
+
+  // a second copy started with the same data folder hands over to the first and quits, leaving one window
+  const second = spawn(executablePath, launchArgs, { stdio: 'ignore' })
+  const quit = await new Promise((done) => {
+    const timer = setTimeout(() => done(false), 20000)
+    second.on('exit', () => {
+      clearTimeout(timer)
+      done(true)
+    })
+  })
+  if (!quit) second.kill()
+  assert.equal(quit, true, 'a second copy quits by itself')
+  const windows = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)
+  assert.equal(windows, 1, 'there is still just one window')
+  ok('a second copy hands over to the first and quits')
 
   assert.deepEqual(pageErrors, [], 'no uncaught errors in the page')
   ok('no uncaught errors in the page')

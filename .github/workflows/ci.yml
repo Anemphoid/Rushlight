@@ -74,6 +74,14 @@ jobs:
           node scripts/electron-smoke.mjs --exe $exe --out smoke/installed
           if ($LASTEXITCODE -ne 0) { throw "The installed app failed its checks" }
 
+      # The installer itself, to try on a Windows computer without making a release: on this run's page, under Artifacts. It is
+      # not signed, so Windows asks "Run anyway". Kept for a week.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Rushlight-Setup
+          path: dist/Rushlight-Setup.exe
+          retention-days: 7
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
