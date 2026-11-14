@@ -61,3 +61,10 @@ test('only one copy runs at a time, and Windows gets its notification id', () =>
   // the id must be the one the installer is built with
   assert.match(read('electron-builder.yml'), /^appId: cc\.rushlight\.app$/m)
 })
+
+test('the release step on Windows runs in bash, because PowerShell splits -c.publish.x=y at the dot (v0.34.0 failed on it)', () => {
+  const step = read('.github/workflows/release.yml').split('Build and publish the Windows installer')[1]
+  assert.ok(step, 'the Windows publish step exists')
+  const head = step.split('\n      - ')[0]
+  assert.match(head, /shell: bash/)
+})
