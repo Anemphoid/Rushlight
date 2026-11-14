@@ -1,6 +1,7 @@
 import Credits from '../components/Credits'
 import { useState, useEffect, useSyncExternalStore } from 'react'
 import * as voice from '../voice'
+import * as voicePrefs from '../voicePrefs'
 import MicSpeakerCheck from '../components/MicSpeakerCheck'
 import AccountSecuritySection from '../components/AccountSecuritySection'
 import DevicesSection from '../components/DevicesSection'
@@ -68,6 +69,7 @@ function SettingsScreen({
   const [listening, setListening] = useState(false)
   const [keyError, setKeyError] = useState('')
   const micMode = useSyncExternalStore(voice.subscribe, voice.getSnapshot).micMode
+  const capture = useSyncExternalStore(voicePrefs.subscribe, voicePrefs.getSnapshot)
   const [version, setVersion] = useState('')
   const [section, setSection] = useState('appearance')
   const toastOn = useSyncExternalStore(songPrefs.subscribe, songPrefs.songToastEnabled)
@@ -189,6 +191,45 @@ function SettingsScreen({
                 { value: 'open', label: 'Open mic' }
               ]}
               onChange={(v) => voice.setMicMode(v)}
+            />
+          </Row>
+          <h3 className="rl-subhead">Voice quality</h3>
+          <p className="rl-section-sub">
+            Your voice is sent at a higher quality than before. These three clean it up before it is sent. They are on because most
+            microphones and rooms need them; turn them off if you have a good microphone and a quiet room and want to be heard as you
+            are. A change applies at once, even mid-call.
+          </p>
+          <Row title="Noise suppression" hint="Cuts steady background noise such as fans and keyboards. Off, quiet word endings and the room are not trimmed.">
+            <Segmented
+              label="Noise suppression"
+              value={capture.noiseSuppression}
+              options={[
+                { value: true, label: 'On' },
+                { value: false, label: 'Off' }
+              ]}
+              onChange={(on) => voicePrefs.setCapturePref('noiseSuppression', on)}
+            />
+          </Row>
+          <Row title="Automatic gain" hint="Evens out how loud you are, so a quiet voice is lifted and a shout is held down. Off, you are as loud as your microphone makes you.">
+            <Segmented
+              label="Automatic gain"
+              value={capture.autoGainControl}
+              options={[
+                { value: true, label: 'On' },
+                { value: false, label: 'Off' }
+              ]}
+              onChange={(on) => voicePrefs.setCapturePref('autoGainControl', on)}
+            />
+          </Row>
+          <Row title="Echo cancellation" hint="Stops people hearing themselves when your speakers are heard by your microphone. Turn it off only when you wear headphones, or the other person will hear themselves.">
+            <Segmented
+              label="Echo cancellation"
+              value={capture.echoCancellation}
+              options={[
+                { value: true, label: 'On' },
+                { value: false, label: 'Off' }
+              ]}
+              onChange={(on) => voicePrefs.setCapturePref('echoCancellation', on)}
             />
           </Row>
           <h3 className="rl-subhead">Mic / speaker devices</h3>

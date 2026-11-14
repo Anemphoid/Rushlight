@@ -11,6 +11,8 @@ import { Room, RoomEvent, Track, DisconnectReason, isE2EESupported } from 'livek
 import E2EEWorker from 'livekit-client/e2ee-worker?worker&inline'
 import { VoiceKeyProvider } from './e2ee/voiceKeys'
 import { playSound } from './sounds'
+import * as voicePrefs from './voicePrefs'
+import { captureOptions, roomOptions } from './voiceOptions'
 import { applyTrackVolume, attachRemoteAudio } from './audioOutput'
 
 const PREF = {
@@ -53,6 +55,7 @@ const clampGain = (n) => (Number.isFinite(n) ? Math.min(MAX_GAIN, Math.max(0, n)
 let inputGain = clampGain(Number(readPref(PREF.gain, '1')))
 let gainNode = null // the live GainNode, once the processor below is attached
 let gainFailed = false // processing broke once; stay on the raw mic from then on
+let captureStale = false // a microphone switch (noise, gain, echo) changed since the mic track was captured
 let wantMic = false // what the mic mode asks for, before mute/deafen are applied
 let pingTimer = null
 // Per-person volume multipliers (0-1 of the output volume), kept by display name
@@ -160,6 +163,11 @@ async function applyMic() {
     for (let i = 0; i < 4 && room && room.localParticipant.isMicrophoneEnabled !== desiredMic; i++) {
       await room.localParticipant.setMicrophoneEnabled(desiredMic)
     }
+    // A changed microphone switch reaches the live track by capturing it again. Only while the mic is on: a muted track is left alone
+    // (restarting it would send audio while "muted"), and the next time it comes on it is captured with the new settings.
+    if (captureStale && desiredMic && room && room.localParticipant.isMicrophoneEnabled) {
+      await recaptureMic()
+    }
     // A mic problem is only news until the mic works again.
     if (desiredMic && room && room.localParticipant.isMicrophoneEnabled && state.error) {
       update({ error: '' })
@@ -170,9 +178,34 @@ async function applyMic() {
     applyingMic = false
     update({ micOn: !!room && room.localParticipant.isMicrophoneEnabled })
     refreshParticipants()
-    if (desiredMic !== target) applyMic() // the key changed while we were busy
+    // the key changed while we were busy, or a switch changed while the mic was on
+    if (desiredMic !== target || (captureStale && desiredMic && room && room.localParticipant.isMicrophoneEnabled)) applyMic()
   }
 }
+
+// Capture the microphone again with the saved settings. The track stays published, so the call is not dropped and nobody else sees a
+// leave; it runs inside applyMic, so a mute or a push-to-talk release that arrives meanwhile waits and is applied right after.
+async function recaptureMic() {
+  const pub = room && room.localParticipant.getTrackPublication(Track.Source.Microphone)
+  const track = pub && pub.audioTrack
+  captureStale = false
+  if (!track) return
+  try {
+    await track.restartTrack(captureOptions(voicePrefs.getSnapshot(), readPref(PREF.input, '')))
+  } catch (err) {
+    // not retried by itself (that would loop on a mic that cannot be opened); the next switch change or the next call tries again
+    update({ error: micErrorText(err) })
+  }
+}
+
+// A switch in Settings changed. New captures use it at once; the live track is captured again when the mic is on, or at the next unmute.
+voicePrefs.subscribe(() => {
+  captureStale = true
+  if (room) {
+    room.options.audioCaptureDefaults = captureOptions(voicePrefs.getSnapshot(), readPref(PREF.input, ''))
+    applyMic()
+  }
+})
 
 const micBlocked = () => state.muted || state.deafened
 
@@ -430,13 +463,15 @@ export async function join({ url, token, key, encryption = null, jellyboxOpen = 
     provider = new VoiceKeyProvider()
     worker = new E2EEWorker()
   }
-  const r = new Room({
-    adaptiveStream: true,
-    dynacast: true,
-    audioCaptureDefaults: savedInput ? { deviceId: savedInput } : undefined,
-    audioOutput: savedOutput ? { deviceId: savedOutput } : undefined,
-    ...(encryption ? { e2ee: { keyProvider: provider, worker } } : {})
-  })
+  captureStale = false // a new connection captures with the current settings from the start
+  const r = new Room(
+    roomOptions({
+      input: savedInput,
+      output: savedOutput,
+      capture: voicePrefs.getSnapshot(),
+      e2ee: encryption ? { keyProvider: provider, worker } : null
+    })
+  )
   room = r
   keyProvider = provider
   e2eeWorker = worker
