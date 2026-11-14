@@ -1,5 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useSyncExternalStore } from 'react'
 import * as voice from '../voice'
+import * as voicePrefs from '../voicePrefs'
+import { captureOptions } from '../voiceOptions'
 
 function MicSpeakerCheck() {
   const [inputDevices, setInputDevices] = useState([])
@@ -10,8 +12,10 @@ function MicSpeakerCheck() {
   const [level, setLevel] = useState(0)
   const [error, setError] = useState('')
   const [speakerTesting, setSpeakerTesting] = useState(false)
+  const capture = useSyncExternalStore(voicePrefs.subscribe, voicePrefs.getSnapshot)
 
   const streamRef = useRef(null)
+  const testingRef = useRef(false)
   const audioCtxRef = useRef(null)
   const rafRef = useRef(null)
 
@@ -41,6 +45,7 @@ function MicSpeakerCheck() {
       audioCtxRef.current.close()
       audioCtxRef.current = null
     }
+    testingRef.current = false
     setTesting(false)
     setLevel(0)
   }
@@ -48,8 +53,9 @@ function MicSpeakerCheck() {
   async function startMicTest() {
     setError('')
     try {
+      // captured with the same three settings as a call, so the meter shows what is sent
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: selectedInput ? { deviceId: { exact: selectedInput } } : true
+        audio: { ...captureOptions(capture), ...(selectedInput ? { deviceId: { exact: selectedInput } } : {}) }
       })
       streamRef.current = stream
       await refreshDeviceList() // device labels only populate after permission is granted
@@ -76,6 +82,7 @@ function MicSpeakerCheck() {
         rafRef.current = requestAnimationFrame(tick)
       }
       tick()
+      testingRef.current = true
       setTesting(true)
     } catch (err) {
       setError(
@@ -142,6 +149,14 @@ function MicSpeakerCheck() {
       setSpeakerTesting(false)
     }
   }
+
+  // a switch changed while the test is running: capture again with it, so the meter keeps showing what is sent
+  useEffect(() => {
+    if (!testingRef.current) return
+    stopMicTest()
+    startMicTest()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [capture])
 
   useEffect(() => {
     refreshDeviceList()
