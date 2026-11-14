@@ -55,6 +55,7 @@ jobs:
       - run: npm run build
 
       - name: Build and publish the Windows installer
+        shell: bash
         run: npx electron-builder --win nsis --publish always -c.publish.provider=github -c.publish.releaseType=release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
