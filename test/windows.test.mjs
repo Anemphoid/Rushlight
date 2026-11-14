@@ -52,3 +52,12 @@ test('the Windows installer is per person (no administrator rights) and has one 
   assert.match(yml, /oneClick:\s*true/)
   assert.match(yml, /artifactName:\s*\$\{productName\}-Setup\.\$\{ext\}/)
 })
+
+test('only one copy runs at a time, and Windows gets its notification id', () => {
+  const index = read('src/main/index.js')
+  assert.match(index, /requestSingleInstanceLock\(\)/)
+  assert.match(index, /on\('second-instance'/)
+  assert.match(index, /setAppUserModelId\('cc\.rushlight\.app'\)/)
+  // the id must be the one the installer is built with
+  assert.match(read('electron-builder.yml'), /^appId: cc\.rushlight\.app$/m)
+})
