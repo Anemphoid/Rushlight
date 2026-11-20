@@ -136,7 +136,7 @@ async function request(path, { method = 'GET', body, token } = {}) {
   } catch (err) {
     console.error('Rushlight server request failed:', err)
     setConnectionProblem(baseUrl)
-    const failure = new Error(`Couldn't reach the server at ${baseUrl.replace(/^https?:\/\//, '')}. Check that it is on and that the address is right.`)
+    const failure = new Error(`Couldn't reach the server at ${baseUrl.replace(/^https?:\/\//, '')}. Check that it is on and that the address is right. It may have moved to a new address.`)
     failure.network = true
     throw failure
   }
