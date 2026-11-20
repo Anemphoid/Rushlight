@@ -13,6 +13,8 @@ import SafetyNumberDialog from '../components/SafetyNumberDialog'
 import DeviceNotices from '../components/DeviceNotices'
 import PairingNotice from '../components/PairingNotice'
 import OwnershipBanners from '../components/OwnershipBanners'
+import AddressChangeNotice from '../components/AddressChangeNotice'
+import { addressNoticeOf } from '../addressNotice'
 import Avatar from '../components/Avatar'
 import Icon from '../components/Icon'
 import * as api from '../api'
@@ -194,6 +196,7 @@ function ChannelTreeScreen({
   const [actionError, setActionError] = useState('')
   const [volumeMenu, setVolumeMenu] = useState(null) // { x, y, name, accountId, showVolume }
   const [ownership, setOwnership] = useState({ succession: null, notices: [] }) // a claim on the server, and ownership notices
+  const [addressNotice, setAddressNotice] = useState(null) // admins: the server computer's address changed
   const [safetyFor, setSafetyFor] = useState(null) // an account id whose safety number is open
   const unreadCounts = useSyncExternalStore(unread.subscribe, unread.getSnapshot)
   const voiceState = useSyncExternalStore(voice.subscribe, voice.getSnapshot)
@@ -262,6 +265,10 @@ function ChannelTreeScreen({
         setProposals(data.proposals || [])
         setOwnership((prev) => {
           const next = { succession: data.succession || null, notices: data.notices || [] }
+          return JSON.stringify(prev) === JSON.stringify(next) ? prev : next
+        })
+        setAddressNotice((prev) => {
+          const next = addressNoticeOf(data)
           return JSON.stringify(prev) === JSON.stringify(next) ? prev : next
         })
         checkUnread(data)
@@ -1103,6 +1110,7 @@ function ChannelTreeScreen({
       />
 
       <div className="tree-main-col">
+        {sessionToken && <AddressChangeNotice notice={addressNotice} />}
         {sessionToken && (
           <OwnershipBanners
             ownership={ownership}
