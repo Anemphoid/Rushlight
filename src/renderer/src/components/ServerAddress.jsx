@@ -33,7 +33,7 @@ function ServerAddress() {
     <div className="auth-server">
       {problem && (
         <div className="auth-server-problem">
-          <div className="error-text">Couldn't reach the server at {displayAddress(problem)}.</div>
+          <div className="error-text">Couldn't reach the server at {displayAddress(problem)}. This server may have moved to a new address: type the new one here.</div>
           <button type="button" className="auth-primary" onClick={() => setEditing(true)}>
             Change server address
           </button>
